@@ -4,7 +4,7 @@ _Gentei_ is a Firebase-and-friends application that monitors YouTube channel mem
 
 ## API
 
-OpenAPI documentation: https://mark-ignacio.github.io/member-gentei/api.html
+OpenAPI documentation: https://docs.member-gentei.tindabox.net/api.html
 
 ## Project layout
 
