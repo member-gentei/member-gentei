@@ -1,4 +1,4 @@
-module github.com/mark-ignacio/member-gentei/pkg
+module github.com/member-gentei/member-gentei/pkg
 
 go 1.14
 

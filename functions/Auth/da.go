@@ -11,7 +11,7 @@ import (
 	"os"
 	"sort"
 
-	"github.com/mark-ignacio/member-gentei/pkg/common"
+	"github.com/member-gentei/member-gentei/pkg/common"
 	"github.com/rs/zerolog"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/youtube/v3"

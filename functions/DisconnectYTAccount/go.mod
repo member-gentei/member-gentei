@@ -1,4 +1,4 @@
-module github.com/mark-ignacio/member-gentei/functions/DCYTAccount
+module github.com/member-gentei/member-gentei/functions/DCYTAccount
 
 go 1.15
 
@@ -9,4 +9,4 @@ require (
 	google.golang.org/grpc v1.30.0
 )
 
-replace github.com/mark-ignacio/member-gentei/pkg => ../../pkg
+replace github.com/member-gentei/member-gentei/pkg => ../../pkg

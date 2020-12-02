@@ -6,7 +6,7 @@ Gentei's batteries-included Discord bot is called **gentei-bouncer#9835**. It's 
 
 Upon joining an enrolled Discord server, the bot will load memberships for the corresponding YouTube channel and start responding to the `!mg` command prefix to conduct member management.
 
-The code for the bot is available on GitHub: [https://github.com/mark-ignacio/member-gentei/tree/master/bot](https://github.com/mark-ignacio/member-gentei/tree/master/bot)
+The code for the bot is available on GitHub: [https://github.com/member-gentei/member-gentei/tree/master/bot](https://github.com/member-gentei/member-gentei/tree/master/bot)
 
 # Server configuration
 

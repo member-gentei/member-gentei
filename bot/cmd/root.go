@@ -8,8 +8,8 @@ import (
 
 	"cloud.google.com/go/firestore"
 
-	"github.com/mark-ignacio/member-gentei/bot/discord"
-	"github.com/mark-ignacio/member-gentei/bot/discord/api"
+	"github.com/member-gentei/member-gentei/bot/discord"
+	"github.com/member-gentei/member-gentei/bot/discord/api"
 	zlg "github.com/mark-ignacio/zerolog-gcp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"

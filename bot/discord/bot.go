@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mark-ignacio/member-gentei/bot/discord/api"
-	"github.com/mark-ignacio/member-gentei/pkg/common"
+	"github.com/member-gentei/member-gentei/bot/discord/api"
+	"github.com/member-gentei/member-gentei/pkg/common"
 
 	"cloud.google.com/go/firestore"
 	"github.com/Lukaesebrot/dgc"

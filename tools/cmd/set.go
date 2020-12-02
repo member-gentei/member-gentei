@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"cloud.google.com/go/firestore"
-	"github.com/mark-ignacio/member-gentei/pkg/common"
+	"github.com/member-gentei/member-gentei/pkg/common"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
