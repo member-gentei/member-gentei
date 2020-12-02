@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{document} {
+      allow read: if request.auth != null && request.auth.uid == document
+    }
+    match /users/{document}/private/youtube {
+    	allow delete: if request.auth.uid == document
+    }
+    match /channels/{document} {
+      allow read: if request.auth != null;
+    }
+  }
+}

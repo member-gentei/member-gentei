@@ -1,0 +1,154 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Bot Overview</title>
+    <meta name="description" content="Documentation for Gentei">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Source+Sans+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="/assets/normalize.css?v=1606774410" media="screen" />
+    <link rel="stylesheet" type="text/css" href="/assets/doctave-style.css?v=1606774410" media="screen" />
+
+    <link rel="stylesheet" type="text/css" href="/assets/prism-ghcolors.css?v=1606774410" media="screen" />
+
+    
+
+    <script>
+    var DOCTAVE_TIMESTAMP = "1606774410";
+    var color = localStorage.getItem('doctave-color')
+
+    if (color === 'dark') {
+        document.getElementsByTagName('html')[0].classList.remove('light');
+        document.getElementsByTagName('html')[0].classList.add('dark');
+    } else {
+        document.getElementsByTagName('html')[0].classList.remove('dark');
+        document.getElementsByTagName('html')[0].classList.add('light');
+    }
+    </script>
+
+    
+</head>
+
+<body>
+    <label for='menu-toggle-switch' class='menu-toggle-button'>
+        ☰
+    </label>
+    <input type="checkbox" id="menu-toggle-switch" value='0' />
+    <div class='page'>
+        <div class='header'>
+            <div class='logo'>
+                
+                <h2 class='project-name'>
+                    <a href='/'>
+                        Gentei
+                    </a>
+                </h2>
+            </div>
+            <div class='search'>
+                <form id='search-form'>
+    <input type='text' id='search-box' autocomplete="off" placeholder="Search..."></input>
+    <span class='search-icon'>S</span>
+    <ul id='search-results'></ul>
+</form>
+
+            </div>
+            <div class='header-dummy-right'>
+            </div>
+        </div>
+        <div class='container'>
+            <div class='sidebar-left'>
+                <nav class='site-nav'>
+    <ul>
+        
+            <li><a href="/Discord">Discord</a></li>
+            
+                <ul>
+    
+        <li><a class="active" href="/Discord/bot">Bot Overview</a></li>
+        
+    
+        <li><a href="/Discord/server-onboarding">Server Onboarding</a></li>
+        
+    
+        <li><a href="/Discord/optional-features">Optional Features</a></li>
+        
+    
+</ul>
+
+            
+        
+            <li><a href="/youtube-oauth">YouTube Permissions</a></li>
+            
+        
+            <li><a href="/bugs-and-suggestions">Filing Bugs &amp; Suggestions</a></li>
+            
+        
+    </ul>
+    <span id='light-dark-mode-switch'></span>
+</nav>
+
+            </div>
+            <div class='content'>
+                <p>Gentei's batteries-included Discord bot is called <strong>gentei-bouncer#9835</strong>. It's a fully automated wrapper for managing a members-only role.</p>
+<p>Upon joining an enrolled Discord server, the bot will load memberships for the corresponding YouTube channel and start responding to the <code>!mg</code> command prefix to conduct member management.</p>
+<p>The code for the bot is available on GitHub: <a href="https://github.com/mark-ignacio/member-gentei/tree/master/bot">https://github.com/mark-ignacio/member-gentei/tree/master/bot</a></p>
+<h1 id="server-configuration-1">Server configuration</h1>
+<p>Configuration happens as part of a manual enrollment process, which happens generally over Discord or Email. See the <a href="server-onboarding">server onboarding guide</a> for details and requirements.</p>
+<h1 id="commands-2">Commands</h1>
+<p>The screenshots below may contain outdated text and graphics, but the bot should always work as described below.</p>
+<h2 id="!mg-check-3">!mg check</h2>
+<p><code>!mg check</code> allows users to trigger a membership check on-demand, which usually completes in mere seconds. This check is rate limited to mitigate abuse.</p>
+<p><img src="/assets/mg-check.png" alt="mg check" /></p>
+<h1 id="notes-on-operation-+-logging-4">Notes on operation + logging</h1>
+<p>The Discord bot is hooked up to <a href="https://cloud.google.com/products/operations">Google Cloud Operations</a> for general logging and monitoring. Logs are kept for error alerting and auditing purposes and can be provided to Discord server administrators on request.</p>
+<p>Logs of Gentei's actions can also be retrieved via the Discord server audit log. Due to technical limitations, the bot cannot currently provide detailed audit reasons in the Discord server audit log - but they do exist in Google Cloud Operations logs.</p>
+<p><img src="/assets/bot-audit-log.png" alt="" /></p>
+
+            </div>
+            <div class='sidebar-right'>
+                <div class='page-nav' id='page-nav'>
+                    <p class='page-nav-header'>On this page</p>
+                    <hr />
+                    <ul>
+                        
+                            <li class='page-nav-level-1'>
+                                <a href='#server-configuration-1'>Server configuration</a>
+                            </li>
+                        
+                            <li class='page-nav-level-1'>
+                                <a href='#commands-2'>Commands</a>
+                            </li>
+                        
+                            <li class='page-nav-level-2'>
+                                <a href='#!mg-check-3'>!mg check</a>
+                            </li>
+                        
+                            <li class='page-nav-level-1'>
+                                <a href='#notes-on-operation-+-logging-4'>Notes on operation + logging</a>
+                            </li>
+                        
+                    </ul>
+                </div>
+            </div>
+            <div class='wave-container'>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
+                    <path fill-opacity="0.35" d="M0,192L60,213.3C120,235,240,277,360,277.3C480,277,600,235,720,192C840,149,960,107,1080,122.7C1200,139,1320,213,1380,250.7L1440,288L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"></path>
+                    <path fill-opacity="0.5" d="M0,160L60,181.3C120,203,240,245,360,229.3C480,213,600,139,720,138.7C840,139,960,213,1080,229.3C1200,245,1320,203,1380,181.3L1440,160L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"></path>
+                    <path fill-opacity="0.2" d="M0,224L60,197.3C120,171,240,117,360,117.3C480,117,600,171,720,186.7C840,203,960,181,1080,186.7C1200,192,1320,224,1380,240L1440,256L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"></path>
+                </svg>
+                <p>Powered by <a href='https://cli.doctave.com' target='_blank'>Doctave</a></p>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src="/assets/mermaid.js?v=1606774410"></script>
+    <script type="text/javascript" src="/assets/elasticlunr.js?v=1606774410"></script>
+    <script type="text/javascript" src="/assets/doctave-app.js?v=1606774410"></script>
+    <script type="text/javascript" src="/assets/prism.js?v=1606774410"></script>
+</body>
+
+</html>

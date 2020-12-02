@@ -1,0 +1,12 @@
+[Unit]
+Description=Gentei membership checks
+After=network.target
+
+[Service]
+User=gentei-member-check
+Group=gentei-member-check
+ExecStart=/bin/gentei-member-check --verbose
+Environment=GOOGLE_APPLICATION_CREDENTIALS=/etc/gentei/member-check.sa.json
+
+[Install]
+WantedBy=multi-user.target

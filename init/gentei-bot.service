@@ -1,0 +1,14 @@
+[Unit]
+Description=Gentei Discord bot
+After=network.target
+
+[Service]
+User=gentei-bot
+Group=gentei-bot
+ExecStart=/bin/gentei-bot --config /etc/gentei/bot.yml --verbose
+Environment=GOOGLE_APPLICATION_CREDENTIALS=/etc/gentei/bot.sa.json
+Restart=on-failure
+RestartSec=20s
+
+[Install]
+WantedBy=multi-user.target

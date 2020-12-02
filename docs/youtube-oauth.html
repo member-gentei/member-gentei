@@ -1,0 +1,136 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <title>YouTube Permissions</title>
+    <meta name="description" content="Documentation for Gentei">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Source+Sans+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="/assets/normalize.css?v=1606774410" media="screen" />
+    <link rel="stylesheet" type="text/css" href="/assets/doctave-style.css?v=1606774410" media="screen" />
+
+    <link rel="stylesheet" type="text/css" href="/assets/prism-ghcolors.css?v=1606774410" media="screen" />
+
+    
+
+    <script>
+    var DOCTAVE_TIMESTAMP = "1606774410";
+    var color = localStorage.getItem('doctave-color')
+
+    if (color === 'dark') {
+        document.getElementsByTagName('html')[0].classList.remove('light');
+        document.getElementsByTagName('html')[0].classList.add('dark');
+    } else {
+        document.getElementsByTagName('html')[0].classList.remove('dark');
+        document.getElementsByTagName('html')[0].classList.add('light');
+    }
+    </script>
+
+    
+</head>
+
+<body>
+    <label for='menu-toggle-switch' class='menu-toggle-button'>
+        ☰
+    </label>
+    <input type="checkbox" id="menu-toggle-switch" value='0' />
+    <div class='page'>
+        <div class='header'>
+            <div class='logo'>
+                
+                <h2 class='project-name'>
+                    <a href='/'>
+                        Gentei
+                    </a>
+                </h2>
+            </div>
+            <div class='search'>
+                <form id='search-form'>
+    <input type='text' id='search-box' autocomplete="off" placeholder="Search..."></input>
+    <span class='search-icon'>S</span>
+    <ul id='search-results'></ul>
+</form>
+
+            </div>
+            <div class='header-dummy-right'>
+            </div>
+        </div>
+        <div class='container'>
+            <div class='sidebar-left'>
+                <nav class='site-nav'>
+    <ul>
+        
+            <li><a href="/Discord">Discord</a></li>
+            
+                <ul>
+    
+        <li><a href="/Discord/bot">Bot Overview</a></li>
+        
+    
+        <li><a href="/Discord/server-onboarding">Server Onboarding</a></li>
+        
+    
+        <li><a href="/Discord/optional-features">Optional Features</a></li>
+        
+    
+</ul>
+
+            
+        
+            <li><a class="active" href="/youtube-oauth">YouTube Permissions</a></li>
+            
+        
+            <li><a href="/bugs-and-suggestions">Filing Bugs &amp; Suggestions</a></li>
+            
+        
+    </ul>
+    <span id='light-dark-mode-switch'></span>
+</nav>
+
+            </div>
+            <div class='content'>
+                <p>One of the common comments about Gentei are that the permissions look kinda sketchy.</p>
+<p><img src="/assets/oauth-permissions.png" alt="oauth-permission" /></p>
+<p>The short response to that is this is unavoidable for the way that Gentei currently verifies memberships. I wish this could work with a less restrictive permission set, but I can at least explain why Gentei needs it.</p>
+<h1 id="youtube-api-permissions-1">YouTube API permissions</h1>
+<p>Gentei depends on reading out comment threads on a members-only video, and <a href="https://developers.google.com/youtube/v3/docs/commentThreads/list">the associated YouTube Data API endpoint</a> requires a specific OAuth permission scope called <code>https://www.googleapis.com/auth/youtube.force-ssl</code>.</p>
+<p><img src="/assets/youtube-force-ssl.png" alt="youtube-force-ssl" /></p>
+<p>Referencing that scope with YouTube's <a href="https://developers.google.com/youtube/v3/guides/auth/server-side-web-apps#identify-access-scopes">table of available OAuth scopes</a>, this maps to the &quot;See, edit, and permanently delete your YouTube videos, ratings, comments and captions&quot; message that users see in the top screenshot above.</p>
+<p>There's not really anything we can do about that past asking YouTube to reclassify this API endpoint under a separate OAuth scope and hope that it happens. ¯\_(ツ)_/¯</p>
+
+            </div>
+            <div class='sidebar-right'>
+                <div class='page-nav' id='page-nav'>
+                    <p class='page-nav-header'>On this page</p>
+                    <hr />
+                    <ul>
+                        
+                            <li class='page-nav-level-1'>
+                                <a href='#youtube-api-permissions-1'>YouTube API permissions</a>
+                            </li>
+                        
+                    </ul>
+                </div>
+            </div>
+            <div class='wave-container'>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
+                    <path fill-opacity="0.35" d="M0,192L60,213.3C120,235,240,277,360,277.3C480,277,600,235,720,192C840,149,960,107,1080,122.7C1200,139,1320,213,1380,250.7L1440,288L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"></path>
+                    <path fill-opacity="0.5" d="M0,160L60,181.3C120,203,240,245,360,229.3C480,213,600,139,720,138.7C840,139,960,213,1080,229.3C1200,245,1320,203,1380,181.3L1440,160L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"></path>
+                    <path fill-opacity="0.2" d="M0,224L60,197.3C120,171,240,117,360,117.3C480,117,600,171,720,186.7C840,203,960,181,1080,186.7C1200,192,1320,224,1380,240L1440,256L1440,320L1380,320C1320,320,1200,320,1080,320C960,320,840,320,720,320C600,320,480,320,360,320C240,320,120,320,60,320L0,320Z"></path>
+                </svg>
+                <p>Powered by <a href='https://cli.doctave.com' target='_blank'>Doctave</a></p>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src="/assets/mermaid.js?v=1606774410"></script>
+    <script type="text/javascript" src="/assets/elasticlunr.js?v=1606774410"></script>
+    <script type="text/javascript" src="/assets/doctave-app.js?v=1606774410"></script>
+    <script type="text/javascript" src="/assets/prism.js?v=1606774410"></script>
+</body>
+
+</html>

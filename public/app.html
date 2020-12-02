@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gentei / 限定</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.css" integrity="sha256-67AR2JVjhMZCLVxapLuBSMap5RrXbksv4vlllenHBSE=" crossorigin="anonymous">
+    <link rel="stylesheet" href="/style.css">
+
+    <script defer src="/__/firebase/7.24.0/firebase-app.js"></script>
+    <script defer src="/__/firebase/7.24.0/firebase-auth.js"></script>
+    <script defer src="/__/firebase/7.24.0/firebase-firestore.js"></script>
+    <script defer src="/__/firebase/init.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/vue@2.6.12"></script>
+  </head>
+  <body>
+    <section class="hero is-primary">
+      <div class="hero-body">
+        <div class="container">
+          <h1 class="title">Gentei / 限定</h1>
+          <h2 class="subtitle">VTuber channel membership verification</h2>
+        </div>
+      </div>
+    </section>
+    <section role="main" class="section">
+      <div class="container">
+        <div id="app" class="is-hidden">
+          <div v-if="user">
+            <h2 class="title">Membership status</h2>
+            <div class="content discord-info">
+              <p>Hi, <strong>{{ user.displayName }}</strong>.</p>
+            </div>
+            <yt-info
+              v-bind:login-url="loginURLs.youtube"
+              v-bind:channels="userData.CandidateChannels"
+              v-bind:memberships="userData.Memberships"
+              v-bind:channelid="userData.YoutubeChannelID"
+              v-bind:dcyoutubeaccount="dcYouTubeAccount"
+              ></yt-info>
+            <div class="buttons is-centered mt-6">
+              <button class="button">Request re-evaluation</button>
+              <button v-on:click="logout()" class="button is-danger">Log out</button>
+            </div>
+          </div>
+          <div v-else-if="loaded" class="has-text-centered">
+            <div class="content">
+              <a v-bind:href="loginURLs.discord"><button class="button is-link">Sign in with Discord</button></a>
+            </div>
+            <div class="content">
+              <p>
+                Sign in with Discord to get started! <br> 
+                <em>Gentei</em> does not use the YouTube account you have connected in Discord, so you'll be associating one here separately.
+              </p>
+            </div>
+          </div>
+          <div v-else>
+            <div class="has-text-centered">
+              <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
+              <p>Loading...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section id="qa" class="section">
+      <div class="container">
+        <h2 class="title is-4">Q&A</h2>
+        <h3 class="subtitle is-5 mt-4">How does this work?</h2>
+        <p><em>Gentei</em> is connected to designated bots in VTuber fan Discord servers. It uses the YouTube API to fetch channel information in an more roundabout - but similarly effective - manner as Discord's official <a href="https://support.discord.com/hc/en-us/articles/215162978-Youtube-Channel-Memberships-Integration-FAQ">YouTube channel memberships integration</a>.</p>
+        <br/>
+        <p><em>Gentei</em> periodically checks your membership and notifies the Discord bots of membership status changes.</p>
+      </div>
+    </section>
+    <footer class="footer">
+      <div class="container">
+        <div class="content has-text-centered is-size-7">
+          <a href="/privacy">Privacy Policy</a> | Gentei / 限定 <br>
+          Some graphics courtesy of <a href="https://www.irasutoya.com">いらすとや</a>
+          <div class="is-centered developed-with-youtube">
+            <img src="/img/developed-with-youtube-sentence-case-dark.png" alt="developed with YouTube">
+          </div>
+        </div>
+      </div>
+    </footer>
+    <script type="text/x-template" id="yt-info-template">  
+      <div class="connection">
+        <div v-if="!!channelid" class="content">
+          <p>Connected channel: <a v-bind:href="channelHref" target="_blank" rel="noopener">{{ channelHref }}</a></p>
+          <div class="buttons is-centered">
+            <button class="button is-danger"
+              v-bind:class="{'is-loading': deleting}"
+              v-on:click="disconnect()">Disconnect Channel</button>
+          </div>
+          <h3>Memberships</h3>
+          <p>Channel memberships are only displayed here and evaluated if you are a member of eligible Discord fan servers.</p>
+          <p><strong>n.b.</strong> Channel memberships are first evaluated a minute or so after joining. It should toggle before your eyes!</p>
+          <div class="columns is-multiline mt-4">
+            <yt-channel-card
+              v-for="cm in channelMemberships"
+              v-bind:key="cm.path"
+              v-bind:docref="cm.docRef"
+              v-bind:isMember="cm.isMember"></yt-channel-card>
+          </div>
+        </div>
+        <div v-else class="content">
+          <p>Please connect your YouTube account to verify your membership(s).</p>
+          <div class="has-text-centered">
+            <a v-bind:href="loginUrl"><div class="signin-google-button"></div></a>
+          </div>
+        </div>
+      </div>
+    </script>
+    <script type="text/x-template" id="yt-channel-card-template">
+      <div class="column is-one-quarter">
+        <div v-if="doc" class="card channel">
+          <div class="card-image">
+            <figure class="channel-thumbnail image is-128x128">
+              <a v-bind:href="channelHref" target="_blank" rel="noopener noreferrer">
+                <img v-bind:src="doc.Thumbnail" alt="channel thumbnail" class="is-rounded mt-2">
+              </a> 
+            </figure>
+          </div>
+          <div class="card-content has-text-centered">
+            <div class="content">
+              <h4 class="title is-6">{{ doc.ChannelTitle }}</h4>
+            </div>
+          </div>
+          <footer v-if="isMember" class="card-footer">
+            <p class="card-footer-item has-background-success-light">Membership Verified</p>
+          </footer>
+          <footer v-else class="card-footer">
+            <p class="card-footer-item">Non-member</p>
+          </footer>
+        </div>
+        <div v-else class="card">
+          <div class="card-content">
+            <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
+          </div>
+        </div>
+      </div>
+    </script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const loadEl = document.querySelector('#load');
+        try {
+          let app = firebase.app();
+          let features = [
+            'auth', 
+            'firestore', 
+          ].filter(feature => typeof app[feature] === 'function');
+        } catch (e) {
+          console.error(e);
+        }
+      });
+    </script>
+    <script defer src="/app.js"></script>
+  </body>
+</html>

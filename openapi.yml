@@ -1,0 +1,151 @@
+openapi: 3.0.0
+info:
+  title: Gentei REST API
+  description: |
+    An API primarily for use by Discord bots and other community-made services.
+
+    Authentication works via pre-distributed API keys. See the 
+    reference bot implementation in the Github repository for example usage.
+  version: "0.3"
+
+servers:
+  - url: https://us-central1-member-gentei.cloudfunctions.net/API/
+
+paths:
+  /v1/channel/{channelSlug}/members:
+    summary: Verified membership listing and lookups.
+    get:
+      operationId: getMembers
+      summary: Get members of a YouTube channel
+      parameters:
+        - $ref: "#/components/parameters/channelSlugPathParam"
+        - name: snowflakes
+          in: query
+          description: Specific Discord snowflake(s) to retrieve - omit to get all members.
+          schema:
+            type: array
+            items:
+              type: string
+            maxItems: 10
+            uniqueItems: true
+        - $ref: "#/components/parameters/limitParam"
+        - $ref: "#/components/parameters/afterParam"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    description: An array of verified Discord user snowflakes.
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ChannelMember"
+                  next:
+                    description: Pagination cursor.
+                    type: string
+        "403":
+          description: Not allowed to get members for this channel.
+        "404":
+          description: Channel membership integration does not exist.
+  /v1/channel/{channelSlug}/members/check:
+    summary: Submits a synchornous request to validate a Discord user.
+    post:
+      operationId: checkMembership
+      summary: Initiate a check for Discord user membership
+      parameters:
+        - $ref: "#/components/parameters/channelSlugPathParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                snowflake:
+                  description: Discord snowflake ID
+                  type: string
+              required:
+                - snowflake
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  member:
+                    description: Discord user is a member
+                    type: boolean
+                  reason:
+                    description: Verification failure
+                    type: string
+                    enum:
+                      - "not connected"
+                      - "not member"
+                required:
+                  - member
+        "403":
+          description: Not allowed to get members for this channel.
+        "404":
+          description: Channel membership integration does not exist.
+components:
+  parameters:
+    channelSlugPathParam:
+      name: channelSlug
+      in: path
+      required: true
+      description: The slug for a creator's YouTube channel. This generally corresponds to the content creator's name in romaji.
+      schema:
+        type: string
+        pattern: '^[a-z\d\-]+$'
+        example: kiryu-coco
+    limitParam:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 100
+      description: Maximum page size.
+    afterParam:
+      name: after
+      in: query
+      description: Pagination cursor. Put the `next` string here if it's present in order to fetch the next page of the response.
+      schema:
+        type: string
+  schemas:
+    ChannelMember:
+      type: object
+      properties:
+        id:
+          type: string
+        # timestamp:
+        #   type: string
+  securitySchemes:
+    APIKey:
+      type: http
+      scheme: bearer
+      description:  |
+        Keys are distributed to API clients in the form of special UUIDv4 strings - e.g. `f0fbe675-e889-4d7c-adda-81972243f137`. These keys are assigned permissions to interact with specific channels' membership lists - to request changes, feel free to reach out.
+
+        API keys are used in `Authorization` HTTP header, like so:
+
+        ```
+        $ curl "$API_BASE/v1/channel/takanashi-kiara/members?limit=1" \
+          -H 'Authorization: Bearer f0fbe675-e889-4d7c-adda-81972243f137' 2>/dev/null | jq
+        {
+          "user": [
+            {
+              "id": "123456789012345678"
+            }
+          ]
+        }
+        ```
+
+security:
+  - APIKey: []

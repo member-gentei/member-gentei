@@ -1,0 +1,10 @@
+---
+title: "Gentei"
+navigation:
+  - path: docs/Discord
+    children:
+    - path: docs/Discord/bot.md
+    - path: docs/Discord/server-onboarding.md
+    - path: docs/Discord/optional-features.md
+  - path: docs/youtube-oauth.md
+  - path: docs/bugs-and-suggestions.md

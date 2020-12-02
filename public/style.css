@@ -1,0 +1,97 @@
+.lds-ring {
+  display: inline-block;
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.lds-ring div {
+  box-sizing: border-box;
+  display: block;
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  margin: 8px;
+  border: 8px solid #222;
+  border-radius: 50%;
+  animation: lds-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  border-color: #222 transparent transparent transparent;
+}
+
+.lds-ring div:nth-child(1) {
+  animation-delay: -0.45s;
+}
+
+.lds-ring div:nth-child(2) {
+  animation-delay: -0.3s;
+}
+
+.lds-ring div:nth-child(3) {
+  animation-delay: -0.15s;
+}
+
+@keyframes lds-ring {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.legalese {
+  font-size: 0.8em;
+}
+
+.image.channel-thumbnail {
+  margin: auto;
+}
+
+.card.channel {
+  min-width: 95%;
+}
+
+.card.channel>.card-content>.content {
+  min-height: 3.4rem;
+}
+
+.channel-thumbnail img:hover {
+  background: hsl(0, 0%, 86%);
+}
+
+.discord-username {
+  font-family: monospace !important;
+  white-space: nowrap;
+  background: hsl(0, 0%, 96%);
+}
+
+.developed-with-youtube>img {
+  display: block;
+  max-width: 400px;
+  margin: auto;
+}
+
+.signin-google-button {
+  display: inline-block;
+  background-image: url("/img/btn_google_signin_dark_normal_web.png");
+  width: 191px;
+  height: 46px;
+}
+
+.signin-google-button:hover {
+  background-image: url("/img/btn_google_signin_dark_focus_web.png");
+}
+
+.signin-google-button:active {
+  background-image: url("/img/btn_google_signin_dark_pressed_web.png");
+}
+
+body::after {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  z-index: -1;
+  content: url("/img/btn_google_signin_dark_normal_web.png") url("/img/btn_google_signin_dark_focus_web.png") url("/img/btn_google_signin_dark_pressed_web.png");
+}

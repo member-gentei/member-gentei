@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Gentei membership checks somewhere around daily
+
+[Timer]
+OnBootSec=6min
+OnUnitActiveSec=22hr
+RandomizedDelaySec=2hr
+
+[Install]
+WantedBy=timers.target

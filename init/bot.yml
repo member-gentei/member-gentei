@@ -1,0 +1,4 @@
+# sample YAML configuration for gentei-bot
+api-key: gentei-api-key
+token: bot.token
+gcp-project: member-gentei

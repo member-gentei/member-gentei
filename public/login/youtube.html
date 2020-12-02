@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Scuffed login page | Gentei / 限定</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.css"
+        integrity="sha256-67AR2JVjhMZCLVxapLuBSMap5RrXbksv4vlllenHBSE=" crossorigin="anonymous">
+    <link rel="stylesheet" href="/style.css">
+
+    <script defer src="/__/firebase/7.24.0/firebase-app.js"></script>
+    <script defer src="/__/firebase/7.24.0/firebase-auth.js"></script>
+    <script defer src="/__/firebase/init.js"></script>
+</head>
+
+<body>
+    <section class="section">
+        <div class="container has-text-centered">
+            <div class="lds-ring">
+                <div></div>
+                <div></div>
+                <div></div>
+                <div></div>
+            </div>
+            <p>Logging you in...</p>
+        </div>
+    </section>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const cloudFunctionURL = "https://us-central1-member-gentei.cloudfunctions.net/Auth?service=youtube";
+            const loadEl = document.querySelector('#load');
+            try {
+                let app = firebase.app();
+                let features = [
+                    'auth',
+                ].filter(feature => typeof app[feature] === 'function');
+            } catch (e) {
+                console.error(e);
+            }
+            let locationParams = new URL(document.location).searchParams
+            if (!locationParams.get("code")) {
+                console.log("no OAuth code found")
+                return
+            }
+            firebase.auth().onAuthStateChanged(function(user) {
+                firebase.app().auth().currentUser.getIdToken(true).then(function (idToken) {
+                    locationParams.set("service", "youtube")
+                    locationParams.set("jwt", idToken)
+                    let xhr = new XMLHttpRequest();
+                    xhr.open("POST", cloudFunctionURL);
+                    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                    xhr.setRequestHeader('Accept', 'application/json');
+                    xhr.onreadystatechange = function () {
+                        if (xhr.readyState > 3 && xhr.status == 200) {
+                            window.location = "/app"
+                        }
+                    }
+                    xhr.send(locationParams);
+                })
+            })
+        });
+    </script>
+</body>
+
+</html>
