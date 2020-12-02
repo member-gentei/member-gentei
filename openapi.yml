@@ -88,6 +88,14 @@ paths:
                       - "not member"
                 required:
                   - member
+              examples:
+                "Is member":
+                  value:
+                    member: true
+                "Is not a member":
+                  value:
+                    member: false
+                    reason: "not connected"
         "403":
           description: Not allowed to get members for this channel.
         "404":
