@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"cloud.google.com/go/firestore"
-	"github.com/mark-ignacio/member-gentei/pkg/common"
+	"github.com/member-gentei/member-gentei/pkg/common"
 	zlg "github.com/mark-ignacio/zerolog-gcp"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/rs/zerolog"

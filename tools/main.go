@@ -15,7 +15,7 @@ limitations under the License.
 */
 package main
 
-import "github.com/mark-ignacio/member-gentei/tools/cmd"
+import "github.com/member-gentei/member-gentei/tools/cmd"
 
 func main() {
 	cmd.Execute()

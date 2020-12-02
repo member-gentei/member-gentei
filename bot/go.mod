@@ -1,4 +1,4 @@
-module github.com/mark-ignacio/member-gentei/bot
+module github.com/member-gentei/member-gentei/bot
 
 go 1.14
 
@@ -9,7 +9,7 @@ require (
 	github.com/deepmap/oapi-codegen v1.3.13
 	github.com/getkin/kin-openapi v0.23.0
 	github.com/karrick/tparse/v2 v2.8.1
-	github.com/mark-ignacio/member-gentei/pkg v0.0.0-20201031063345-01759886af5b
+	github.com/member-gentei/member-gentei/pkg v0.0.0-20201031063345-01759886af5b
 	github.com/mark-ignacio/zerolog-gcp v0.2.0
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/rs/zerolog v1.20.0
@@ -21,4 +21,4 @@ require (
 	google.golang.org/grpc v1.33.2
 )
 
-replace github.com/mark-ignacio/member-gentei/pkg => ../pkg
+replace github.com/member-gentei/member-gentei/pkg => ../pkg

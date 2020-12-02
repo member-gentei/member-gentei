@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/firestore"
-	"github.com/mark-ignacio/member-gentei/pkg/common"
+	"github.com/member-gentei/member-gentei/pkg/common"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/option"

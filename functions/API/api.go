@@ -13,7 +13,7 @@ import (
 	"cloud.google.com/go/firestore"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi"
-	"github.com/mark-ignacio/member-gentei/pkg/common"
+	"github.com/member-gentei/member-gentei/pkg/common"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"

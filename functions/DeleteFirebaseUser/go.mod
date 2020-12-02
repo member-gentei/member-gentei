@@ -1,4 +1,4 @@
-module github.com/mark-ignacio/member-gentei/functions/DeleteFirebaseUser
+module github.com/member-gentei/member-gentei/functions/DeleteFirebaseUser
 
 go 1.15
 
