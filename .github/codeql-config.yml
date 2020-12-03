@@ -1,0 +1,3 @@
+languages: ${{ matrix.language }}
+paths-ignore:
+  - "docs/assets/"
