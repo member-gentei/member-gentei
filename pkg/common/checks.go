@@ -316,6 +316,20 @@ func ReloadDiscordGuilds(
 	// load guilds
 	response, err := httpClient.Get(discordMeGuildsURL)
 	if err != nil {
+		// oauth2 client complains about the refresh token via this GET. Annoyingly,
+		// the http client mangles it real bad and we can't cast the error conventionally!
+		if rErr, ok := scavengeRetrieveError(response, err); ok {
+			var errResponse struct {
+				Error            string
+				ErrorDescription string `json:"error_description"`
+			}
+			log.Debug().Msg("oauth2.RetrieveError")
+			// if this fails to unmarshal, we return the error as-is anyway
+			json.Unmarshal(rErr.Body, &errResponse)
+			if errResponse.ErrorDescription == `Invalid "refresh_token" in request.` {
+				err = ErrDiscordTokenInvalid
+			}
+		}
 		return
 	}
 	body, err := ioutil.ReadAll(response.Body)
