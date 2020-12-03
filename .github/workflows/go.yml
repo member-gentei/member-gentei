@@ -1,0 +1,43 @@
+name: Go
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+
+    # building on 1.13 until we should bother splitting off CI for Cloud Functions
+    - name: Set up Go 1.13
+      uses: actions/setup-go@v2
+      with:
+        go-version: "1.13"
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    # these all need to be separately built because the v4 Firebase Admin SDK is weird about Go modules
+    - name: Build pkg
+      run: |
+        cd $GITHUB_WORKSPACE/pkg && go build -v ./...
+
+    - name: Build bot 
+      run: |
+        cd $GITHUB_WORKSPACE/bot && go build -v ./...
+  
+    - name: Build functions
+      run: |
+        cd $GITHUB_WORKSPACE/functions/API && go build -v ./...
+        cd $GITHUB_WORKSPACE/functions/Auth && go build -v ./...
+        cd $GITHUB_WORKSPACE/functions/DeleteFirebaseUser && go build -v ./...
+        cd $GITHUB_WORKSPACE/functions/DisconnectYTAccount && go build -v ./...
+        cd $GITHUB_WORKSPACE/functions/Membership && go build -v ./...
+
+    # - name: Test
+    #   run: go test -v ./...
