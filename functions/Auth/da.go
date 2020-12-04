@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -97,8 +96,24 @@ func discordAuth(w http.ResponseWriter, r *http.Request) {
 	token, err := discordOAuthConfig.Exchange(ctx, oauthCode, oauth2.AccessTypeOffline)
 	// get identity
 	if err != nil {
-		log.Err(err).Msg("error exchanging OAuth token")
-		w.WriteHeader(http.StatusInternalServerError)
+		if rErr, ok := err.(*oauth2.RetrieveError); ok {
+			var details struct {
+				Error            string
+				ErrorDescription string `json:"error_description"`
+			}
+			json.Unmarshal(rErr.Body, &details)
+			if rErr.Response.StatusCode == http.StatusBadRequest && details.ErrorDescription == `Invalid "code" in request.` {
+				writeJSONError(w, http.StatusBadRequest, "Invalid auth code in Discord login request - please try again.")
+			} else {
+				writeJSONError(w, http.StatusBadRequest, fmt.Sprintf(
+					"got '%s' error from Discord - %s",
+					details.Error, details.ErrorDescription,
+				))
+			}
+		} else {
+			log.Err(err).Msg("unhandled error exchanging OAuth token")
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 		return
 	}
 	client := discordOAuthConfig.Client(ctx, token)
@@ -296,11 +311,10 @@ func youtubeAuth(w http.ResponseWriter, r *http.Request) {
 			log.Info().Str("authUser", identity.UserID).
 				Strs("existing", existingIDs).
 				Msg("denying channel ID associated with other user(s)")
-			err = writeJSONError(w, "YouTube channel is already associated with another user")
+			err = writeJSONError(w, http.StatusForbidden, "YouTube channel is already associated with another user")
 			if err != nil {
 				log.Err(err).Msg("error writing error message")
 			}
-			w.WriteHeader(http.StatusForbidden)
 			return
 		}
 	}
@@ -432,8 +446,10 @@ func init() {
 	}
 }
 
-func writeJSONError(writer io.Writer, message string) error {
-	encoder := json.NewEncoder(writer)
+func writeJSONError(w http.ResponseWriter, statusCode int, message string) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "")
 	return encoder.Encode(map[string]string{"error": message})
 }
