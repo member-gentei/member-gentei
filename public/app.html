@@ -26,39 +26,48 @@
     <section role="main" class="section">
       <div class="container">
         <div id="app" class="is-hidden">
-          <div v-if="user">
-            <h2 class="title">Membership status</h2>
-            <div class="content discord-info">
-              <p>Hi, <strong>{{ user.displayName }}</strong>.</p>
+          <div v-if="currentRoute == '/app'">
+            <div v-if="user">
+              <h2 class="title">Membership status</h2>
+              <div class="content discord-info">
+                <p>Hi, <strong>{{ user.displayName }}</strong>.</p>
+              </div>
+              <yt-info
+                v-bind:login-url="loginURLs.youtube"
+                v-bind:channels="userData.CandidateChannels"
+                v-bind:memberships="userData.Memberships"
+                v-bind:channelid="userData.YoutubeChannelID"
+                v-bind:dcyoutubeaccount="dcYouTubeAccount"
+                ></yt-info>
+              <div class="buttons is-centered mt-6">
+                <button class="button">Request re-evaluation</button>
+                <button v-on:click="logout()" class="button is-danger">Log out</button>
+              </div>
             </div>
-            <yt-info
-              v-bind:login-url="loginURLs.youtube"
-              v-bind:channels="userData.CandidateChannels"
-              v-bind:memberships="userData.Memberships"
-              v-bind:channelid="userData.YoutubeChannelID"
-              v-bind:dcyoutubeaccount="dcYouTubeAccount"
-              ></yt-info>
-            <div class="buttons is-centered mt-6">
-              <button class="button">Request re-evaluation</button>
-              <button v-on:click="logout()" class="button is-danger">Log out</button>
+            <div v-else-if="loaded" class="has-text-centered">
+              <div class="content">
+                <a v-bind:href="loginURLs.discord"><button class="button is-link">Sign in with Discord</button></a>
+                <div v-if="!!loginError.error" class="has-text-danger-dark has-text-weight-medium">⚠️ {{ loginError.error }}</div>
+              </div>
+              <div class="content">
+                <p>
+                  Sign in with Discord to get started! <br> 
+                  <em>Gentei</em> does not use the YouTube account you have connected in Discord, so you'll be associating one here separately.
+                </p>
+              </div>
+            </div>
+            <div v-else>
+              <div class="has-text-centered">
+                <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
+                <p>Loading...</p>
+              </div>
             </div>
           </div>
-          <div v-else-if="loaded" class="has-text-centered">
-            <div class="content">
-              <a v-bind:href="loginURLs.discord"><button class="button is-link">Sign in with Discord</button></a>
-            </div>
-            <div class="content">
-              <p>
-                Sign in with Discord to get started! <br> 
-                <em>Gentei</em> does not use the YouTube account you have connected in Discord, so you'll be associating one here separately.
-              </p>
-            </div>
-          </div>
-          <div v-else>
-            <div class="has-text-centered">
-              <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
-              <p>Loading...</p>
-            </div>
+          <div v-else-if="currentRoute == '/login/discord'">
+            <login 
+              v-bind:set-login-error="this.setLoginError"
+              v-bind:set-current-route="this.setCurrentRoute"
+              login-type="discord"></login>
           </div>
         </div>
       </div>
@@ -138,6 +147,12 @@
             <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
           </div>
         </div>
+      </div>
+    </script>
+    <script type="text/x-template" id="login-template">
+      <div class="login-spinner has-text-centered">
+        <div class="lds-ring"><div></div><div></div><div></div><div></div></div>
+        <p>Logging you in...</p>
       </div>
     </script>
     <script>
