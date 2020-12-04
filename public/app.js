@@ -110,10 +110,15 @@ document.addEventListener('DOMContentLoaded', function () {
             "user": null,
             "userData": {},
             "loaded": false,
-            "loginURLs": {
-                "discord": "https://discord.com/api/oauth2/authorize?client_id=768486576388177950&redirect_uri=https%3A%2F%2Fmember-gentei.tindabox.net%2Flogin%2Fdiscord&response_type=code&scope=identify%20guilds",
-                "youtube": "https://accounts.google.com/o/oauth2/v2/auth?client_id=649732146530-s4cj4tqo2impojg7ljol2chsuj1us81s.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fmember-gentei.tindabox.net%2Flogin%2Fyoutube&response_type=code&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fyoutube.force-ssl&access_type=offline&prompt=consent",
-            }
+        },
+        computed: {
+            loginURLs: function () {
+                let loginURL = encodeURIComponent(window.location.protocol + "//" + window.location.host + "/login/discord")
+                return {
+                    discord: "https://discord.com/api/oauth2/authorize?client_id=768486576388177950&redirect_uri=" + loginURL + "&response_type=code&scope=identify%20guilds",
+                    youtube: "https://accounts.google.com/o/oauth2/v2/auth?client_id=649732146530-s4cj4tqo2impojg7ljol2chsuj1us81s.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fmember-gentei.tindabox.net%2Flogin%2Fyoutube&response_type=code&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fyoutube.force-ssl&access_type=offline&prompt=consent",
+                }
+            },
         },
         watch: {
             user: function (newUser, oldUser) {
