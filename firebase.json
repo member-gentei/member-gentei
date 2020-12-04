@@ -10,6 +10,12 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "rewrites": [
+      {
+        "source": "/login/discord",
+        "destination": "app.html"
+      }
+    ],
     "cleanUrls": true
   },
   "emulators": {

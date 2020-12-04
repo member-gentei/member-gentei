@@ -104,10 +104,61 @@ document.addEventListener('DOMContentLoaded', function () {
             this.doc = doc.data()
         }
     })
-    new Vue({
+    Vue.component("login", {
+        template: "#login-template",
+        props: {
+            loginType: String,
+            setLoginError: Function,
+            setCurrentRoute: Function,
+        },
+        methods: {
+            xhrSuccess: async function(xhr) {
+                await firebase.auth().signInWithCustomToken(xhr.response["jwt"])
+                this.setCurrentRoute("/app")
+            },
+            xhrFail: function(xhr) {
+                console.log("fail")
+                if (xhr.responseText === "") {
+                    this.setLoginError({"message": "Unexpected error signing in with Discord - probably a browser CORS error?"})
+                } else if (!!xhr.response) {
+                    this.setLoginError(xhr.response)
+                } else {
+                    this.setLoginError({"message": "unhandled error - " + xhr.responseText})
+                }
+                this.setCurrentRoute("/app")
+            }
+        },
+        mounted: function() {
+            var that = this
+            let loginURL = "https://us-central1-member-gentei.cloudfunctions.net/Auth?service=" + this.loginType
+            let locationParams = new URL(document.location).searchParams
+            if (!locationParams.get("code")) {
+                console.log("no OAuth code found")
+                return
+            }
+            let xhr = new XMLHttpRequest();
+            xhr.open("POST", loginURL, true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.setRequestHeader('Accept', 'application/json');
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState > 3) {
+                    if (xhr.status == 200) {
+                        that.xhrSuccess(xhr)
+                    } else {
+                        that.xhrFail(xhr)
+                    }
+                }
+            }
+            xhr.send(locationParams)
+        },
+    })
+    const app = new Vue({
         "el": appQuerySelector,
         data: {
+            "currentRoute": window.location.pathname,
             "user": null,
+            "loginError": {},
             "userData": {},
             "loaded": false,
         },
@@ -135,6 +186,13 @@ document.addEventListener('DOMContentLoaded', function () {
             dcYouTubeAccount: async function () {
                 await firestore.collection("users").doc(this.user.uid).collection("private").doc("youtube").delete()
             },
+            setLoginError: function(loginError) {
+                this.loginError = loginError
+            },
+            setCurrentRoute: function(newRoute) {
+                this.currentRoute = newRoute
+                history.pushState({}, "", document.location.origin + "/app")
+            },
             logout: function () {
                 firebase.auth().signOut()
                 this.user = null
@@ -154,5 +212,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.querySelector(appQuerySelector).classList.remove("is-hidden")
             })
         },
+    })
+    window.addEventListener("popstate", () => {
+        app.currentRoute = window.location.pathname
     })
 })
