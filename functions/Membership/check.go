@@ -55,7 +55,7 @@ func CheckMembershipWrite(ctx context.Context, event FirestoreEvent) (err error)
 	resourcePath := strings.Split(event.Value.Name, "/documents/")[1]
 	log.Info().Str("resourcePath", resourcePath).Msg("handling resource")
 	userDocRef := fs.Doc(resourcePath).Parent.Parent
-	err = common.EnforceMemberships(ctx, fs, &common.EnforceMembershipsOptions{
+	_, err = common.EnforceMemberships(ctx, fs, &common.EnforceMembershipsOptions{
 		Apply:   true,
 		UserIDs: []string{userDocRef.ID},
 	})
