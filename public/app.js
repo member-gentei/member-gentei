@@ -104,16 +104,72 @@ document.addEventListener('DOMContentLoaded', function () {
             this.doc = doc.data()
         }
     })
-    new Vue({
+    Vue.component("login", {
+        template: "#login-template",
+        props: {
+            loginType: String,
+            setLoginError: Function,
+            setCurrentRoute: Function,
+        },
+        methods: {
+            xhrSuccess: async function(xhr) {
+                await firebase.auth().signInWithCustomToken(xhr.response["jwt"])
+                this.setCurrentRoute("/app")
+            },
+            xhrFail: function(xhr) {
+                if (!xhr.response) {
+                    this.setLoginError({"error": "Unexpected error signing in - probably a browser CORS error?"})
+                } else if (!!xhr.response) {
+                    this.setLoginError(xhr.response)
+                } else {
+                    this.setLoginError({"error": "unhandled error - " + xhr.responseText})
+                }
+                this.setCurrentRoute("/app")
+            }
+        },
+        mounted: function() {
+            var that = this
+            let loginURL = "https://us-central1-member-gentei.cloudfunctions.net/Auth?service=" + this.loginType
+            let locationParams = new URL(document.location).searchParams
+            if (!locationParams.get("code")) {
+                console.log("no OAuth code found")
+                return
+            }
+            let xhr = new XMLHttpRequest();
+            xhr.open("POST", loginURL, true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.setRequestHeader('Accept', 'application/json');
+            xhr.responseType = "json"
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState > 3) {
+                    if (xhr.status == 200) {
+                        that.xhrSuccess(xhr)
+                    } else {
+                        that.xhrFail(xhr)
+                    }
+                }
+            }
+            xhr.send(locationParams)
+        },
+    })
+    const app = new Vue({
         "el": appQuerySelector,
         data: {
+            "currentRoute": window.location.pathname,
             "user": null,
+            "loginError": {},
             "userData": {},
             "loaded": false,
-            "loginURLs": {
-                "discord": "https://discord.com/api/oauth2/authorize?client_id=768486576388177950&redirect_uri=https%3A%2F%2Fmember-gentei.tindabox.net%2Flogin%2Fdiscord&response_type=code&scope=identify%20guilds",
-                "youtube": "https://accounts.google.com/o/oauth2/v2/auth?client_id=649732146530-s4cj4tqo2impojg7ljol2chsuj1us81s.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fmember-gentei.tindabox.net%2Flogin%2Fyoutube&response_type=code&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fyoutube.force-ssl&access_type=offline&prompt=consent",
-            }
+        },
+        computed: {
+            loginURLs: function () {
+                let loginURL = encodeURIComponent(window.location.protocol + "//" + window.location.host + "/login/discord")
+                return {
+                    discord: "https://discord.com/api/oauth2/authorize?client_id=768486576388177950&redirect_uri=" + loginURL + "&response_type=code&scope=identify%20guilds",
+                    youtube: "https://accounts.google.com/o/oauth2/v2/auth?client_id=649732146530-s4cj4tqo2impojg7ljol2chsuj1us81s.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fmember-gentei.tindabox.net%2Flogin%2Fyoutube&response_type=code&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fyoutube.force-ssl&access_type=offline&prompt=consent",
+                }
+            },
         },
         watch: {
             user: function (newUser, oldUser) {
@@ -129,6 +185,13 @@ document.addEventListener('DOMContentLoaded', function () {
         methods: {
             dcYouTubeAccount: async function () {
                 await firestore.collection("users").doc(this.user.uid).collection("private").doc("youtube").delete()
+            },
+            setLoginError: function(loginError) {
+                this.loginError = loginError
+            },
+            setCurrentRoute: function(newRoute) {
+                this.currentRoute = newRoute
+                history.pushState({}, "", document.location.origin + "/app")
             },
             logout: function () {
                 firebase.auth().signOut()
@@ -149,5 +212,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.querySelector(appQuerySelector).classList.remove("is-hidden")
             })
         },
+    })
+    window.addEventListener("popstate", () => {
+        app.currentRoute = window.location.pathname
     })
 })
