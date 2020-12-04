@@ -53,7 +53,7 @@ var rootCmd = &cobra.Command{
 			uids = []string{flagUID}
 		}
 		// perform the check!
-		err = common.EnforceMemberships(ctx, fs, &common.EnforceMembershipsOptions{
+		results, err := common.EnforceMemberships(ctx, fs, &common.EnforceMembershipsOptions{
 			ReloadDiscordGuilds: true,
 			RemoveInvalidTokens: true,
 			Apply:               true,
@@ -61,6 +61,12 @@ var rootCmd = &cobra.Command{
 		})
 		if err != nil {
 			log.Fatal().Err(err).Msg("error performing enforcement check")
+		}
+		// don't log per-uid metrics to GCP - print them out!
+		if uids == nil {
+			log.Info().Interface("checkResults", results).Msg("periodic check complete")
+		} else {
+			fmt.Printf("check results: %+v\n", results)
 		}
 	},
 }
