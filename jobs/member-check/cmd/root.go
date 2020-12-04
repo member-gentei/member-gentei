@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"cloud.google.com/go/firestore"
-	"github.com/member-gentei/member-gentei/pkg/common"
 	zlg "github.com/mark-ignacio/zerolog-gcp"
+	"github.com/member-gentei/member-gentei/pkg/common"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -18,6 +18,7 @@ import (
 var (
 	cfgFile     string
 	flagVerbose bool
+	flagUID     string
 )
 var rootCmd = &cobra.Command{
 	Use:   "gentei-member-check",
@@ -47,11 +48,16 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal().Err(err).Msg("error creating Firestore client")
 		}
+		var uids []string
+		if flagUID != "" {
+			uids = []string{flagUID}
+		}
 		// perform the check!
 		err = common.EnforceMemberships(ctx, fs, &common.EnforceMembershipsOptions{
 			ReloadDiscordGuilds: true,
 			RemoveInvalidTokens: true,
 			Apply:               true,
+			UserIDs:             uids,
 		})
 		if err != nil {
 			log.Fatal().Err(err).Msg("error performing enforcement check")
@@ -74,6 +80,7 @@ func init() {
 	persistent.StringVar(&cfgFile, "config", "", "config file (default is $HOME/.member-check.yaml)")
 	persistent.BoolVarP(&flagVerbose, "verbose", "v", false, "DEBUG level logging")
 	persistent.String("gcp-project", "member-gentei", "GCP project ID")
+	persistent.StringVar(&flagUID, "uid", "", "specific user ID")
 	viper.BindPFlags(persistent)
 }
 

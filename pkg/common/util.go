@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"cloud.google.com/go/firestore"
 	"github.com/rs/zerolog"
@@ -135,4 +136,21 @@ func revokeYoutubeToken(refreshToken string, logger zerolog.Logger) {
 		body, _ := ioutil.ReadAll(r.Body)
 		logger.Warn().Bytes("body", body).Int("statusCode", r.StatusCode).Msg("non-200 response while revoking YouTube token")
 	}
+}
+
+func scavengeRetrieveError(response *http.Response, err error) (*oauth2.RetrieveError, bool) {
+	if rErr, ok := err.(*oauth2.RetrieveError); ok {
+		return rErr, ok
+	}
+	errString := err.Error()
+	log.Debug().Str("errString", errString).Msg("oauth2.RetrieveError?")
+	if strings.Contains(errString, "oauth2: cannot fetch token: ") {
+		rIdx := strings.Index(errString, "\nResponse: ")
+		stringBody := errString[rIdx+len("\nResponse: "):]
+		return &oauth2.RetrieveError{
+			Response: response,
+			Body:     []byte(stringBody),
+		}, true
+	}
+	return nil, false
 }
