@@ -47,7 +47,7 @@
             <div v-else-if="loaded" class="has-text-centered">
               <div class="content">
                 <a v-bind:href="loginURLs.discord"><button class="button is-link">Sign in with Discord</button></a>
-                <div v-if="!!loginError.message" class="has-text-danger">⚠️ {{ loginError.message }}</div>
+                <div v-if="!!loginError.error" class="has-text-danger">⚠️ {{ loginError.error }}</div>
               </div>
               <div class="content">
                 <p>

@@ -119,11 +119,11 @@ document.addEventListener('DOMContentLoaded', function () {
             xhrFail: function(xhr) {
                 console.log("fail")
                 if (xhr.responseText === "") {
-                    this.setLoginError({"message": "Unexpected error signing in with Discord - probably a browser CORS error?"})
+                    this.setLoginError({"error": "Unexpected error signing in with Discord - probably a browser CORS error?"})
                 } else if (!!xhr.response) {
                     this.setLoginError(xhr.response)
                 } else {
-                    this.setLoginError({"message": "unhandled error - " + xhr.responseText})
+                    this.setLoginError({"error": "unhandled error - " + xhr.responseText})
                 }
                 this.setCurrentRoute("/app")
             }
