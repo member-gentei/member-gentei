@@ -117,9 +117,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 this.setCurrentRoute("/app")
             },
             xhrFail: function(xhr) {
-                console.log("fail")
-                if (xhr.responseText === "") {
-                    this.setLoginError({"error": "Unexpected error signing in with Discord - probably a browser CORS error?"})
+                if (!xhr.response) {
+                    this.setLoginError({"error": "Unexpected error signing in - probably a browser CORS error?"})
                 } else if (!!xhr.response) {
                     this.setLoginError(xhr.response)
                 } else {
@@ -141,6 +140,7 @@ document.addEventListener('DOMContentLoaded', function () {
             xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             xhr.setRequestHeader('Accept', 'application/json');
+            xhr.responseType = "json"
             xhr.onreadystatechange = function () {
                 if (xhr.readyState > 3) {
                     if (xhr.status == 200) {
