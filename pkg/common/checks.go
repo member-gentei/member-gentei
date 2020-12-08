@@ -36,11 +36,12 @@ var (
 
 // EnforceMembershipsOptions is the multiselect-y options struct for EnforceMemberships
 type EnforceMembershipsOptions struct {
-	ReloadDiscordGuilds bool
-	OnlyChannelSlug     string
-	RemoveInvalidTokens bool // removes users with permanently invalid (revoked, de-scoped) tokens
-	Apply               bool // apply changes
-	UserIDs             []string
+	ReloadDiscordGuilds       bool
+	OnlyChannelSlug           string
+	RemoveInvalidDiscordToken bool // removes users with permanently invalid (revoked, de-scoped) tokens
+	RemoveInvalidYouTubeToken bool // removes users with permanently invalid (revoked, de-scoped) tokens
+	Apply                     bool // apply changes
+	UserIDs                   []string
 }
 
 // EnforceMembershipsResult contains metrics useful for monitoring/debugging/fun.
@@ -103,7 +104,7 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 		if options.ReloadDiscordGuilds {
 			candidateChannels, err = ReloadDiscordGuilds(ctx, fs, userID)
 			if errors.Is(err, ErrDiscordTokenInvalid) || errors.Is(err, ErrDiscordTokenNotFound) {
-				if options.RemoveInvalidTokens {
+				if options.RemoveInvalidDiscordToken {
 					logger.Warn().Err(err).Msg("Discord token invalid, deleting user")
 					err = DeleteUser(ctx, fs, userID)
 					if err != nil {
@@ -148,7 +149,7 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 			var isMember bool
 			isMember, err = CheckChannelMembership(ctx, fs, checkOpts)
 			if errors.Is(err, ErrYouTubeTokenInvalid) || status.Code(err) == codes.NotFound {
-				if options.RemoveInvalidTokens {
+				if options.RemoveInvalidYouTubeToken {
 					logger.Warn().Err(err).Msg("YouTube token invalid for user, removing token and memberships")
 					err = RevokeYouTubeAccess(ctx, fs, userID)
 					if err != nil {

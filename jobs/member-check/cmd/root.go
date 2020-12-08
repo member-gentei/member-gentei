@@ -54,10 +54,11 @@ var rootCmd = &cobra.Command{
 		}
 		// perform the check!
 		results, err := common.EnforceMemberships(ctx, fs, &common.EnforceMembershipsOptions{
-			ReloadDiscordGuilds: true,
-			RemoveInvalidTokens: true,
-			Apply:               true,
-			UserIDs:             uids,
+			ReloadDiscordGuilds:       true,
+			RemoveInvalidDiscordToken: false,
+			RemoveInvalidYouTubeToken: true,
+			Apply:                     true,
+			UserIDs:                   uids,
 		})
 		if err != nil {
 			log.Fatal().Err(err).Msg("error performing enforcement check")
