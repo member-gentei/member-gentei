@@ -18,3 +18,7 @@ OpenAPI documentation: https://docs.member-gentei.tindabox.net/api.html
 * `/public-docs` - [Doctave](https://github.com/Doctave/doctave) template that generates `/docs`
 * `/tools` - command line tooling for administrative actions
 * `openapi.yml` - the authoritative OpenAPI v3 spec
+
+## Additional credit
+
+Gentei's Discord avatar and favicon is by [@Dakuma_Art](https://twitter.com/Dakuma_Art). Check her out!
