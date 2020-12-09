@@ -191,10 +191,11 @@ func (d *discordBot) handleGuildMembersChunk(s *discordgo.Session, chunk *discor
 			)
 		} else if !isMember && userHasRole(user, memberRoleID) {
 			// use needs role removed
-			d.newRoleApplier(
-				chunk.GuildID, user.User, roleRevoke, "periodic membership refresh",
-				5, defaultRoleApplyPeriod, defaultRoleApplyTimeout,
-			)
+			logger.Warn().Str("userID", userID).Msg("skipping revoke for periodic membership refresh")
+			// d.newRoleApplier(
+			// 	chunk.GuildID, user.User, roleRevoke, "periodic membership refresh",
+			// 	5, defaultRoleApplyPeriod, defaultRoleApplyTimeout,
+			// )
 		}
 	}
 	if chunk.ChunkIndex == chunk.ChunkCount-1 {
