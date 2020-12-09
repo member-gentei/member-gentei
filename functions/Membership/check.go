@@ -52,6 +52,23 @@ func CheckMembershipWrite(ctx context.Context, event FirestoreEvent) (err error)
 		log.Debug().Msg("ignoring delete")
 		return
 	}
+	// ignore refresh tokens that did not change
+	if event.OldValue.Fields != nil {
+		oldToken, uErr := protoUnmarshalToken(event.OldValue.Fields)
+		if uErr != nil {
+			log.Err(uErr).Msg("error unmarshalling OldValue.Fields")
+			return uErr
+		}
+		newToken, uErr := protoUnmarshalToken(event.Value.Fields)
+		if uErr != nil {
+			log.Err(uErr).Msg("error unmarshalling OldValue.Fields")
+			return uErr
+		}
+		if oldToken.RefreshToken == newToken.RefreshToken {
+			log.Debug().Msg("ignoring write, refresh token did not change")
+			return
+		}
+	}
 	resourcePath := strings.Split(event.Value.Name, "/documents/")[1]
 	log.Info().Str("resourcePath", resourcePath).Msg("handling resource")
 	userDocRef := fs.Doc(resourcePath).Parent.Parent
