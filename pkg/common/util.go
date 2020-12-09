@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 
+	"libs.altipla.consulting/tokensource"
+
 	"cloud.google.com/go/firestore"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -29,9 +31,12 @@ func GetYouTubeService(ctx context.Context, fs *firestore.Client, userID string)
 		}
 	}
 	// get and load the user token
-	var token oauth2.Token
-	doc, err := fs.Collection(UsersCollection).Doc(userID).
-		Collection(PrivateCollection).Doc("youtube").Get(ctx)
+	var (
+		token  oauth2.Token
+		docRef = fs.Collection(UsersCollection).Doc(userID).
+			Collection(PrivateCollection).Doc("youtube")
+	)
+	doc, err := docRef.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +45,16 @@ func GetYouTubeService(ctx context.Context, fs *firestore.Client, userID string)
 		log.Err(err).Msg("error unmarshalling YouTube token")
 		return nil, err
 	}
-	return youtube.New(youTubeOAuthConfig.Client(ctx, &token))
+	notifyHook := tokensource.NewNotifyHook(
+		ctx, youTubeOAuthConfig, &token,
+		func(newToken *oauth2.Token) error {
+			// save the new token
+			log.Debug().Str("userID", userID).Msg("saving newly refreshed YouTube token for user")
+			_, err := docRef.Set(ctx, newToken)
+			return err
+		},
+	)
+	return youtube.New(notifyHook.Client(ctx))
 }
 
 // GetDiscordHTTPClient creates a Discord HTTP client for a user.
@@ -51,9 +65,12 @@ func GetDiscordHTTPClient(ctx context.Context, fs *firestore.Client, userID stri
 			return
 		}
 	}
-	var token oauth2.Token
-	doc, err := fs.Collection(UsersCollection).Doc(userID).
-		Collection(PrivateCollection).Doc("discord").Get(ctx)
+	var (
+		token  oauth2.Token
+		docRef = fs.Collection(UsersCollection).Doc(userID).
+			Collection(PrivateCollection).Doc("discord")
+	)
+	doc, err := docRef.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +79,16 @@ func GetDiscordHTTPClient(ctx context.Context, fs *firestore.Client, userID stri
 		log.Err(err).Msg("error unmarshalling Discord token")
 		return nil, err
 	}
-	client = discordOAuthConfig.Client(ctx, &token)
+	notifyHook := tokensource.NewNotifyHook(
+		ctx, discordOAuthConfig, &token,
+		func(newToken *oauth2.Token) error {
+			// save the new token
+			log.Debug().Str("userID", userID).Msg("saving newly refreshed Discord token for user")
+			_, err := docRef.Set(ctx, newToken)
+			return err
+		},
+	)
+	client = notifyHook.Client(ctx)
 	return
 }
 
