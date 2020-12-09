@@ -16,9 +16,11 @@ import (
 )
 
 var (
-	cfgFile     string
-	flagVerbose bool
-	flagUID     string
+	cfgFile            string
+	flagVerbose        bool
+	flagDryRun         bool
+	flagNoCloudLogging bool
+	flagUID            string
 )
 var rootCmd = &cobra.Command{
 	Use:   "gentei-member-check",
@@ -34,15 +36,20 @@ var rootCmd = &cobra.Command{
 		} else {
 			zerolog.SetGlobalLevel(zerolog.InfoLevel)
 		}
-		gcpWriter, err := zlg.NewCloudLoggingWriter(ctx, gcpProject, "member-check", zlg.CloudLoggingOptions{})
-		if err != nil {
-			log.Fatal().Err(err).Msg("could not create a CloudLoggingWriter")
+		if flagNoCloudLogging {
+			log.Logger = log.Output(zerolog.NewConsoleWriter())
+			log.Info().Msg("Google Cloud Logging is disabled")
+		} else {
+			gcpWriter, err := zlg.NewCloudLoggingWriter(ctx, gcpProject, "member-check", zlg.CloudLoggingOptions{})
+			if err != nil {
+				log.Fatal().Err(err).Msg("could not create a CloudLoggingWriter")
+			}
+			defer zlg.Flush()
+			log.Logger = log.Output(zerolog.MultiLevelWriter(
+				zerolog.NewConsoleWriter(),
+				gcpWriter,
+			))
 		}
-		defer zlg.Flush()
-		log.Logger = log.Output(zerolog.MultiLevelWriter(
-			zerolog.NewConsoleWriter(),
-			gcpWriter,
-		))
 		// start up Firestore
 		fs, err := firestore.NewClient(ctx, gcpProject)
 		if err != nil {
@@ -57,7 +64,7 @@ var rootCmd = &cobra.Command{
 			ReloadDiscordGuilds:       true,
 			RemoveInvalidDiscordToken: false,
 			RemoveInvalidYouTubeToken: true,
-			Apply:                     true,
+			Apply:                     !flagDryRun,
 			UserIDs:                   uids,
 		})
 		if err != nil {
@@ -86,6 +93,8 @@ func init() {
 	persistent := rootCmd.PersistentFlags()
 	persistent.StringVar(&cfgFile, "config", "", "config file (default is $HOME/.member-check.yaml)")
 	persistent.BoolVarP(&flagVerbose, "verbose", "v", false, "DEBUG level logging")
+	persistent.BoolVarP(&flagDryRun, "dry-run", "n", false, "dry run mode")
+	persistent.BoolVar(&flagNoCloudLogging, "no-cloud-logging", false, "do not output results to Google Cloud Logging")
 	persistent.String("gcp-project", "member-gentei", "GCP project ID")
 	persistent.StringVar(&flagUID, "uid", "", "specific user ID")
 	viper.BindPFlags(persistent)
