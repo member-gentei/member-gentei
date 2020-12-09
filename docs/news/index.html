@@ -5,7 +5,7 @@
 <head>
     <meta charset="utf-8">
 
-    <title>YouTube Permissions</title>
+    <title>News</title>
     <meta name="description" content="Documentation for Gentei">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -86,13 +86,13 @@
 
             
         
-            <li><a class="active" href="/youtube-oauth">YouTube Permissions</a></li>
+            <li><a href="/youtube-oauth">YouTube Permissions</a></li>
             
         
             <li><a href="/bugs-and-suggestions">Filing Bugs &amp; Suggestions</a></li>
             
         
-            <li><a href="/news">News</a></li>
+            <li><a class="active" href="/news">News</a></li>
             
                 <ul>
     
@@ -109,14 +109,7 @@
 
             </div>
             <div class='content'>
-                <p>One of the common comments about Gentei are that the permissions look kinda sketchy.</p>
-<p><img src="/assets/oauth-permissions.png" alt="oauth-permission" /></p>
-<p>The short response to that is this is unavoidable for the way that Gentei currently verifies memberships. I wish this could work with a less restrictive permission set, but I can at least explain why Gentei needs it.</p>
-<h1 id="youtube-api-permissions-1">YouTube API permissions</h1>
-<p>Gentei depends on reading out comment threads on a members-only video, and <a href="https://developers.google.com/youtube/v3/docs/commentThreads/list">the associated YouTube Data API endpoint</a> requires a specific OAuth permission scope called <code>https://www.googleapis.com/auth/youtube.force-ssl</code>.</p>
-<p><img src="/assets/youtube-force-ssl.png" alt="youtube-force-ssl" /></p>
-<p>Referencing that scope with YouTube's <a href="https://developers.google.com/youtube/v3/guides/auth/server-side-web-apps#identify-access-scopes">table of available OAuth scopes</a>, this maps to the &quot;See, edit, and permanently delete your YouTube videos, ratings, comments and captions&quot; message that users see in the top screenshot above.</p>
-<p>There's not really anything we can do about that past asking YouTube to reclassify this API endpoint under a separate OAuth scope and hope that it happens. ¯\_(ツ)_/¯</p>
+                <p>Announcements, notices, and more!</p>
 
             </div>
             <div class='sidebar-right'>
@@ -124,10 +117,6 @@
                     <p class='page-nav-header'>On this page</p>
                     <hr />
                     <ul>
-                        
-                            <li class='page-nav-level-1'>
-                                <a href='#youtube-api-permissions-1'>YouTube API permissions</a>
-                            </li>
                         
                     </ul>
                 </div>

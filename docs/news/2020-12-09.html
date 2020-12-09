@@ -5,7 +5,7 @@
 <head>
     <meta charset="utf-8">
 
-    <title>YouTube Permissions</title>
+    <title>2020-12-09 - User deletion issue</title>
     <meta name="description" content="Documentation for Gentei">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -86,7 +86,7 @@
 
             
         
-            <li><a class="active" href="/youtube-oauth">YouTube Permissions</a></li>
+            <li><a href="/youtube-oauth">YouTube Permissions</a></li>
             
         
             <li><a href="/bugs-and-suggestions">Filing Bugs &amp; Suggestions</a></li>
@@ -96,7 +96,7 @@
             
                 <ul>
     
-        <li><a href="/news/2020-12-09">2020-12-09 - User deletion issue</a></li>
+        <li><a class="active" href="/news/2020-12-09">2020-12-09 - User deletion issue</a></li>
         
     
 </ul>
@@ -109,14 +109,22 @@
 
             </div>
             <div class='content'>
-                <p>One of the common comments about Gentei are that the permissions look kinda sketchy.</p>
-<p><img src="/assets/oauth-permissions.png" alt="oauth-permission" /></p>
-<p>The short response to that is this is unavoidable for the way that Gentei currently verifies memberships. I wish this could work with a less restrictive permission set, but I can at least explain why Gentei needs it.</p>
-<h1 id="youtube-api-permissions-1">YouTube API permissions</h1>
-<p>Gentei depends on reading out comment threads on a members-only video, and <a href="https://developers.google.com/youtube/v3/docs/commentThreads/list">the associated YouTube Data API endpoint</a> requires a specific OAuth permission scope called <code>https://www.googleapis.com/auth/youtube.force-ssl</code>.</p>
-<p><img src="/assets/youtube-force-ssl.png" alt="youtube-force-ssl" /></p>
-<p>Referencing that scope with YouTube's <a href="https://developers.google.com/youtube/v3/guides/auth/server-side-web-apps#identify-access-scopes">table of available OAuth scopes</a>, this maps to the &quot;See, edit, and permanently delete your YouTube videos, ratings, comments and captions&quot; message that users see in the top screenshot above.</p>
-<p>There's not really anything we can do about that past asking YouTube to reclassify this API endpoint under a separate OAuth scope and hope that it happens. ¯\_(ツ)_/¯</p>
+                <h1 id="2020-12-09-1">2020-12-09</h1>
+<h2 id="user-deletion-issue-2">User deletion issue</h2>
+<p>An uptick of reports of users being removed from membership roles led to the discovery of a bug in Gentei that effectively deleted users in the application 8~9 days after registration.</p>
+<p>As a result, ~20 users have been errantly deleted (and they've since re-registered), but <em><strong>~150 users need to re-link their accounts in Gentei to maintain membership.</strong></em></p>
+<p>Sorry about that.</p>
+<h3 id="how-to-tell-if-you're-affected-3">How to tell if you're affected</h3>
+<p>In the next few days, <strong>gentei-bouncer#9835</strong> will DM you with instructions on what to do, when you need to do it by, and a link back to this page. </p>
+<p>If you do not get this DM, you are not affected.</p>
+<h3 id="more-details-4">More details</h3>
+<p>For technical details on what happened, you can reference the following GitHub issues:</p>
+<ul>
+<li><a href="https://github.com/member-gentei/member-gentei/issues/18">Discord OAuth token exchange returns frequent 400 #18</a></li>
+<li><a href="https://github.com/member-gentei/member-gentei/issues/20">Role revocation is broken due to discarding Discord refresh tokens #20</a>.</li>
+</ul>
+<p>Work to remediate this issue is being tracked in <a href="https://github.com/member-gentei/member-gentei/milestone/1">Milestone #1: Mishandled Discord token renewal (2020/12/8)
+</a>.</p>
 
             </div>
             <div class='sidebar-right'>
@@ -126,7 +134,19 @@
                     <ul>
                         
                             <li class='page-nav-level-1'>
-                                <a href='#youtube-api-permissions-1'>YouTube API permissions</a>
+                                <a href='#2020-12-09-1'>2020-12-09</a>
+                            </li>
+                        
+                            <li class='page-nav-level-2'>
+                                <a href='#user-deletion-issue-2'>User deletion issue</a>
+                            </li>
+                        
+                            <li class='page-nav-level-3'>
+                                <a href='#how-to-tell-if-you&#x27;re-affected-3'>How to tell if you&#x27;re affected</a>
+                            </li>
+                        
+                            <li class='page-nav-level-3'>
+                                <a href='#more-details-4'>More details</a>
                             </li>
                         
                     </ul>

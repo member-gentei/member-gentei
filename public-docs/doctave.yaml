@@ -8,3 +8,5 @@ navigation:
     - path: docs/Discord/optional-features.md
   - path: docs/youtube-oauth.md
   - path: docs/bugs-and-suggestions.md
+  - path: docs/news
+    children: "*"
