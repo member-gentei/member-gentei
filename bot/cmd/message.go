@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -76,9 +77,13 @@ var messageCmd = &cobra.Command{
 			log.Info().Str("name", flagMessageName).Msg("messaging users")
 			for _, uid := range userIDs {
 				logger := log.With().Str("uid", uid).Logger()
-				err = msgBot.Message(flagMessageName, flagMessageUID, !flagMessageUserRegOptional)
+				err = msgBot.Message(flagMessageName, uid, !flagMessageUserRegOptional)
 				if err != nil {
-					logger.Fatal().Err(err).Msg("error sending message")
+					if strings.Contains(err.Error(), "Cannot send messages to this user") {
+						logger.Warn().Err(err).Msg("user not accepting DM's")
+					} else {
+						logger.Fatal().Err(err).Msg("error sending message")
+					}
 				} else {
 					logger.Info().Msg("DM'd user")
 				}
