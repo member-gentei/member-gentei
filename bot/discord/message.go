@@ -28,18 +28,21 @@ type MessagingBot struct {
 // Message sends a templated message to a single user.
 func (m *MessagingBot) Message(templateName, uid string, mustBeRegistered bool) error {
 	// attempt to get a user
+	var user common.DiscordIdentity
 	doc, err := m.fs.Collection(common.UsersCollection).Doc(uid).Get(m.ctx)
 	if c := status.Code(err); c == codes.NotFound {
 		if mustBeRegistered {
 			return fmt.Errorf("user not registered: %s", uid)
 		}
+		user.UserID = uid
+		err = nil
 	} else if err != nil {
 		return err
-	}
-	var user common.DiscordIdentity
-	err = doc.DataTo(&user)
-	if err != nil {
-		return err
+	} else {
+		err = doc.DataTo(&user)
+		if err != nil {
+			return err
+		}
 	}
 	// load or create template and DM channel
 	dmTemplate, err := m.getOrParseTemplate(templateName)
