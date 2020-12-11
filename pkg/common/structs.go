@@ -14,6 +14,7 @@ const (
 	ChannelMemberCollection = "members"
 	DiscordGuildCollection  = "guilds"
 	PrivateCollection       = "private"
+	DMTemplateCollection    = "dm-templates"
 )
 
 // DiscordIdentity is saved to Firestore in the `DiscordIdentityCollection` collection.
@@ -57,4 +58,17 @@ type DiscordGuild struct {
 	MemberRoleID          string
 	AuditLogChannelID     string
 	Channel               *firestore.DocumentRef
+}
+
+// DMTemplate is a message template that can be sent out (en masse).
+// fs: dm-templates/[name]
+type DMTemplate struct {
+	Name string
+	Body string
+}
+
+// DMTemplateData is the data passed in a text/template.Execute() call with a DMTemplate.
+type DMTemplateData struct {
+	User  *DiscordIdentity
+	Extra map[string]interface{}
 }
