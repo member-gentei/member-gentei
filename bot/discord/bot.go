@@ -46,10 +46,9 @@ type discordBot struct {
 	dgSession *discordgo.Session
 	fs        *firestore.Client
 
-	lastMemberCheck       map[string]time.Time           // global rate limiter for user member checks
-	guildStates           map[string]guildState          // holds state for a Discord guild
-	ytChannelMemberships  map[string]map[string]struct{} // holds memberships corresponding to a particular YouTube channel
-	enforcementExceptions map[string]struct{}
+	lastMemberCheck      map[string]time.Time           // global rate limiter for user member checks
+	guildStates          map[string]guildState          // holds state for a Discord guild
+	ytChannelMemberships map[string]map[string]struct{} // holds memberships corresponding to a particular YouTube channel
 
 	// newMemberRoleApplier() stuff
 	// key is "guildID-userID"
@@ -192,14 +191,10 @@ func (d *discordBot) handleGuildMembersChunk(s *discordgo.Session, chunk *discor
 			)
 		} else if !isMember && userHasRole(user, memberRoleID) {
 			// user needs role removed
-			if _, excepted := d.enforcementExceptions[userID]; excepted {
-				logger.Warn().Str("userID", userID).Msg("skipping revoke for periodic membership refresh (exception)")
-			} else {
-				d.newRoleApplier(
-					chunk.GuildID, user.User, roleRevoke, "periodic membership refresh",
-					5, defaultRoleApplyPeriod, defaultRoleApplyTimeout,
-				)
-			}
+			d.newRoleApplier(
+				chunk.GuildID, user.User, roleRevoke, "periodic membership refresh",
+				5, defaultRoleApplyPeriod, defaultRoleApplyTimeout,
+			)
 		}
 	}
 	if chunk.ChunkIndex == chunk.ChunkCount-1 {
@@ -403,7 +398,6 @@ func Start(
 	token string,
 	apiClient api.ClientWithResponsesInterface,
 	fs *firestore.Client,
-	enforcementExceptionSlice []string,
 ) error {
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
@@ -413,18 +407,13 @@ func Start(
 	dg.Identify.LargeThreshold = largeThreshold
 	// add the GUILD_MEMBERS intent so that we can get member stuff
 	*dg.Identify.Intents |= discordgo.IntentsGuildMembers
-	exceptions := make(map[string]struct{}, len(enforcementExceptionSlice))
-	for _, uid := range enforcementExceptionSlice {
-		exceptions[uid] = struct{}{}
-	}
 	bot := discordBot{
-		ctx:                   ctx,
-		apiClient:             apiClient,
-		fs:                    fs,
-		dgSession:             dg,
-		lastMemberCheck:       map[string]time.Time{},
-		ytChannelMemberships:  map[string]map[string]struct{}{},
-		enforcementExceptions: exceptions,
+		ctx:                  ctx,
+		apiClient:            apiClient,
+		fs:                   fs,
+		dgSession:            dg,
+		lastMemberCheck:      map[string]time.Time{},
+		ytChannelMemberships: map[string]map[string]struct{}{},
 	}
 	err = bot.listenToGuildAssociations()
 	if err != nil {
