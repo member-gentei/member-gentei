@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
+	"io/ioutil"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/member-gentei/member-gentei/bot/discord"
@@ -17,6 +20,7 @@ var (
 	flagMessageName            string
 	flagMessageUID             string
 	flagMessageUIDFile         string
+	flagMessageMultiplePeriod  uint
 	flagMessageUserRegOptional bool
 )
 
@@ -52,10 +56,34 @@ var messageCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal().Err(err).Msg("error creating MessagingBot")
 		}
-		log.Info().Str("name", flagMessageName).Str("uid", flagMessageUID).Msg("messaging")
-		err = msgBot.Message(flagMessageName, flagMessageUID, !flagMessageUserRegOptional)
-		if err != nil {
-			log.Fatal().Err(err).Msg("error sending message")
+		if flagMessageUID != "" {
+			log.Info().Str("name", flagMessageName).Str("uid", flagMessageUID).Msg("messaging")
+			err = msgBot.Message(flagMessageName, flagMessageUID, !flagMessageUserRegOptional)
+			if err != nil {
+				log.Fatal().Err(err).Msg("error sending message")
+			}
+		} else {
+			var userIDs []string
+			data, err := ioutil.ReadFile(flagMessageUIDFile)
+			if err != nil {
+				log.Fatal().Err(err).Msg("error opening UIDs file")
+			}
+			err = json.Unmarshal(data, &userIDs)
+			if err != nil {
+				log.Fatal().Err(err).Msg("error unmarshalling UIDs file")
+			}
+			ticker := time.NewTicker(time.Second * time.Duration(flagMessageMultiplePeriod))
+			log.Info().Str("name", flagMessageName).Msg("messaging users")
+			for _, uid := range userIDs {
+				logger := log.With().Str("uid", uid).Logger()
+				err = msgBot.Message(flagMessageName, flagMessageUID, !flagMessageUserRegOptional)
+				if err != nil {
+					logger.Fatal().Err(err).Msg("error sending message")
+				} else {
+					logger.Info().Msg("DM'd user")
+				}
+				<-ticker.C
+			}
 		}
 	},
 }
@@ -66,5 +94,6 @@ func init() {
 	flags.StringVarP(&flagMessageName, "message", "m", "", "name of the message to send")
 	flags.StringVar(&flagMessageUID, "uid", "", "Discord user ID for single messages")
 	flags.StringVar(&flagMessageUIDFile, "uid-file", "", "UID file for sending many DMs")
+	flags.UintVar(&flagMessageMultiplePeriod, "period", 5, "period to wait between DMs (in seconds)")
 	flags.BoolVar(&flagMessageUserRegOptional, "unregistered", false, "allow sending to Gentei-unregistered users")
 }
