@@ -62,7 +62,7 @@ var rootCmd = &cobra.Command{
 		// perform the check!
 		results, err := common.EnforceMemberships(ctx, fs, &common.EnforceMembershipsOptions{
 			ReloadDiscordGuilds:       true,
-			RemoveInvalidDiscordToken: false,
+			RemoveInvalidDiscordToken: true,
 			RemoveInvalidYouTubeToken: true,
 			Apply:                     !flagDryRun,
 			UserIDs:                   uids,

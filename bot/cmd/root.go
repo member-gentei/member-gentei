@@ -37,11 +37,10 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
 		var (
-			token                 = viper.GetString("token")
-			apiKey                = viper.GetString("api-key")
-			apiServer             = viper.GetString("api-server")
-			gcpProject            = viper.GetString("gcp-project")
-			enforcementExceptions = viper.GetStringSlice("enforcement-exceptions")
+			token      = viper.GetString("token")
+			apiKey     = viper.GetString("api-key")
+			apiServer  = viper.GetString("api-server")
+			gcpProject = viper.GetString("gcp-project")
 		)
 		if token == "" {
 			log.Fatal().Msg("must specify a Discord token")
@@ -78,7 +77,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal().Err(err).Msg("error loading Firestore client")
 		}
-		if err := discord.Start(ctx, token, apiClient, fs, enforcementExceptions); err != nil {
+		if err := discord.Start(ctx, token, apiClient, fs); err != nil {
 			log.Fatal().Err(err).Msg("error running Discord bot")
 		}
 	},
