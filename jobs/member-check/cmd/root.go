@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"cloud.google.com/go/firestore"
+	"cloud.google.com/go/pubsub"
 	zlg "github.com/mark-ignacio/zerolog-gcp"
 	"github.com/member-gentei/member-gentei/pkg/common"
 	homedir "github.com/mitchellh/go-homedir"
@@ -21,6 +23,7 @@ var (
 	flagDryRun         bool
 	flagNoCloudLogging bool
 	flagUID            string
+	flagPubsubTopic    string
 )
 var rootCmd = &cobra.Command{
 	Use:   "gentei-member-check",
@@ -29,6 +32,7 @@ var rootCmd = &cobra.Command{
 		var (
 			ctx        = context.Background()
 			gcpProject = viper.GetString("gcp-project")
+			psTopic    *pubsub.Topic
 		)
 		// set up logger
 		if flagVerbose {
@@ -50,6 +54,13 @@ var rootCmd = &cobra.Command{
 				gcpWriter,
 			))
 		}
+		if flagPubsubTopic != "" {
+			psClient, err := pubsub.NewClient(ctx, gcpProject)
+			if err != nil {
+				log.Fatal().Err(err).Msg("could not create Pub/Sub Client")
+			}
+			psTopic = psClient.Topic(flagPubsubTopic)
+		}
 		// start up Firestore
 		fs, err := firestore.NewClient(ctx, gcpProject)
 		if err != nil {
@@ -60,6 +71,7 @@ var rootCmd = &cobra.Command{
 			uids = []string{flagUID}
 		}
 		// perform the check!
+		startTime := time.Now()
 		results, err := common.EnforceMemberships(ctx, fs, &common.EnforceMembershipsOptions{
 			ReloadDiscordGuilds:       true,
 			RemoveInvalidDiscordToken: true,
@@ -70,11 +82,21 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal().Err(err).Msg("error performing enforcement check")
 		}
+		endTime := time.Now()
+		runtime := uint64(endTime.Sub(startTime).Seconds())
+		if psTopic != nil {
+			result := psTopic.Publish(ctx, &pubsub.Message{
+				Data: []byte(endTime.In(time.UTC).Format(time.RFC3339)),
+			})
+			if _, err = result.Get(ctx); err != nil {
+				log.Err(err).Msg("error publishing Pub/Sub message")
+			}
+		}
 		// don't log per-uid metrics to GCP - print them out!
 		if uids == nil {
-			log.Info().Interface("checkResults", results).Msg("periodic check complete")
+			log.Info().Interface("checkResults", results).Uint64("runtime", runtime).Msg("periodic check complete")
 		} else {
-			fmt.Printf("check results: %+v\n", results)
+			fmt.Printf("check results (%ds): %+v\n", runtime, results)
 		}
 	},
 }
@@ -97,6 +119,7 @@ func init() {
 	persistent.BoolVar(&flagNoCloudLogging, "no-cloud-logging", false, "do not output results to Google Cloud Logging")
 	persistent.String("gcp-project", "member-gentei", "GCP project ID")
 	persistent.StringVar(&flagUID, "uid", "", "specific user ID")
+	persistent.StringVar(&flagPubsubTopic, "pubsub-topic", "", "pubsub topic to notify on completion")
 	viper.BindPFlags(persistent)
 }
 
