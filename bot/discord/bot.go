@@ -46,9 +46,10 @@ type discordBot struct {
 	dgSession *discordgo.Session
 	fs        *firestore.Client
 
-	lastMemberCheck      map[string]time.Time           // global rate limiter for user member checks
-	guildStates          map[string]guildState          // holds state for a Discord guild
-	ytChannelMemberships map[string]map[string]struct{} // holds memberships corresponding to a particular YouTube channel
+	lastMemberCheck           map[string]time.Time  // global rate limiter for user member checks
+	guildStates               map[string]guildState // holds state for a Discord guild
+	ytChannelMembershipsMutex sync.RWMutex
+	ytChannelMemberships      map[string]map[string]struct{} // holds memberships corresponding to a particular YouTube channel
 
 	// newMemberRoleApplier() stuff
 	// key is "guildID-userID"
@@ -179,6 +180,8 @@ func (d *discordBot) handleGuildMembersChunk(s *discordgo.Session, chunk *discor
 			Msg("received GuildMembersChunk for guild without a member role ID configured")
 		return
 	}
+	d.ytChannelMembershipsMutex.RLock()
+	defer d.ytChannelMembershipsMutex.RUnlock()
 	memberList := d.ytChannelMemberships[state.Doc.Channel.ID]
 	for _, user := range chunk.Members {
 		userID := user.User.ID
@@ -324,6 +327,8 @@ func (d *discordBot) loadMemberships(guildID string) {
 		memberIDs[snap.Ref.ID] = struct{}{}
 	}
 	log.Debug().Str("channelSlug", state.Doc.Channel.ID).Int("count", len(memberIDs)).Msg("loaded members for channel")
+	d.ytChannelMembershipsMutex.Lock()
+	defer d.ytChannelMembershipsMutex.Unlock()
 	d.ytChannelMemberships[state.Doc.Channel.ID] = memberIDs
 }
 
