@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 
+	"cloud.google.com/go/pubsub"
+
 	"cloud.google.com/go/firestore"
 
 	zlg "github.com/mark-ignacio/zerolog-gcp"
@@ -37,10 +39,11 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
 		var (
-			token      = viper.GetString("token")
-			apiKey     = viper.GetString("api-key")
-			apiServer  = viper.GetString("api-server")
-			gcpProject = viper.GetString("gcp-project")
+			token           = viper.GetString("token")
+			apiKey          = viper.GetString("api-key")
+			apiServer       = viper.GetString("api-server")
+			gcpProject      = viper.GetString("gcp-project")
+			membershipSubID = viper.GetString("membership-sub-id")
 		)
 		if token == "" {
 			log.Fatal().Msg("must specify a Discord token")
@@ -53,6 +56,9 @@ var rootCmd = &cobra.Command{
 		}
 		if gcpProject == "" {
 			log.Fatal().Msg("must specify a GCP project ID")
+		}
+		if membershipSubID == "" {
+			log.Fatal().Msg("must specify a pub/sub subscription ID")
 		}
 		gcpWriter, err := zlg.NewCloudLoggingWriter(ctx, gcpProject, "discord-bot", zlg.CloudLoggingOptions{})
 		if err != nil {
@@ -77,7 +83,12 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal().Err(err).Msg("error loading Firestore client")
 		}
-		if err := discord.Start(ctx, token, apiClient, fs); err != nil {
+		psClient, err := pubsub.NewClient(ctx, gcpProject)
+		if err != nil {
+			log.Fatal().Err(err).Msg("error loading Pub/Sub client")
+		}
+		psSubscription := psClient.Subscription(membershipSubID)
+		if err := discord.Start(ctx, token, apiClient, fs, psSubscription); err != nil {
 			log.Fatal().Err(err).Msg("error running Discord bot")
 		}
 	},
@@ -99,6 +110,7 @@ func init() {
 	persistent.BoolVarP(&flagVerbose, "verbose", "v", false, "DEBUG level logging")
 	persistent.String("token", "", "Discord bot token")
 	persistent.String("api-server", "https://us-central1-member-gentei.cloudfunctions.net/API", "API URL")
+	persistent.String("membership-sub-id", "", "Pub/Sub subscription ID for membership list reloads")
 	viper.BindPFlags(persistent)
 }
 

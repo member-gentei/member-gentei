@@ -13,6 +13,7 @@ import (
 	"github.com/member-gentei/member-gentei/pkg/common"
 
 	"cloud.google.com/go/firestore"
+	"cloud.google.com/go/pubsub"
 	"github.com/Lukaesebrot/dgc"
 	"github.com/bwmarrin/discordgo"
 	"github.com/rs/zerolog/log"
@@ -57,7 +58,7 @@ type discordBot struct {
 	guildMemberUpdateChannels sync.Map
 }
 
-// error returns the result of the first round of listening.
+// error returns the result of the first round of listening to changes.
 func (d *discordBot) listenToGuildAssociations() error {
 	var (
 		firstErrChan = make(chan error)
@@ -85,10 +86,6 @@ func (d *discordBot) listenToGuildAssociations() error {
 				err = change.Doc.DataTo(&guild)
 				if err != nil {
 					log.Err(err).Msg("error unmarshalling DiscordGuild")
-				}
-				if !firstErrSent {
-					firstErrChan <- err
-					firstErrSent = true
 				}
 				// removal from this map deactivates the bot for this guild
 				if change.Kind == firestore.DocumentRemoved {
@@ -128,9 +125,51 @@ func (d *discordBot) listenToGuildAssociations() error {
 					d.guildStates[guild.ID] = state
 				}
 			}
+			if !firstErrSent {
+				firstErrChan <- err
+				close(firstErrChan)
+				firstErrSent = true
+			}
 		}
 	}()
 	return <-firstErrChan
+}
+
+// reloads memberships for any present in guildState
+func (d *discordBot) listenToMemberCheckUpdates(checkSubscription *pubsub.Subscription) {
+	// this ring buffer is a mild O(4) defense against at-least-once delivery
+	deliveredTimestamps := make([]string, 4)
+	deliveredTimestampIndex := 0
+	go func() {
+		checkSubscription.Receive(d.ctx, func(ctx context.Context, msg *pubsub.Message) {
+			ts := string(msg.Data)
+			logger := log.With().Str("checkMessage", ts).Logger()
+			logger.Debug().Msg("received member check message")
+			msg.Ack()
+			var noReload bool
+			for _, storedTs := range deliveredTimestamps {
+				if storedTs == ts {
+					noReload = true
+					break
+				}
+			}
+			if noReload {
+				logger.Debug().Msg("discarding duplicate member check message")
+				return
+			}
+			deliveredTimestamps[deliveredTimestampIndex] = ts
+			deliveredTimestampIndex = (deliveredTimestampIndex + 1) % 4
+			// load all memberships in a mildly-threadsafe manner
+			guildIDs := make([]string, 0, len(d.guildStates))
+			for key := range d.guildStates {
+				guildIDs = append(guildIDs, key)
+			}
+			logger.Info().Strs("guildIDs", guildIDs).Msg("check message received, reloading memberships")
+			for _, guildID := range guildIDs {
+				d.loadMemberships(guildID)
+			}
+		})
+	}()
 }
 
 func (d *discordBot) handleGuildCreate(s *discordgo.Session, g *discordgo.GuildCreate) {
@@ -403,6 +442,7 @@ func Start(
 	token string,
 	apiClient api.ClientWithResponsesInterface,
 	fs *firestore.Client,
+	membershipReloadSubscription *pubsub.Subscription,
 ) error {
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
@@ -420,11 +460,14 @@ func Start(
 		lastMemberCheck:      map[string]time.Time{},
 		ytChannelMemberships: map[string]map[string]struct{}{},
 	}
+	// create a Firestore listener for guild associations
 	err = bot.listenToGuildAssociations()
 	if err != nil {
 		log.Err(err).Msg("error initalizing bot data")
 		return err
 	}
+	// start the membership check notification listener
+	bot.listenToMemberCheckUpdates(membershipReloadSubscription)
 	// construct router
 	router := dgc.Create(&dgc.Router{
 		Prefixes: []string{"!mg "},
