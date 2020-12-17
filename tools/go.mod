@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	cloud.google.com/go/firestore v1.3.0
+	cloud.google.com/go/pubsub v1.3.1
 	firebase.google.com/go v3.13.0+incompatible
 	firebase.google.com/go/v4 v4.1.0
 	github.com/member-gentei/member-gentei/pkg v0.0.0-20201115025050-759c1329cf82
