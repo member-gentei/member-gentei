@@ -16,6 +16,7 @@ import (
 	"google.golang.org/api/youtube/v3"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"libs.altipla.consulting/tokensource"
 
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go/v4"
@@ -116,7 +117,13 @@ func discordAuth(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	client := discordOAuthConfig.Client(ctx, token)
+	client := tokensource.NewNotifyHook(
+		ctx, discordOAuthConfig, token,
+		func(newToken *oauth2.Token) error {
+			token = newToken
+			return nil
+		},
+	).Client(ctx)
 	response, err := client.Get(discordMeURL)
 	if err != nil {
 		log.Err(err).Msg("error getting Discord identity")
@@ -188,7 +195,7 @@ func discordAuth(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	_, err = discordDoc.Collection("private").Doc("discord").Set(ctx, token)
+	_, err = discordDoc.Collection(common.PrivateCollection).Doc("discord").Set(ctx, token)
 	if err != nil {
 		log.Err(err).Msg("error saving Discord token to Firestore")
 		w.WriteHeader(http.StatusInternalServerError)
