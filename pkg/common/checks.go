@@ -79,7 +79,8 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 		query = query.Select("CandidateChannels")
 	}
 	if options.StartAfter != "" {
-		query = query.StartAfter(options.StartAfter)
+		// YoutubeChannelID, UserID
+		query = query.StartAfter("", options.StartAfter)
 	}
 	query = query.OrderBy("YoutubeChannelID", firestore.Asc).OrderBy("UserID", firestore.Asc)
 	// cache so that we don't have to perform a lot of expensive array-in queries
@@ -90,11 +91,16 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 	}
 	// we should be able to slowly paginate through userIDs, but Firestore returns an internal error more often than not when we paginate this query.
 	// load it all into RAM!
+	startTime := time.Now()
 	docs, err := query.Documents(ctx).GetAll()
 	if err != nil {
 		log.Err(err).Msg("error getting all user IDs")
 		return
 	}
+	log.Debug().
+		Uint64("duration", uint64(time.Now().Sub(startTime).Seconds())).
+		Int("count", len(docs)).
+		Msg("loaded user IDs")
 	for _, doc := range docs {
 		// acquire candidate YouTube channels (via a Discord refresh or otherwise)
 		var (
