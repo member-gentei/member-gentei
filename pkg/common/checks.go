@@ -83,6 +83,7 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 		log.Err(err).Msg("error getting member video IDs")
 		return
 	}
+	var lastUserID string
 	for {
 		doc, iterErr := iter.Next()
 		if iterErr == iterator.Done {
@@ -90,17 +91,18 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 		}
 		if iterErr != nil {
 			if c := status.Code(iterErr); c != codes.OK {
-				log.Err(iterErr).Msg("rpc error getting private doc for YouTube channel")
+				log.Err(iterErr).Str("lastUserID", lastUserID).Msg("rpc error getting private doc for YouTube channel")
+				err = iterErr
 				return
 			}
 		}
-		result.UserCount++
 		// acquire candidate YouTube channels (via a Discord refresh or otherwise)
 		var (
 			candidateChannels []*firestore.DocumentRef
 			userID            = doc.Ref.ID
 			logger            = log.With().Str("userID", userID).Logger()
 		)
+		lastUserID = userID
 		if options.ReloadDiscordGuilds {
 			candidateChannels, err = ReloadDiscordGuilds(ctx, fs, userID)
 			if errors.Is(err, ErrDiscordTokenInvalid) || errors.Is(err, ErrDiscordTokenNotFound) {
@@ -312,9 +314,15 @@ func CheckChannelMembership(
 			err = nil
 			return
 		} else if strings.Contains(errString, "Token has been expired or revoked.") {
+			logger.Warn().Err(err).Send()
+			err = ErrYouTubeTokenInvalid
+			return
+		} else if strings.Contains(errString, "Request had invalid authentication credentials") {
+			logger.Warn().Err(err).Send()
 			err = ErrYouTubeTokenInvalid
 			return
 		} else if strings.Contains(errString, "Invalid \\\"invalid_grant\\\" in request.") {
+			logger.Warn().Err(err).Send()
 			err = ErrYouTubeInvalidGrant
 			return
 		}
