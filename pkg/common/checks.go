@@ -14,7 +14,6 @@ import (
 	"cloud.google.com/go/firestore"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"google.golang.org/api/iterator"
 	"google.golang.org/api/youtube/v3"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -42,6 +41,9 @@ type EnforceMembershipsOptions struct {
 	RemoveInvalidYouTubeToken bool // removes users with permanently invalid (revoked, de-scoped) tokens
 	Apply                     bool // apply changes
 	UserIDs                   []string
+
+	// Document ID passed as a Firestore StartAfter pagination argument
+	StartAfter string
 }
 
 // EnforceMembershipsResult contains metrics useful for monitoring/debugging/fun.
@@ -76,33 +78,30 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 	} else {
 		query = query.Select("CandidateChannels")
 	}
-	iter := query.Documents(ctx)
+	if options.StartAfter != "" {
+		query = query.StartAfter(options.StartAfter)
+	}
+	query = query.OrderBy("YoutubeChannelID", firestore.Asc).OrderBy("UserID", firestore.Asc)
 	// cache so that we don't have to perform a lot of expensive array-in queries
 	slug2MemberVideos, err := getMemberVideoIDs(ctx, fs)
 	if err != nil {
 		log.Err(err).Msg("error getting member video IDs")
 		return
 	}
-	var lastUserID string
-	for {
-		doc, iterErr := iter.Next()
-		if iterErr == iterator.Done {
-			break
-		}
-		if iterErr != nil {
-			if c := status.Code(iterErr); c != codes.OK {
-				log.Err(iterErr).Str("lastUserID", lastUserID).Msg("rpc error getting private doc for YouTube channel")
-				err = iterErr
-				return
-			}
-		}
+	// we should be able to slowly paginate through userIDs, but Firestore returns an internal error more often than not when we paginate this query.
+	// load it all into RAM!
+	docs, err := query.Documents(ctx).GetAll()
+	if err != nil {
+		log.Err(err).Msg("error getting all user IDs")
+		return
+	}
+	for _, doc := range docs {
 		// acquire candidate YouTube channels (via a Discord refresh or otherwise)
 		var (
 			candidateChannels []*firestore.DocumentRef
 			userID            = doc.Ref.ID
 			logger            = log.With().Str("userID", userID).Logger()
 		)
-		lastUserID = userID
 		if options.ReloadDiscordGuilds {
 			candidateChannels, err = ReloadDiscordGuilds(ctx, fs, userID)
 			if errors.Is(err, ErrDiscordTokenInvalid) || errors.Is(err, ErrDiscordTokenNotFound) {

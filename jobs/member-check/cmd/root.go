@@ -24,6 +24,7 @@ var (
 	flagNoCloudLogging bool
 	flagUID            string
 	flagPubsubTopic    string
+	flagStartAfter     string
 )
 var rootCmd = &cobra.Command{
 	Use:   "gentei-member-check",
@@ -78,6 +79,7 @@ var rootCmd = &cobra.Command{
 			RemoveInvalidYouTubeToken: true,
 			Apply:                     !flagDryRun,
 			UserIDs:                   uids,
+			StartAfter:                flagStartAfter,
 		})
 		if err != nil {
 			log.Fatal().Err(err).Msg("error performing enforcement check")
@@ -121,6 +123,7 @@ func init() {
 	persistent.StringVar(&flagUID, "uid", "", "specific user ID")
 	persistent.StringVar(&flagPubsubTopic, "pubsub-topic", "", "pubsub topic to notify on completion")
 	viper.BindPFlags(persistent)
+	rootCmd.Flags().StringVar(&flagStartAfter, "start-after", "", "StartAfter argument")
 }
 
 // initConfig reads in config file and ENV variables if set.
