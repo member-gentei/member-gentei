@@ -161,27 +161,29 @@ func discordAuth(w http.ResponseWriter, r *http.Request) {
 		Username:      meResponse.Username,
 		Discriminator: meResponse.Discriminator,
 	}
+	logger := log.With().Str("userID", discordIdentity.UserID).Logger()
 	// if the user currently exists, retain memberships, candidate channels, and YouTubeChannelID
 	existingDoc, err := discordDoc.Get(ctx)
 	if err != nil {
 		if c := status.Code(err); c != codes.Unknown && c != codes.NotFound {
-			log.Err(err).Msg("GRPC error saving Discord identity to Firestore")
+			logger.Err(err).Msg("GRPC error saving Discord identity to Firestore")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		err = nil
 		channelRefs, err := getCandidateChannels(ctx, fs, client)
 		if err != nil {
-			log.Err(err).Msg("error getting candidate channels")
+			logger.Err(err).Msg("error getting candidate channels")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		discordIdentity.CandidateChannels = channelRefs
+		logger.Info().Msg("registering new user")
 	} else {
 		var existingDiscordIdentity common.DiscordIdentity
 		err = existingDoc.DataTo(&existingDiscordIdentity)
 		if err != nil {
-			log.Err(err).Msg("error unmarshalling existing Discord identity")
+			logger.Err(err).Msg("error unmarshalling existing Discord identity")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -191,25 +193,25 @@ func discordAuth(w http.ResponseWriter, r *http.Request) {
 	}
 	_, err = discordDoc.Set(ctx, discordIdentity)
 	if err != nil {
-		log.Err(err).Msg("error saving Discord identity to Firestore")
+		logger.Err(err).Msg("error saving Discord identity to Firestore")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	_, err = discordDoc.Collection(common.PrivateCollection).Doc("discord").Set(ctx, token)
 	if err != nil {
-		log.Err(err).Msg("error saving Discord token to Firestore")
+		logger.Err(err).Msg("error saving Discord token to Firestore")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	jwt, err := appAuth.CustomToken(ctx, meResponse.ID)
 	if err != nil {
-		log.Err(err).Msg("error creating custom token")
+		logger.Err(err).Msg("error creating custom token")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	payload, err := json.Marshal(map[string]string{"jwt": jwt})
 	if err != nil {
-		log.Err(err).Msg("error marshaling custom token to JSON")
+		logger.Err(err).Msg("error marshaling custom token to JSON")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -221,12 +223,12 @@ func discordAuth(w http.ResponseWriter, r *http.Request) {
 			toCreate = toCreate.UID(meResponse.ID)
 			_, err = appAuth.CreateUser(ctx, toCreate)
 			if err != nil {
-				log.Err(err).Msg("error creating user")
+				logger.Err(err).Msg("error creating user")
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 		} else {
-			log.Err(err).Msg("error checking for user")
+			logger.Err(err).Msg("error checking for user")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -235,7 +237,7 @@ func discordAuth(w http.ResponseWriter, r *http.Request) {
 		toUpdate = toUpdate.DisplayName(fmt.Sprintf("%s#%s", meResponse.Username, meResponse.Discriminator))
 		_, err := appAuth.UpdateUser(ctx, meResponse.ID, toUpdate)
 		if err != nil {
-			log.Err(err).Msg("error updating existing username")
+			logger.Err(err).Msg("error updating existing username")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
