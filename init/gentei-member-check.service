@@ -5,7 +5,7 @@ After=network.target
 [Service]
 User=gentei-member-check
 Group=gentei-member-check
-ExecStart=/bin/gentei-member-check --verbose
+ExecStart=/bin/gentei-member-check --config /etc/gentei/member-check.yml --verbose
 Environment=GOOGLE_APPLICATION_CREDENTIALS=/etc/gentei/member-check.sa.json
 
 [Install]
