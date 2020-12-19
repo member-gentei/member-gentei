@@ -97,9 +97,10 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 		log.Err(err).Msg("error getting all user IDs")
 		return
 	}
+	result.UserCount = uint(len(docs))
 	log.Debug().
 		Uint64("duration", uint64(time.Now().Sub(startTime).Seconds())).
-		Int("count", len(docs)).
+		Uint("count", result.UserCount).
 		Msg("loaded user IDs")
 	for _, doc := range docs {
 		// acquire candidate YouTube channels (via a Discord refresh or otherwise)
