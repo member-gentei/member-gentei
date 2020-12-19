@@ -34,6 +34,7 @@ member-check-rpm:
 	install -d -m 755 build/etc/systemd/system
 	cd jobs/member-check && \
 		GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ../../build/bin/gentei-member-check .
+	install -D -m 600 init/member-check.yml build/etc/gentei/member-check.yml
 	install -D -m 644 init/gentei-member-check.service build/etc/systemd/system/gentei-member-check.service
 	install -D -m 644 init/gentei-member-check.timer build/etc/systemd/system/gentei-member-check.timer
 	fpm -s dir \
