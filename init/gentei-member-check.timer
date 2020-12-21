@@ -2,9 +2,9 @@
 Description=Run Gentei membership checks somewhere around daily
 
 [Timer]
-OnBootSec=6min
-OnUnitActiveSec=22hr
+OnCalendar=18:00:00 UTC
 RandomizedDelaySec=2hr
+Persistent=true
 
 [Install]
 WantedBy=timers.target
