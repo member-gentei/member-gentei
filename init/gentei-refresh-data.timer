@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh ephemeral data hourly-ish
+
+[Timer]
+OnCalendar=hourly
+RandomizedDelaySec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

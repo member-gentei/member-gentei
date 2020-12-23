@@ -5,6 +5,7 @@ go 1.14
 require (
 	cloud.google.com/go v0.71.0 // indirect
 	cloud.google.com/go/firestore v1.3.0
+	github.com/bwmarrin/discordgo v0.22.0
 	github.com/rs/zerolog v1.20.0
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 	golang.org/x/tools v0.0.0-20201105220310-78b158585360 // indirect

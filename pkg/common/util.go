@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 
+	"google.golang.org/api/option"
+
 	"libs.altipla.consulting/tokensource"
 
 	"cloud.google.com/go/firestore"
@@ -20,6 +22,7 @@ import (
 var (
 	youTubeOAuthConfig *oauth2.Config
 	discordOAuthConfig = &oauth2.Config{}
+	youTubeAPIKey      string
 )
 
 // GetYouTubeService initializes a YouTube service for a user.
@@ -90,6 +93,27 @@ func GetDiscordHTTPClient(ctx context.Context, fs *firestore.Client, userID stri
 	)
 	client = notifyHook.Client(ctx)
 	return
+}
+
+// GetYoutubeServerService initializes a YouTube service using the project API key.
+func GetYoutubeServerService(ctx context.Context, fs *firestore.Client) (svc *youtube.Service, err error) {
+	if youTubeAPIKey == "" {
+		snap, err := fs.Collection("config").Doc("youtube-server").Get(ctx)
+		if err != nil {
+			log.Err(err).Msg("error getting YouTube API key")
+			return nil, err
+		}
+		var apiKey struct {
+			Data string
+		}
+		err = snap.DataTo(&apiKey)
+		if err != nil {
+			log.Err(err).Msg("error unmarshalling YouTube API key")
+			return nil, err
+		}
+		youTubeAPIKey = apiKey.Data
+	}
+	return youtube.NewService(ctx, option.WithAPIKey(youTubeAPIKey))
 }
 
 func loadYoutubeConfig(ctx context.Context, fs *firestore.Client) error {
