@@ -53,6 +53,7 @@ type ChannelMember struct {
 // fs: guilds/{guildID]
 type DiscordGuild struct {
 	ID                    string
+	Name                  string
 	AdministrativeRoles   []string
 	LastMembershipRefresh time.Time
 	MemberRoleID          string

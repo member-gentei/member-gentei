@@ -51,5 +51,31 @@ member-check-rpm:
 		.
 	rm -rf build
 
+.PHONY: refresh-data-rpm
+refresh-data-rpm:
+	rm -rf gentei-refresh-data-*.rpm build
+	mkdir -p build
+	install -d -m 755 build/bin
+	install -d -m 755 build/etc/gentei
+	install -d -m 755 build/etc/systemd/system
+	cd jobs/refresh-data && \
+		GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ../../build/bin/gentei-refresh-data .
+	install -D -m 600 init/refresh-data.yml build/etc/gentei/refresh-data.yml
+	install -D -m 644 init/gentei-refresh-data.service build/etc/systemd/system/gentei-refresh-data.service
+	install -D -m 644 init/gentei-refresh-data.timer build/etc/systemd/system/gentei-refresh-data.timer
+	fpm -s dir \
+		-t rpm \
+		-C build \
+		--name gentei-refresh-data \
+		--version '$(NOWISH)' \
+		--maintainer 'Mark Ignacio <mark@ignacio.io>' \
+		--before-install init/scripts/refresh-data/before-install.sh \
+		--config-files /etc/gentei/ \
+		--rpm-user gentei-refresh-data \
+		--rpm-group gentei-refresh-data \
+		--rpm-use-file-permissions \
+		.
+	rm -rf build
+
 .PHONY: rpms
-rpm: bot-rpm member-check-rpm
+rpm: bot-rpm member-check-rpm refresh-data-rpm

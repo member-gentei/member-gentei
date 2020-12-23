@@ -1,0 +1,12 @@
+[Unit]
+Description=Refresh ephemeral data
+After=network.target
+
+[Service]
+User=gentei-refresh-data
+Group=gentei-refresh-data
+ExecStart=/bin/gentei-refresh-data --config /etc/gentei/refresh-data.yml --verbose
+Environment=GOOGLE_APPLICATION_CREDENTIALS=/etc/gentei/refresh-data.sa.json
+
+[Install]
+WantedBy=multi-user.target
