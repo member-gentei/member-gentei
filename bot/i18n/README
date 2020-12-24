@@ -1,0 +1,2 @@
+These files are marshalled to base64 strings inside of /bot/lang/gen.go and
+should be loaded in at i18.Bundle create time.

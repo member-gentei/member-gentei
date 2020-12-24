@@ -58,6 +58,7 @@ type DiscordGuild struct {
 	LastMembershipRefresh time.Time
 	MemberRoleID          string
 	AuditLogChannelID     string
+	BCP47                 string
 	Channel               *firestore.DocumentRef
 }
 
