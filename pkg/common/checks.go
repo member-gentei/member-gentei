@@ -68,19 +68,21 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 	var query firestore.Query
 	if len(options.UserIDs) > 0 {
 		query = fs.Collection(UsersCollection).Where("UserID", "in", options.UserIDs)
-	} else if options.OnlyChannelSlug != "" {
-		query = fs.Collection(UsersCollection).Where("CandidateChannels", "array-contains", fs.Collection(ChannelCollection).Doc(options.OnlyChannelSlug))
 	} else {
-		query = fs.Collection(UsersCollection).Where("YoutubeChannelID", ">", "")
-	}
-	if options.ReloadDiscordGuilds {
-		query = query.Select()
-	} else {
-		query = query.Select("CandidateChannels")
-	}
-	if options.StartAfter != "" {
-		// YoutubeChannelID, UserID
-		query = query.StartAfter("", options.StartAfter)
+		if options.OnlyChannelSlug != "" {
+			query = fs.Collection(UsersCollection).Where("CandidateChannels", "array-contains", fs.Collection(ChannelCollection).Doc(options.OnlyChannelSlug))
+		} else {
+			query = fs.Collection(UsersCollection).Where("YoutubeChannelID", ">", "")
+		}
+		if options.ReloadDiscordGuilds {
+			query = query.Select()
+		} else {
+			query = query.Select("CandidateChannels")
+		}
+		if options.StartAfter != "" {
+			// YoutubeChannelID, UserID
+			query = query.StartAfter("", options.StartAfter)
+		}
 	}
 	query = query.OrderBy("YoutubeChannelID", firestore.Asc).OrderBy("UserID", firestore.Asc)
 	// cache so that we don't have to perform a lot of expensive array-in queries
