@@ -5,12 +5,18 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/rs/zerolog"
+
 	"github.com/member-gentei/member-gentei/bot/discord/api"
+	"github.com/member-gentei/member-gentei/bot/discord/lang"
 	"github.com/member-gentei/member-gentei/pkg/common"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"golang.org/x/text/language"
 
 	"cloud.google.com/go/firestore"
 	"cloud.google.com/go/pubsub"
@@ -35,9 +41,11 @@ type guildState struct {
 	Doc                  common.DiscordGuild
 	LoadState            guildLoadState
 	MembersLastRefreshed time.Time
+	localizer            *i18n.Localizer
 
 	// authoritative map. Needs to be refactored for scaling up.
 	guildMembers map[string]bool // boolean map of whether someone is a member
+	noFancyReply bool            // whether we can use message replies instead of @user in this guild
 }
 
 // discordBot is the whole Discord bot.
@@ -46,6 +54,7 @@ type discordBot struct {
 	apiClient api.ClientWithResponsesInterface
 	dgSession *discordgo.Session
 	fs        *firestore.Client
+	bundle    *i18n.Bundle
 
 	lastMemberCheck           map[string]time.Time  // global rate limiter for user member checks
 	guildStates               map[string]guildState // holds state for a Discord guild
@@ -100,6 +109,7 @@ func (d *discordBot) listenToGuildAssociations() error {
 						Doc:          guild,
 						LoadState:    guildWaitingForCreateEvent,
 						guildMembers: map[string]bool{},
+						localizer:    makeLocalizer(d.bundle, guild.BCP47),
 					}
 				case guildWaitingForAssociationData, guildLoaded:
 					var shouldCheckRoles bool
@@ -112,6 +122,7 @@ func (d *discordBot) listenToGuildAssociations() error {
 						}
 					}
 					state.Doc = guild
+					state.localizer = makeLocalizer(d.bundle, guild.BCP47)
 					d.guildStates[guild.ID] = state
 					if shouldCheckRoles {
 						d.checkRoles(d.dgSession, guild.ID, nil)
@@ -187,6 +198,7 @@ func (d *discordBot) handleGuildCreate(s *discordgo.Session, g *discordgo.GuildC
 		state = guildState{
 			LoadState:    guildWaitingForAssociationData,
 			guildMembers: memberMap,
+			localizer:    makeLocalizer(d.bundle, language.AmericanEnglish.String()),
 		}
 		d.guildStates[g.ID] = state
 		logger.Info().Interface("state", state).Msg("guildWaitingForAssociationData")
@@ -272,14 +284,35 @@ func (d *discordBot) handleCmdCheck(ctx *dgc.Ctx) {
 	)
 	switch guildState.LoadState {
 	case guildWaitingForAssociationData:
-		ctx.RespondText("This Discord server isn't registered for membership tracking yet. Please wait until the server owner gets this sorted out!")
+		msg := mustLocalizeMessage(guildState.localizer, &i18n.Message{
+			ID:    "GuildNotRegisteredReply",
+			Other: "This Discord server isn't registered for membership management yet. Please wait until the server owner gets this sorted out!",
+		})
+		d.reply(
+			log.Logger, m.GuildID, ctx.Event.ChannelID, ctx.Event.Author.ID,
+			ctx.Event.Reference(), msg,
+		)
 	case guildWaitingForCreateEvent:
-		ctx.RespondText("This bot has secretly, recently restarted and is still loading - please try again in a minute!")
+		msg := mustLocalizeMessage(guildState.localizer, &i18n.Message{
+			ID:    "BotRestartedReply",
+			Other: "This bot has secretly, recently restarted and is still loading - please try again in a minute!",
+		})
+		d.reply(
+			log.Logger, m.GuildID, ctx.Event.ChannelID, ctx.Event.Author.ID,
+			ctx.Event.Reference(), msg,
+		)
 	case guildLoaded:
 		logger := log.With().Str("userID", m.Author.ID).Str("guildID", m.GuildID).Logger()
 		if timeout := time.Now().Sub(d.lastMemberCheck[m.Author.ID]).Seconds(); timeout < 30 {
 			logger.Debug().Float64("timeout", timeout).Msg("rate limited membership check")
-			err := ctx.RespondText(makeReply(m.Author.ID, "your replies are rate limited to prevent abuse - please try again in a minute!"))
+			msg := mustLocalizeMessage(guildState.localizer, &i18n.Message{
+				ID:    "RateLimitReply",
+				Other: "Your replies are rate limited to prevent abuse - please try again in a minute!",
+			})
+			err := d.reply(
+				logger, m.GuildID, ctx.Event.ChannelID, ctx.Event.Author.ID,
+				ctx.Event.Reference(), msg,
+			)
 			if err != nil {
 				logger.Err(err).Msg("error communicating rate limit")
 				return
@@ -306,7 +339,14 @@ func (d *discordBot) handleCmdCheck(ctx *dgc.Ctx) {
 		if response.JSON200 != nil {
 			if response.JSON200.Member {
 				logger.Info().Msg("membership confirmed")
-				err = ctx.RespondText(makeReply(m.Author.ID, "Membership confirmed! You will be added as a member shortly."))
+				msg := mustLocalizeMessage(guildState.localizer, &i18n.Message{
+					ID:    "MembershipConfirmedReply",
+					Other: "Membership confirmed! You will be added as a member shortly.",
+				})
+				err = d.reply(
+					logger, m.GuildID, ctx.Event.ChannelID, ctx.Event.Author.ID,
+					ctx.Event.Reference(), msg,
+				)
 				if err != nil {
 					logger.Err(err).Msg("error replying")
 					return
@@ -320,7 +360,14 @@ func (d *discordBot) handleCmdCheck(ctx *dgc.Ctx) {
 				}
 			} else {
 				logger.Info().Str("reason", *response.JSON200.Reason).Msg("user is not a member")
-				err = ctx.RespondText(makeReply(m.Author.ID, "We just checked, and you don't seem to be a member."))
+				msg := mustLocalizeMessage(guildState.localizer, &i18n.Message{
+					ID:    "MembershipUnconfirmedReply",
+					Other: "We just checked, and you don't seem to be a member.",
+				})
+				err = d.reply(
+					logger, m.GuildID, ctx.Event.ChannelID, ctx.Event.Author.ID,
+					ctx.Event.Reference(), msg,
+				)
 				if err != nil {
 					logger.Err(err).Msg("error replying")
 					return
@@ -336,7 +383,14 @@ func (d *discordBot) handleCmdCheck(ctx *dgc.Ctx) {
 		} else {
 			logger.Debug().Bytes("body", response.Body).Interface("headers", response.HTTPResponse.Header).Int("code", response.StatusCode()).Msg("json200 is nil")
 			logger.Info().Msg("user is not registered")
-			err = ctx.RespondText(makeReply(m.Author.ID, "Please sign up on https://member-gentei.tindabox.net/app and run this command a few minutes after connecting your YouTube account!"))
+			msg := mustLocalizeMessage(guildState.localizer, &i18n.Message{
+				ID:    "SignupRequiredReply",
+				Other: "Please sign up on https://member-gentei.tindabox.net/app and run this command a few minutes after connecting your YouTube account!",
+			})
+			err = d.reply(
+				logger, m.GuildID, ctx.Event.ChannelID, ctx.Event.Author.ID,
+				ctx.Event.Reference(), msg,
+			)
 			if err != nil {
 				logger.Err(err).Msg("error replying")
 				return
@@ -421,8 +475,50 @@ func (d *discordBot) checkRoles(session *discordgo.Session, guildID string, guil
 	}
 }
 
-func makeReply(userID, message string) string {
-	return fmt.Sprintf("<@%s> %s", userID, message)
+func (d *discordBot) reply(
+	logger zerolog.Logger,
+	guildID, channelID, userID string,
+	messageRef *discordgo.MessageReference,
+	message string,
+) error {
+	guildState := d.guildStates[guildID]
+	if !guildState.noFancyReply {
+		_, err := d.dgSession.ChannelMessageSendReply(channelID, message, messageRef)
+		if err != nil {
+			if strings.Contains(err.Error(), "Cannot reply without permission to read message history") {
+				logger.Debug().Msg("falling back to simple replies in this Discord guild")
+				guildState.noFancyReply = true
+				d.guildStates[guildID] = guildState
+			} else {
+				logger.Err(err).Msg("error sending fancy reply")
+				return err
+			}
+		} else {
+			return nil
+		}
+	}
+	// if noFancyReply || !readMessageHistoryPermission
+	_, err := d.dgSession.ChannelMessageSend(channelID, fmt.Sprintf("<@%s> %s", userID, message))
+	if err != nil {
+		logger.Err(err).Msg("error sending simple reply")
+	}
+	return err
+}
+
+func makeLocalizer(bundle *i18n.Bundle, languageTag string) *i18n.Localizer {
+	if languageTag == "" {
+		i18n.NewLocalizer(bundle, "en-US")
+	}
+	return i18n.NewLocalizer(bundle, languageTag, "en-US")
+}
+
+// localizer.LocalizeMessage that panics
+func mustLocalizeMessage(localizer *i18n.Localizer, message *i18n.Message) string {
+	msg, err := localizer.LocalizeMessage(message)
+	if err != nil {
+		panic(err)
+	}
+	return msg
 }
 
 func userHasRole(member *discordgo.Member, roleID string) bool {
@@ -459,6 +555,7 @@ func Start(
 		dgSession:            dg,
 		lastMemberCheck:      map[string]time.Time{},
 		ytChannelMemberships: map[string]map[string]struct{}{},
+		bundle:               lang.NewBundle(),
 	}
 	// create a Firestore listener for guild associations
 	err = bot.listenToGuildAssociations()

@@ -1,0 +1,23 @@
+[BotRestartedReply]
+hash = "sha1-0ea5528fb662bba0b8149e4ba7544d02476ea7b4"
+other = "This bot has secretly, recently restarted and is still loading - please try again in a minute!"
+
+[GuildNotRegisteredReply]
+hash = "sha1-69b5abba264123a142bbcc3d0a06961aeeb93d58"
+other = "This Discord server isn't registered for membership management yet. Please wait until the server owner gets this sorted out!"
+
+[MembershipConfirmedReply]
+hash = "sha1-6417674f1dec19eae228b467cd00ce4333a7ea8b"
+other = "Membership confirmed! You will be added as a member shortly."
+
+[MembershipUnconfirmedReply]
+hash = "sha1-1fac872fe7d73be1a9be4d843250227f2726782e"
+other = "We just checked, and you don't seem to be a member."
+
+[RateLimitReply]
+hash = "sha1-203e2ee8e3ea0aafd4eda405219f26684294de89"
+other = "Your replies are rate limited to prevent abuse - please try again in a minute!"
+
+[SignupRequiredReply]
+hash = "sha1-dc2a8a37245e608ce6fb8bdc5c50cba997e27ab0"
+other = "Please sign up on https://member-gentei.tindabox.net/app and run this command a few minutes after connecting your YouTube account!"
