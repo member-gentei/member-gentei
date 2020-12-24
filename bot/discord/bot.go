@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/rs/zerolog"
 
 	"github.com/member-gentei/member-gentei/bot/discord/api"
 	"github.com/member-gentei/member-gentei/bot/discord/lang"
@@ -42,6 +45,7 @@ type guildState struct {
 
 	// authoritative map. Needs to be refactored for scaling up.
 	guildMembers map[string]bool // boolean map of whether someone is a member
+	noFancyReply bool            // whether we can use message replies instead of @user in this guild
 }
 
 // discordBot is the whole Discord bot.
@@ -284,13 +288,19 @@ func (d *discordBot) handleCmdCheck(ctx *dgc.Ctx) {
 			ID:    "GuildNotRegisteredReply",
 			Other: "This Discord server isn't registered for membership management yet. Please wait until the server owner gets this sorted out!",
 		})
-		d.dgSession.ChannelMessageSendReply(ctx.Event.ChannelID, msg, ctx.Event.Reference())
+		d.reply(
+			log.Logger, m.GuildID, ctx.Event.ChannelID, ctx.Event.Author.ID,
+			ctx.Event.Reference(), msg,
+		)
 	case guildWaitingForCreateEvent:
 		msg := mustLocalizeMessage(guildState.localizer, &i18n.Message{
 			ID:    "BotRestartedReply",
 			Other: "This bot has secretly, recently restarted and is still loading - please try again in a minute!",
 		})
-		d.dgSession.ChannelMessageSendReply(ctx.Event.ChannelID, msg, ctx.Event.Reference())
+		d.reply(
+			log.Logger, m.GuildID, ctx.Event.ChannelID, ctx.Event.Author.ID,
+			ctx.Event.Reference(), msg,
+		)
 	case guildLoaded:
 		logger := log.With().Str("userID", m.Author.ID).Str("guildID", m.GuildID).Logger()
 		if timeout := time.Now().Sub(d.lastMemberCheck[m.Author.ID]).Seconds(); timeout < 30 {
@@ -299,7 +309,10 @@ func (d *discordBot) handleCmdCheck(ctx *dgc.Ctx) {
 				ID:    "RateLimitReply",
 				Other: "Your replies are rate limited to prevent abuse - please try again in a minute!",
 			})
-			_, err := d.dgSession.ChannelMessageSendReply(ctx.Event.ChannelID, msg, ctx.Event.Reference())
+			err := d.reply(
+				logger, m.GuildID, ctx.Event.ChannelID, ctx.Event.Author.ID,
+				ctx.Event.Reference(), msg,
+			)
 			if err != nil {
 				logger.Err(err).Msg("error communicating rate limit")
 				return
@@ -330,7 +343,10 @@ func (d *discordBot) handleCmdCheck(ctx *dgc.Ctx) {
 					ID:    "MembershipConfirmedReply",
 					Other: "Membership confirmed! You will be added as a member shortly.",
 				})
-				_, err = d.dgSession.ChannelMessageSendReply(ctx.Event.ChannelID, msg, ctx.Event.Reference())
+				err = d.reply(
+					logger, m.GuildID, ctx.Event.ChannelID, ctx.Event.Author.ID,
+					ctx.Event.Reference(), msg,
+				)
 				if err != nil {
 					logger.Err(err).Msg("error replying")
 					return
@@ -348,7 +364,10 @@ func (d *discordBot) handleCmdCheck(ctx *dgc.Ctx) {
 					ID:    "MembershipUnconfirmedReply",
 					Other: "We just checked, and you don't seem to be a member.",
 				})
-				_, err = d.dgSession.ChannelMessageSendReply(ctx.Event.ChannelID, msg, ctx.Event.Reference())
+				err = d.reply(
+					logger, m.GuildID, ctx.Event.ChannelID, ctx.Event.Author.ID,
+					ctx.Event.Reference(), msg,
+				)
 				if err != nil {
 					logger.Err(err).Msg("error replying")
 					return
@@ -368,7 +387,10 @@ func (d *discordBot) handleCmdCheck(ctx *dgc.Ctx) {
 				ID:    "SignupRequiredReply",
 				Other: "Please sign up on https://member-gentei.tindabox.net/app and run this command a few minutes after connecting your YouTube account!",
 			})
-			_, err = d.dgSession.ChannelMessageSendReply(ctx.Event.ChannelID, msg, ctx.Event.Reference())
+			err = d.reply(
+				logger, m.GuildID, ctx.Event.ChannelID, ctx.Event.Author.ID,
+				ctx.Event.Reference(), msg,
+			)
 			if err != nil {
 				logger.Err(err).Msg("error replying")
 				return
@@ -453,8 +475,33 @@ func (d *discordBot) checkRoles(session *discordgo.Session, guildID string, guil
 	}
 }
 
-func makeReply(userID, message string) string {
-	return fmt.Sprintf("<@%s> %s", userID, message)
+func (d *discordBot) reply(
+	logger zerolog.Logger,
+	guildID, channelID, userID string,
+	messageRef *discordgo.MessageReference,
+	message string,
+) error {
+	guildState := d.guildStates[guildID]
+	if !guildState.noFancyReply {
+		_, err := d.dgSession.ChannelMessageSendReply(channelID, message, messageRef)
+		if err != nil {
+			if strings.Contains(err.Error(), "Cannot reply without permission to read message history") {
+				guildState.noFancyReply = true
+				d.guildStates[guildID] = guildState
+			} else {
+				logger.Err(err).Msg("error sending fancy reply")
+				return err
+			}
+		} else {
+			return nil
+		}
+	}
+	// if noFancyReply || !readMessageHistoryPermission
+	_, err := d.dgSession.ChannelMessageSend(channelID, fmt.Sprintf("<@%s> %s", userID, message))
+	if err != nil {
+		logger.Err(err).Msg("error sending simple reply")
+	}
+	return err
 }
 
 func makeLocalizer(bundle *i18n.Bundle, languageTag string) *i18n.Localizer {
