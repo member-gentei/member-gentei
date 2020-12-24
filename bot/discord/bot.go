@@ -486,6 +486,7 @@ func (d *discordBot) reply(
 		_, err := d.dgSession.ChannelMessageSendReply(channelID, message, messageRef)
 		if err != nil {
 			if strings.Contains(err.Error(), "Cannot reply without permission to read message history") {
+				logger.Debug().Msg("falling back to simple replies in this Discord guild")
 				guildState.noFancyReply = true
 				d.guildStates[guildID] = guildState
 			} else {
