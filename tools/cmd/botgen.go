@@ -2,12 +2,12 @@ package cmd
 
 import (
 	"encoding/base64"
-	"html/template"
 	"io/ioutil"
 	"os"
 	"path"
 	"regexp"
 	"strings"
+	"text/template"
 
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -21,7 +21,8 @@ var (
 {{- range .Languages }}
 	{{ .Name }} = "{{ .B64 }}"
 {{- end }}
-)`))
+)
+`))
 
 // botgenCmd represents the botgen command
 var botgenCmd = &cobra.Command{

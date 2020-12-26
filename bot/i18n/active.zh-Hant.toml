@@ -1,23 +1,23 @@
 [BotRestartedReply]
 hash = "sha1-0ea5528fb662bba0b8149e4ba7544d02476ea7b4"
-other = "This bot has secretly, recently restarted and is still loading - please try again in a minute!"
+other = "這個bot最近悄悄地重啟了並且還在載入中 - 請一分鐘後再試！"
 
 [GuildNotRegisteredReply]
 hash = "sha1-69b5abba264123a142bbcc3d0a06961aeeb93d58"
-other = "This Discord server isn't registered for membership management yet. Please wait until the server owner gets this sorted out!"
+other = "這個Discord伺服器尚未申請會員資格管理，請等待伺服器擁有者解決！"
 
 [MembershipConfirmedReply]
 hash = "sha1-6417674f1dec19eae228b467cd00ce4333a7ea8b"
-other = "Membership confirmed! You will be added as a member shortly."
+other = "會員資格確認！很快地您將會被添加為會限身分組。"
 
 [MembershipUnconfirmedReply]
 hash = "sha1-1fac872fe7d73be1a9be4d843250227f2726782e"
-other = "We just checked, and you don't seem to be a member."
+other = "我們剛剛檢查過了，您似乎不具有會員資格。"
 
 [RateLimitReply]
 hash = "sha1-203e2ee8e3ea0aafd4eda405219f26684294de89"
-other = "Your replies are rate limited to prevent abuse - please try again in a minute!"
+other = "為了預防濫用，您的回覆將受到限速 - 請在一分鐘後再試一次！"
 
 [SignupRequiredReply]
 hash = "sha1-dc2a8a37245e608ce6fb8bdc5c50cba997e27ab0"
-other = "Please sign up on https://member-gentei.tindabox.net/app and run this command a few minutes after connecting your YouTube account!"
+other = "請在https://member-gentei.tindabox.net/app上註冊，並在連接您的YouTube帳號幾分鐘後運行此指令！"
