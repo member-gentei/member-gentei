@@ -38,9 +38,15 @@ var botgenCmd = &cobra.Command{
 			reLanguageFile = regexp.MustCompile(`^active\.([A-Za-z\-]+)\.toml$`)
 		)
 		for _, info := range infos {
-			filename := info.Name()
-			match := reLanguageFile.FindAllStringSubmatch(filename, -1)
+			var (
+				filename = info.Name()
+				match    = reLanguageFile.FindAllStringSubmatch(filename, -1)
+			)
 			if match == nil {
+				continue
+			}
+			bcp47 := match[0][1]
+			if bcp47 == "en-US" {
 				continue
 			}
 			path := path.Join("../bot/i18n/", filename)
@@ -50,7 +56,7 @@ var botgenCmd = &cobra.Command{
 			}
 			log.Info().Msg(path)
 			b64data := base64.StdEncoding.EncodeToString(data)
-			varName := strings.ReplaceAll(match[0][1], "-", "")
+			varName := strings.ReplaceAll(bcp47, "-", "")
 			langs = append(langs, map[string]string{
 				"Name": varName,
 				"B64":  b64data,
