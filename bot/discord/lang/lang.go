@@ -14,10 +14,10 @@ func NewBundle() *i18n.Bundle {
 	bundle := i18n.NewBundle(language.AmericanEnglish)
 	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
 	var err error
-	_, err = bundle.ParseMessageFileBytes(mustB64Decode(enUS), "active.en-US.toml")
-	if err != nil {
-		panic(fmt.Errorf("error parsing active.en-US.toml: %+v", err))
-	}
+	// _, err = bundle.ParseMessageFileBytes(mustB64Decode(enUS), "active.en-US.toml")
+	// if err != nil {
+	// 	panic(fmt.Errorf("error parsing active.en-US.toml: %+v", err))
+	// }
 	_, err = bundle.ParseMessageFileBytes(mustB64Decode(zhHant), "active.zh-Hant.toml")
 	if err != nil {
 		panic(fmt.Errorf("error parsing active.zh-Hant.toml: %+v", err))

@@ -121,8 +121,12 @@ func (d *discordBot) listenToGuildAssociations() error {
 							shouldCheckRoles = true
 						}
 					}
+					// only change the localizer if the language changes
+					if state.Doc.BCP47 != guild.BCP47 {
+						log.Debug().Str("bcp47", guild.BCP47).Msg("changing language for guild")
+						state.localizer = makeLocalizer(d.bundle, guild.BCP47)
+					}
 					state.Doc = guild
-					state.localizer = makeLocalizer(d.bundle, guild.BCP47)
 					d.guildStates[guild.ID] = state
 					if shouldCheckRoles {
 						d.checkRoles(d.dgSession, guild.ID, nil)
