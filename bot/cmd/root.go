@@ -20,8 +20,9 @@ import (
 )
 
 var (
-	cfgFile     string
-	flagVerbose bool
+	cfgFile         string
+	flagVerbose     bool
+	flagNoHeartbeat bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -88,7 +89,14 @@ var rootCmd = &cobra.Command{
 			log.Fatal().Err(err).Msg("error loading Pub/Sub client")
 		}
 		psSubscription := psClient.Subscription(membershipSubID)
-		if err := discord.Start(ctx, token, apiClient, fs, psSubscription); err != nil {
+		opts := &discord.StartOptions{
+			Token:                        token,
+			APIClient:                    apiClient,
+			FirestoreClient:              fs,
+			MembershipReloadSubscription: psSubscription,
+			Heartbeat:                    !flagNoHeartbeat,
+		}
+		if err := discord.Start(ctx, opts); err != nil {
 			log.Fatal().Err(err).Msg("error running Discord bot")
 		}
 	},
@@ -111,6 +119,7 @@ func init() {
 	persistent.String("token", "", "Discord bot token")
 	persistent.String("api-server", "https://us-central1-member-gentei.cloudfunctions.net/API", "API URL")
 	persistent.String("membership-sub-id", "", "Pub/Sub subscription ID for membership list reloads")
+	persistent.BoolVar(&flagNoHeartbeat, "no-heartbeat", false, "do not emit heartbeat metrics to GCP Monitoring")
 	viper.BindPFlags(persistent)
 }
 
