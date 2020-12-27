@@ -509,6 +509,18 @@ func (d *discordBot) reply(
 	return err
 }
 
+func (d *discordBot) startHeartbeat() *time.Ticker {
+	// sloppy because this gets cleaned up on program exit
+	ticker := time.NewTicker(time.Second * 30)
+	go func() {
+		for {
+			<-ticker.C
+			log.Debug().Msg("heartbeat")
+		}
+	}()
+	return ticker
+}
+
 func makeLocalizer(bundle *i18n.Bundle, languageTag string) *i18n.Localizer {
 	if languageTag == "" {
 		i18n.NewLocalizer(bundle, "en-US")
@@ -536,15 +548,21 @@ func userHasRole(member *discordgo.Member, roleID string) bool {
 
 const largeThreshold = 50
 
+// StartOptions is an options struct to provide to Start()
+type StartOptions struct {
+	Token                        string
+	APIClient                    api.ClientWithResponsesInterface
+	FirestoreClient              *firestore.Client
+	MembershipReloadSubscription *pubsub.Subscription
+	Heartbeat                    bool
+}
+
 // Start does what you think it does.
 func Start(
 	ctx context.Context,
-	token string,
-	apiClient api.ClientWithResponsesInterface,
-	fs *firestore.Client,
-	membershipReloadSubscription *pubsub.Subscription,
+	options *StartOptions,
 ) error {
-	dg, err := discordgo.New("Bot " + token)
+	dg, err := discordgo.New("Bot " + options.Token)
 	if err != nil {
 		return err
 	}
@@ -554,8 +572,8 @@ func Start(
 	*dg.Identify.Intents |= discordgo.IntentsGuildMembers
 	bot := discordBot{
 		ctx:                  ctx,
-		apiClient:            apiClient,
-		fs:                   fs,
+		apiClient:            options.APIClient,
+		fs:                   options.FirestoreClient,
 		dgSession:            dg,
 		lastMemberCheck:      map[string]time.Time{},
 		ytChannelMemberships: map[string]map[string]struct{}{},
@@ -568,7 +586,7 @@ func Start(
 		return err
 	}
 	// start the membership check notification listener
-	bot.listenToMemberCheckUpdates(membershipReloadSubscription)
+	bot.listenToMemberCheckUpdates(options.MembershipReloadSubscription)
 	// construct router
 	router := dgc.Create(&dgc.Router{
 		Prefixes: []string{"!mg "},
@@ -593,6 +611,7 @@ func Start(
 		log.Err(err).Msg("error starting discordgo session")
 		return err
 	}
+	bot.startHeartbeat()
 	defer dg.Close()
 	fmt.Println("Bot running - press CTRL-C ()to exit.")
 	sc := make(chan os.Signal, 1)
