@@ -23,6 +23,10 @@ api: docs function-api
 firebase:
 	firebase deploy
 
+.PHONY: translations
+translations:
+	cd tools && go run main.go botgen
+
 .PHONY: clean
 clean:
 	rm -rf *.rpm build
