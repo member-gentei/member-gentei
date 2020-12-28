@@ -10,6 +10,7 @@ import (
 	"os"
 	"sort"
 
+	"github.com/member-gentei/member-gentei/pkg/clients"
 	"github.com/member-gentei/member-gentei/pkg/common"
 	"github.com/rs/zerolog"
 	"golang.org/x/oauth2/google"
@@ -445,7 +446,7 @@ func init() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("error initializing app")
 	}
-	fs, err = app.Firestore(ctx)
+	fs, err = clients.NewRetryFirestoreClient(ctx, mustLoadEnv("GCP_PROJECT"))
 	if err != nil {
 		log.Fatal().Err(err).Msg("error initializing Firestore")
 	}

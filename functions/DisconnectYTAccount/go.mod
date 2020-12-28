@@ -4,9 +4,9 @@ go 1.15
 
 require (
 	cloud.google.com/go/firestore v1.3.0
-	firebase.google.com/go v3.13.0+incompatible
+	github.com/member-gentei/member-gentei/pkg v0.0.0-00010101000000-000000000000
 	github.com/rs/zerolog v1.20.0
-	google.golang.org/grpc v1.30.0
+	google.golang.org/grpc v1.33.2
 )
 
 replace github.com/member-gentei/member-gentei/pkg => ../../pkg

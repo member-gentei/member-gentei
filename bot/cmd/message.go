@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"cloud.google.com/go/firestore"
 	"github.com/member-gentei/member-gentei/bot/discord"
+	"github.com/member-gentei/member-gentei/pkg/clients"
 
 	zlg "github.com/mark-ignacio/zerolog-gcp"
 	"github.com/rs/zerolog"
@@ -49,7 +49,7 @@ var messageCmd = &cobra.Command{
 			zerolog.NewConsoleWriter(),
 			gcpWriter,
 		))
-		fs, err := firestore.NewClient(ctx, gcpProject)
+		fs, err := clients.NewRetryFirestoreClient(ctx, gcpProject)
 		if err != nil {
 			log.Fatal().Err(err).Msg("error loading Firestore client")
 		}

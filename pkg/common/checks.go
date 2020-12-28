@@ -83,8 +83,8 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 			// YoutubeChannelID, UserID
 			query = query.StartAfter("", options.StartAfter)
 		}
+		query = query.OrderBy("YoutubeChannelID", firestore.Asc).OrderBy("UserID", firestore.Asc)
 	}
-	query = query.OrderBy("YoutubeChannelID", firestore.Asc).OrderBy("UserID", firestore.Asc)
 	// cache so that we don't have to perform a lot of expensive array-in queries
 	slug2MemberVideos, err := getMemberVideoIDs(ctx, fs)
 	if err != nil {

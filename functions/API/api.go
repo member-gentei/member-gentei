@@ -13,6 +13,7 @@ import (
 	"cloud.google.com/go/firestore"
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi"
+	"github.com/member-gentei/member-gentei/pkg/clients"
 	"github.com/member-gentei/member-gentei/pkg/common"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -264,7 +265,7 @@ func init() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("error initializing Swagger spec")
 	}
-	fs, err = firestore.NewClient(ctx, mustLoadEnv("GCP_PROJECT"))
+	fs, err = clients.NewRetryFirestoreClient(ctx, mustLoadEnv("GCP_PROJECT"))
 	if err != nil {
 		log.Fatal().Err(err).Msg("error initializing Firestore")
 	}

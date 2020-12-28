@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"cloud.google.com/go/firestore"
 	"github.com/bwmarrin/discordgo"
 	zlg "github.com/mark-ignacio/zerolog-gcp"
+	"github.com/member-gentei/member-gentei/pkg/clients"
 	"github.com/member-gentei/member-gentei/pkg/common"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -59,7 +59,7 @@ var rootCmd = &cobra.Command{
 			gcpWriter,
 		))
 		// get clients to things
-		fs, err := firestore.NewClient(ctx, gcpProject)
+		fs, err := clients.NewRetryFirestoreClient(ctx, gcpProject)
 		if err != nil {
 			log.Fatal().Err(err).Msg("error creating Firestore client")
 		}

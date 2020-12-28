@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"cloud.google.com/go/firestore"
 	"cloud.google.com/go/pubsub"
 	zlg "github.com/mark-ignacio/zerolog-gcp"
+	"github.com/member-gentei/member-gentei/pkg/clients"
 	"github.com/member-gentei/member-gentei/pkg/common"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/rs/zerolog"
@@ -63,7 +63,7 @@ var rootCmd = &cobra.Command{
 			psTopic = psClient.Topic(flagPubsubTopic)
 		}
 		// start up Firestore
-		fs, err := firestore.NewClient(ctx, gcpProject)
+		fs, err := clients.NewRetryFirestoreClient(ctx, gcpProject)
 		if err != nil {
 			log.Fatal().Err(err).Msg("error creating Firestore client")
 		}

@@ -4,9 +4,9 @@ import (
 	"context"
 	"io/ioutil"
 
+	"github.com/member-gentei/member-gentei/pkg/clients"
 	"github.com/member-gentei/member-gentei/pkg/common"
 
-	"cloud.google.com/go/firestore"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -41,7 +41,7 @@ var setMessageCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal().Err(err).Msg("error reading message body file")
 		}
-		fs, err := firestore.NewClient(ctx, gcpProject)
+		fs, err := clients.NewRetryFirestoreClient(ctx, gcpProject)
 		if err != nil {
 			log.Fatal().Err(err).Msg("error loading Firestore client")
 		}
