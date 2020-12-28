@@ -20,4 +20,4 @@ other = "為了預防濫用，您的回覆將受到限速 - 請在一分鐘後�
 
 [SignupRequiredReply]
 hash = "sha1-dc2a8a37245e608ce6fb8bdc5c50cba997e27ab0"
-other = "請在https://member-gentei.tindabox.net/app上註冊，並在連接您的YouTube帳號幾分鐘後運行此指令！"
+other = "請在https://member-gentei.tindabox.net/app 上註冊，並在連接您的YouTube帳號幾分鐘後運行此指令！"
