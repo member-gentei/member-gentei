@@ -58,7 +58,8 @@ func (a *apiImpl) GetMembers(
 		return
 	}
 	ctx := r.Context()
-	membersRef := fs.Collection("channels").Doc(string(channelSlug)).Collection("members")
+	membersRef := fs.Collection(common.ChannelCollection).Doc(string(channelSlug)).
+		Collection(common.ChannelMemberCollection)
 	var (
 		query firestore.Query
 		limit = 100
@@ -77,7 +78,6 @@ func (a *apiImpl) GetMembers(
 	if params.Snowflakes != nil {
 		query = query.Where("DiscordID", "in", *params.Snowflakes)
 	}
-	// TODO: ACL check here
 	snaps, err := query.Select().Documents(ctx).GetAll()
 	if err != nil {
 		log.Err(err).Msg("error getting members")
@@ -143,7 +143,8 @@ func (a *apiImpl) CheckMembership(
 	}
 	logger := log.With().Str("user", jsonBody.Snowflake).Logger()
 	// retrieve user token
-	doc, err := fs.Collection("users").Doc(jsonBody.Snowflake).Collection("private").Doc("youtube").Get(ctx)
+	doc, err := fs.Collection(common.UsersCollection).Doc(jsonBody.Snowflake).
+		Collection(common.PrivateCollection).Doc("youtube").Get(ctx)
 	if status.Code(err) == codes.NotFound {
 		err = enc.Encode(map[string]interface{}{
 			"member": false,
@@ -177,8 +178,8 @@ func (a *apiImpl) CheckMembership(
 		return
 	}
 	// retrieve target videoID
-	channelDocRef := fs.Collection("channels").Doc(string(channelSlug))
-	doc, err = channelDocRef.Collection("check").Doc("check").Get(ctx)
+	channelDocRef := fs.Collection(common.ChannelCollection).Doc(string(channelSlug))
+	doc, err = channelDocRef.Collection(common.ChannelCheckCollection).Doc("check").Get(ctx)
 	if status.Code(err) == codes.NotFound {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -209,7 +210,8 @@ func (a *apiImpl) CheckMembership(
 	// update things and respond
 	w.Header().Set("Content-Type", "application/json")
 	if isMember {
-		_, err = channelDocRef.Collection("members").Doc(jsonBody.Snowflake).
+		_, err = channelDocRef.Collection(common.ChannelMemberCollection).
+			Doc(jsonBody.Snowflake).
 			Set(ctx, map[string]interface{}{
 				"DiscordID": jsonBody.Snowflake,
 				"Timestamp": time.Now(),
