@@ -3,7 +3,7 @@ package cmd
 import (
 	"context"
 
-	"cloud.google.com/go/firestore"
+	"github.com/member-gentei/member-gentei/pkg/clients"
 	"github.com/member-gentei/member-gentei/pkg/common"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -31,7 +31,7 @@ var setCmd = &cobra.Command{
 	Short: "set Discord <-> channel links, new Youtube channels, and more!",
 	Run: func(cmd *cobra.Command, args []string) {
 		ctx := context.Background()
-		fs, err := firestore.NewClient(ctx, flagProjectID)
+		fs, err := clients.NewRetryFirestoreClient(ctx, flagProjectID)
 		if err != nil {
 			log.Fatal().Err(err).Msg("error creating Firestore client")
 		}

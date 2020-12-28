@@ -8,11 +8,10 @@ import (
 
 	"cloud.google.com/go/pubsub"
 
-	"cloud.google.com/go/firestore"
-
 	zlg "github.com/mark-ignacio/zerolog-gcp"
 	"github.com/member-gentei/member-gentei/bot/discord"
 	"github.com/member-gentei/member-gentei/bot/discord/api"
+	"github.com/member-gentei/member-gentei/pkg/clients"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -80,7 +79,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal().Err(err).Msg("error loading API client")
 		}
-		fs, err := firestore.NewClient(ctx, gcpProject)
+		fs, err := clients.NewRetryFirestoreClient(ctx, gcpProject)
 		if err != nil {
 			log.Fatal().Err(err).Msg("error loading Firestore client")
 		}

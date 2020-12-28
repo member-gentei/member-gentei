@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/firestore"
-	firebase "firebase.google.com/go"
+	"github.com/member-gentei/member-gentei/pkg/clients"
 	"github.com/member-gentei/member-gentei/pkg/common"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -111,13 +111,12 @@ func protoUnmarshalToken(fields json.RawMessage) (*oauth2.Token, error) {
 }
 
 func init() {
+	var (
+		ctx = context.Background()
+		err error
+	)
 	zerolog.LevelFieldName = "severity"
-	ctx := context.Background()
-	app, err := firebase.NewApp(ctx, nil)
-	if err != nil {
-		log.Fatal().Err(err).Msg("error initializing app")
-	}
-	fs, err = app.Firestore(ctx)
+	fs, err = clients.NewRetryFirestoreClient(ctx, mustLoadEnv("GCP_PROJECT"))
 	if err != nil {
 		log.Fatal().Err(err).Msg("error initializing Firestore")
 	}

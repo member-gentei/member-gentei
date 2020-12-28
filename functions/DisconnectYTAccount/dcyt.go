@@ -3,11 +3,12 @@ package dc
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"strings"
 	"time"
 
 	"cloud.google.com/go/firestore"
-	firebase "firebase.google.com/go"
+	"github.com/member-gentei/member-gentei/pkg/clients"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
@@ -67,15 +68,22 @@ func DisconnectYTAccount(ctx context.Context, event FirestoreEvent) (err error) 
 }
 
 func init() {
+	var (
+		ctx = context.Background()
+		err error
+	)
 	zerolog.LevelFieldName = "severity"
-	ctx := context.Background()
-	app, err := firebase.NewApp(ctx, nil)
-	if err != nil {
-		log.Fatal().Err(err).Msg("error initializing app")
-	}
-	fs, err = app.Firestore(ctx)
+	fs, err = clients.NewRetryFirestoreClient(ctx, mustLoadEnv("GCP_PROJECT"))
 	if err != nil {
 		log.Fatal().Err(err).Msg("error initializing Firestore")
 	}
 
+}
+
+func mustLoadEnv(name string) string {
+	value := os.Getenv(name)
+	if value == "" {
+		log.Fatal().Msgf("environment variable '%s' must not be empty", name)
+	}
+	return value
 }
