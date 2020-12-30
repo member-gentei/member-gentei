@@ -329,6 +329,9 @@ func CheckChannelMembership(
 			logger.Warn().Err(err).Send()
 			err = ErrYouTubeTokenInvalid
 			return
+		} else if strings.Contains(errString, `"error": "invalid_grant",`) {
+			logger.Warn().Err(err).Send()
+			err = ErrYouTubeInvalidGrant
 		} else if strings.Contains(errString, "Invalid \\\"invalid_grant\\\" in request.") {
 			logger.Warn().Err(err).Send()
 			err = ErrYouTubeInvalidGrant
