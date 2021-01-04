@@ -489,10 +489,13 @@ func (d *discordBot) reply(
 	if !guildState.noFancyReply {
 		_, err := d.dgSession.ChannelMessageSendReply(channelID, message, messageRef)
 		if err != nil {
-			if strings.Contains(err.Error(), "Cannot reply without permission to read message history") {
+			errString := err.Error()
+			if strings.Contains(errString, "Cannot reply without permission to read message history") {
 				logger.Debug().Msg("falling back to simple replies in this Discord guild")
 				guildState.noFancyReply = true
 				d.guildStates[guildID] = guildState
+			} else if strings.Contains(errString, `{"message_reference": ["Unknown message"]}`) {
+				logger.Debug().Err(err).Msg("fancy reply message reference probably deleted, falling back to simple reply")
 			} else {
 				logger.Err(err).Msg("error sending fancy reply")
 				return err
@@ -501,7 +504,7 @@ func (d *discordBot) reply(
 			return nil
 		}
 	}
-	// if noFancyReply || !readMessageHistoryPermission
+	// if noFancyReply || !readMessageHistoryPermission || "Unknown message"
 	_, err := d.dgSession.ChannelMessageSend(channelID, fmt.Sprintf("<@%s> %s", userID, message))
 	if err != nil {
 		logger.Err(err).Msg("error sending simple reply")
