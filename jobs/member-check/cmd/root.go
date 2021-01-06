@@ -33,6 +33,7 @@ var rootCmd = &cobra.Command{
 		var (
 			ctx        = context.Background()
 			gcpProject = viper.GetString("gcp-project")
+			numWorkers = viper.GetUint("num-workers")
 			psTopic    *pubsub.Topic
 		)
 		// set up logger
@@ -80,6 +81,7 @@ var rootCmd = &cobra.Command{
 			Apply:                     !flagDryRun,
 			UserIDs:                   uids,
 			StartAfter:                flagStartAfter,
+			NumWorkers:                numWorkers,
 		})
 		if err != nil {
 			log.Fatal().Err(err).Msg("error performing enforcement check")
@@ -87,11 +89,14 @@ var rootCmd = &cobra.Command{
 		endTime := time.Now()
 		runtime := uint64(endTime.Sub(startTime).Seconds())
 		if psTopic != nil {
+			logger := log.With().Str("topic", flagPubsubTopic).Logger()
 			result := psTopic.Publish(ctx, &pubsub.Message{
 				Data: []byte(endTime.In(time.UTC).Format(time.RFC3339)),
 			})
 			if _, err = result.Get(ctx); err != nil {
-				log.Err(err).Msg("error publishing Pub/Sub message")
+				logger.Err(err).Msg("error publishing Pub/Sub message")
+			} else {
+				logger.Debug().Msg("published message to Pub/Sub topic")
 			}
 		}
 		// don't log per-uid metrics to GCP - print them out!
@@ -122,6 +127,7 @@ func init() {
 	persistent.String("gcp-project", "member-gentei", "GCP project ID")
 	persistent.StringVar(&flagUID, "uid", "", "specific user ID")
 	persistent.StringVar(&flagPubsubTopic, "pubsub-topic", "", "pubsub topic to notify on completion")
+	persistent.Uint("num-workers", 2, "number of worker threads")
 	viper.BindPFlags(persistent)
 	rootCmd.Flags().StringVar(&flagStartAfter, "start-after", "", "StartAfter argument")
 }
