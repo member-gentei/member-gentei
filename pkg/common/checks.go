@@ -262,6 +262,7 @@ func enforceMembershipsWorker(
 			logger.Info().Interface("memberships", verifiedMemberships).Msg("verified memberships")
 		}
 		if skipUser {
+			resultChan <- result
 			continue
 		}
 		if options.Apply {
