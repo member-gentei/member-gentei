@@ -127,7 +127,7 @@ func init() {
 	persistent.String("gcp-project", "member-gentei", "GCP project ID")
 	persistent.StringVar(&flagUID, "uid", "", "specific user ID")
 	persistent.StringVar(&flagPubsubTopic, "pubsub-topic", "", "pubsub topic to notify on completion")
-	persistent.Uint("num-workers", 2, "number of worker threads")
+	persistent.Uint("num-workers", 4, "number of worker threads")
 	viper.BindPFlags(persistent)
 	rootCmd.Flags().StringVar(&flagStartAfter, "start-after", "", "StartAfter argument")
 }
