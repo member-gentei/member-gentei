@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -44,6 +46,9 @@ type EnforceMembershipsOptions struct {
 
 	// Document ID passed as a Firestore StartAfter pagination argument
 	StartAfter string
+
+	// amount of worker threads to use (default is 1)
+	NumWorkers uint
 }
 
 // EnforceMembershipsResult contains metrics useful for monitoring/debugging/fun.
@@ -104,12 +109,69 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 		Uint64("duration", uint64(time.Now().Sub(startTime).Seconds())).
 		Uint("count", result.UserCount).
 		Msg("loaded user IDs")
-	for _, doc := range docs {
+	var (
+		numWorkers = int(math.Max(1, float64(options.NumWorkers)))
+		wg         = &sync.WaitGroup{}
+		docsChan   = make(chan *firestore.DocumentSnapshot, numWorkers)
+		resultChan = make(chan enforceMembershipsWorkerResult, numWorkers)
+	)
+	// start workers
+	for i := 0; i < numWorkers; i++ {
+		go enforceMembershipsWorker(
+			ctx, fs, options, slug2MemberVideos,
+			docsChan, resultChan, wg,
+		)
+	}
+	// start doc producer
+	go func() {
+		defer wg.Done()
+		for _, doc := range docs {
+			docsChan <- doc
+		}
+		close(docsChan)
+	}()
+	// start results consumer
+	go func() {
+		defer wg.Done()
+		for i := 0; i < len(docs); i++ {
+			workerResult := <-resultChan
+			if workerResult.err != nil {
+				err = workerResult.err
+				return
+			}
+			// aggregate
+			result.UsersDisconnected += workerResult.UsersDisconnected
+			result.MembershipsLapsed += workerResult.MembershipsLapsed
+			result.MembershipsAdded += workerResult.MembershipsAdded
+			result.MembershipsReconfirmed += workerResult.MembershipsReconfirmed
+		}
+	}()
+	// docs producer + worker result consumer + len(worker threads)
+	wg.Add(2 + numWorkers)
+	log.Debug().Int("numWorkers", numWorkers).Msg("waiting for worker threads to complete")
+	wg.Wait()
+	return
+}
+
+type enforceMembershipsWorkerResult struct {
+	EnforceMembershipsResult
+	err error
+}
+
+func enforceMembershipsWorker(
+	ctx context.Context, fs *firestore.Client, options *EnforceMembershipsOptions,
+	slug2MemberVideos map[string]string,
+	docs <-chan *firestore.DocumentSnapshot, resultChan chan<- enforceMembershipsWorkerResult, wg *sync.WaitGroup,
+) {
+	defer wg.Done()
+	for doc := range docs {
 		// acquire candidate YouTube channels (via a Discord refresh or otherwise)
 		var (
+			result            enforceMembershipsWorkerResult
 			candidateChannels []*firestore.DocumentRef
 			userID            = doc.Ref.ID
 			logger            = log.With().Str("userID", userID).Logger()
+			err               error
 		)
 		if options.ReloadDiscordGuilds {
 			candidateChannels, err = ReloadDiscordGuilds(ctx, fs, userID)
@@ -119,6 +181,8 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 					err = DeleteUser(ctx, fs, userID)
 					if err != nil {
 						logger.Err(err).Msg("error deleting user")
+						result.err = err
+						resultChan <- result
 						return
 					}
 					result.UsersDisconnected++
@@ -126,16 +190,21 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 					logger.Warn().Err(err).Msg("Discord token invalid, skipping user")
 					err = nil
 				}
+				resultChan <- result
 				continue
 			} else if err != nil {
 				logger.Err(err).Msg("error reloading Discord guilds for user")
+				result.err = err
+				resultChan <- result
 				return
 			}
 		} else {
 			var user DiscordIdentity
-			err = doc.DataTo(&user)
+			err := doc.DataTo(&user)
 			if err != nil {
 				logger.Err(err).Msg("error unmarshalling user")
+				result.err = err
+				resultChan <- result
 				return
 			}
 			candidateChannels = user.CandidateChannels
@@ -156,14 +225,15 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 				checkOpts.ChannelSlug = candidateRef.ID
 				logger.Warn().Str("channelSlug", checkOpts.ChannelSlug).Msg("could not find membership video ID for candidate channel")
 			}
-			var isMember bool
-			isMember, err = CheckChannelMembership(ctx, fs, checkOpts)
+			isMember, err := CheckChannelMembership(ctx, fs, checkOpts)
 			if errors.Is(err, ErrYouTubeTokenInvalid) || status.Code(err) == codes.NotFound {
 				if options.RemoveInvalidYouTubeToken {
 					logger.Warn().Err(err).Msg("YouTube token invalid for user, removing token and memberships")
 					err = RevokeYouTubeAccess(ctx, fs, userID)
 					if err != nil {
 						logger.Err(err).Msg("error revoking YouTube access for user")
+						result.err = err
+						resultChan <- result
 						return
 					}
 					result.UsersDisconnected++
@@ -180,6 +250,8 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 				break
 			} else if err != nil {
 				logger.Err(err).Msg("unhandled error while checking membership for user")
+				result.err = err
+				resultChan <- result
 				return
 			}
 			if isMember {
@@ -190,6 +262,7 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 			logger.Info().Interface("memberships", verifiedMemberships).Msg("verified memberships")
 		}
 		if skipUser {
+			resultChan <- result
 			continue
 		}
 		if options.Apply {
@@ -200,9 +273,11 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 				selects             []*firestore.DocumentSnapshot
 				existingMemberships = map[string]struct{}{}
 			)
-			selects, err = fs.CollectionGroup("members").Where("DiscordID", "==", userID).Select().Documents(ctx).GetAll()
+			selects, err := fs.CollectionGroup("members").Where("DiscordID", "==", userID).Select().Documents(ctx).GetAll()
 			if err != nil {
 				logger.Err(err).Msg("error querying for members CollectionGroup")
+				result.err = err
+				resultChan <- result
 				return
 			}
 			for _, selected := range selects {
@@ -219,6 +294,8 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 				_, err = stale.Delete(ctx)
 				if err != nil {
 					logger.Err(err).Msg("error deleting stale membership")
+					result.err = err
+					resultChan <- result
 					return
 				}
 			}
@@ -231,6 +308,8 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 				})
 				if err != nil {
 					logger.Err(err).Msg("error adding member verification")
+					result.err = err
+					resultChan <- result
 					return
 				}
 				if _, exists := existingMemberships[channelSlug]; exists {
@@ -250,11 +329,13 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 			}})
 			if err != nil {
 				logger.Err(err).Msg("error updating user object memberships")
+				result.err = err
+				resultChan <- result
 				return
 			}
 		}
+		resultChan <- result
 	}
-	return
 }
 
 // CheckChannelMembershipOptions is the multiselect-y options struct for CheckChannelMembership

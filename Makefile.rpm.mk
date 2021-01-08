@@ -78,4 +78,4 @@ refresh-data-rpm:
 	rm -rf build
 
 .PHONY: rpms
-rpm: bot-rpm member-check-rpm refresh-data-rpm
+rpms: bot-rpm member-check-rpm refresh-data-rpm
