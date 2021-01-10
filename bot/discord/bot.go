@@ -182,6 +182,10 @@ func (d *discordBot) listenToMemberCheckUpdates(checkSubscription *pubsub.Subscr
 			logger.Info().Strs("guildIDs", guildIDs).Msg("check message received, reloading memberships")
 			for _, guildID := range guildIDs {
 				d.loadMemberships(guildID)
+				err := d.enforceMembershipsAsync(guildID)
+				if err != nil {
+					logger.Err(err).Str("guildID", guildID).Msg("error initiating enforcement after membership reload")
+				}
 			}
 		})
 	}()
