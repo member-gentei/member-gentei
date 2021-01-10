@@ -23,7 +23,7 @@ bot-rpm:
 		--rpm-group gentei-bot \
 		--rpm-use-file-permissions \
 		.
-	rm -rf build.PHONY: bot-rpm
+	rm -rf build
 
 .PHONY: member-check-rpm
 member-check-rpm:
