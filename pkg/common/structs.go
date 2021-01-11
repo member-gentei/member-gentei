@@ -55,7 +55,7 @@ type DiscordGuild struct {
 	ID                    string
 	Name                  string
 	AdministrativeRoles   []string
-	LastMembershipRefresh time.Time
+	LastMembershipRefresh time.Time `json:",omitempty"`
 	MemberRoleID          string
 	AuditLogChannelID     string
 	BCP47                 string
