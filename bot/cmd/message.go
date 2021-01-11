@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/member-gentei/member-gentei/bot/discord"
+	"github.com/member-gentei/member-gentei/bot/discord/dm"
 	"github.com/member-gentei/member-gentei/pkg/clients"
 
 	zlg "github.com/mark-ignacio/zerolog-gcp"
@@ -53,7 +53,7 @@ var messageCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal().Err(err).Msg("error loading Firestore client")
 		}
-		msgBot, err := discord.NewMessagingBot(ctx, token, fs)
+		msgBot, err := dm.NewMessager(ctx, token, fs)
 		if err != nil {
 			log.Fatal().Err(err).Msg("error creating MessagingBot")
 		}
