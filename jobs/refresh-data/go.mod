@@ -3,7 +3,6 @@ module github.com/member-gentei/member-gentei/jobs/refresh-data
 go 1.15
 
 require (
-	cloud.google.com/go/firestore v1.3.0
 	github.com/bwmarrin/discordgo v0.22.0
 	github.com/mark-ignacio/zerolog-gcp v0.3.0
 	github.com/member-gentei/member-gentei/pkg v0.0.0-20201221020045-018f6414ee45
