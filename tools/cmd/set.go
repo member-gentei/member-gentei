@@ -10,7 +10,6 @@ import (
 )
 
 var (
-	flagSetUID            string
 	flagSetChannel        bool
 	flagSetChannelSlug    string
 	flagSetChannelID      string
@@ -18,12 +17,6 @@ var (
 	flagSetLinkGuild      bool
 	flagSetLinkGuildID    string
 )
-
-type fsChannel struct {
-	ChannelID    string
-	ChannelTitle string
-	Thumbnail    string
-}
 
 // setCmd represents the set command
 var setCmd = &cobra.Command{
@@ -40,7 +33,7 @@ var setCmd = &cobra.Command{
 				log.Fatal().Msg("must specify channel slug and ID")
 			}
 			log.Info().Str("slug", flagSetChannelSlug).Msg("setting channel")
-			yt, err := common.GetYouTubeService(ctx, fs, flagSetUID)
+			yt, err := common.GetYoutubeServerService(ctx, fs)
 			if err != nil {
 				log.Fatal().Err(err).Msg("error creating Youtube service")
 			}
@@ -48,19 +41,19 @@ var setCmd = &cobra.Command{
 			if err != nil {
 				log.Fatal().Err(err).Msg("error getting Youtube channel")
 			}
-			channel := fsChannel{
+			channel := common.Channel{
 				ChannelID:    flagSetChannelID,
 				ChannelTitle: clr.Items[0].Snippet.Title,
 				Thumbnail:    clr.Items[0].Snippet.Thumbnails.High.Url,
 			}
-			channelDocRef := fs.Collection("channels").Doc(flagSetChannelSlug)
+			channelDocRef := fs.Collection(common.ChannelCollection).Doc(flagSetChannelSlug)
 			_, err = channelDocRef.Set(ctx, channel)
 			if err != nil {
 				log.Fatal().Err(err).Msg("error setting Youtube channel")
 			}
 			if flagSetChannelVideoID != "" {
 				log.Info().Msg("setting membership verification video")
-				_, err = channelDocRef.Collection("check").Doc("check").Set(ctx, map[string]string{
+				_, err = channelDocRef.Collection(common.ChannelCheckCollection).Doc("check").Set(ctx, map[string]string{
 					"VideoID": flagSetChannelVideoID,
 				})
 				if err != nil {
@@ -72,9 +65,10 @@ var setCmd = &cobra.Command{
 				log.Fatal().Msg("must specify channel slug and guild ID")
 			}
 			log.Info().Str("channel", flagSetChannelSlug).Str("guild", flagSetLinkGuildID).Msg("linking Discord guild")
-			_, err := fs.Collection("guilds").Doc(flagSetLinkGuildID).Set(ctx, map[string]interface{}{
-				"Channel": fs.Collection("channels").Doc(flagSetChannelSlug),
-				"ID":      flagSetLinkGuildID,
+			_, err := fs.Collection(common.DiscordGuildCollection).Doc(flagSetLinkGuildID).Set(ctx, common.DiscordGuild{
+				Channel: fs.Collection(common.ChannelCollection).Doc(flagSetChannelSlug),
+				ID:      flagSetLinkGuildID,
+				BCP47:   "en-US", // default language
 			})
 			if err != nil {
 				log.Fatal().Err(err).Msg("error linking Discord guild")
@@ -88,7 +82,6 @@ func init() {
 	rootCmd.AddCommand(setCmd)
 
 	flags := setCmd.Flags()
-	flags.StringVar(&flagSetUID, "uid", "", "userID's tokens to use (use your own please)")
 	flags.BoolVar(&flagSetChannel, "channel", false, "set channel information")
 	flags.StringVar(&flagSetChannelSlug, "channel-slug", "", "channel slug/document ID")
 	flags.StringVar(&flagSetChannelID, "channel-id", "", "channel ID")

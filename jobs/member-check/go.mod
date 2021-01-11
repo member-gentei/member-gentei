@@ -3,7 +3,7 @@ module github.com/member-gentei/member-gentei/jobs/member-check
 go 1.15
 
 require (
-	cloud.google.com/go/firestore v1.4.0
+	cloud.google.com/go/firestore v1.4.0 // indirect
 	cloud.google.com/go/pubsub v1.9.1
 	github.com/magiconair/properties v1.8.4 // indirect
 	github.com/mark-ignacio/zerolog-gcp v0.3.0
