@@ -1,4 +1,4 @@
-package discord
+package dm
 
 import (
 	"bytes"
@@ -15,8 +15,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
-// MessagingBot allows sending ad-hoc messages.
-type MessagingBot struct {
+// Messager allows sending ad-hoc messages.
+type Messager struct {
 	ctx       context.Context
 	dgSession *discordgo.Session
 	fs        *firestore.Client
@@ -26,7 +26,7 @@ type MessagingBot struct {
 }
 
 // Message sends a templated message to a single user.
-func (m *MessagingBot) Message(templateName, uid string, mustBeRegistered bool) error {
+func (m *Messager) Message(templateName, uid string, mustBeRegistered bool) error {
 	// attempt to get a user
 	var user common.DiscordIdentity
 	doc, err := m.fs.Collection(common.UsersCollection).Doc(uid).Get(m.ctx)
@@ -66,7 +66,7 @@ func (m *MessagingBot) Message(templateName, uid string, mustBeRegistered bool) 
 	return err
 }
 
-func (m *MessagingBot) getOrCreateUserChannel(uid string) (*discordgo.Channel, error) {
+func (m *Messager) getOrCreateUserChannel(uid string) (*discordgo.Channel, error) {
 	if userChannel := m.userChannels[uid]; userChannel != nil {
 		return userChannel, nil
 	}
@@ -78,7 +78,7 @@ func (m *MessagingBot) getOrCreateUserChannel(uid string) (*discordgo.Channel, e
 	return userChannel, nil
 }
 
-func (m *MessagingBot) getOrParseTemplate(templateName string) (*template.Template, error) {
+func (m *Messager) getOrParseTemplate(templateName string) (*template.Template, error) {
 	if parsed := m.templates[templateName]; parsed != nil {
 		return parsed, nil
 	}
@@ -99,13 +99,13 @@ func (m *MessagingBot) getOrParseTemplate(templateName string) (*template.Templa
 	return parsed, nil
 }
 
-// NewMessagingBot initializes a new MessagingBot, which can do nothing but send messages.
-func NewMessagingBot(ctx context.Context, token string, fs *firestore.Client) (*MessagingBot, error) {
+// NewMessager initializes a new MessagingBot, which can do nothing but send messages.
+func NewMessager(ctx context.Context, token string, fs *firestore.Client) (*Messager, error) {
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
 		return nil, err
 	}
-	return &MessagingBot{
+	return &Messager{
 		ctx:          ctx,
 		dgSession:    dg,
 		fs:           fs,
