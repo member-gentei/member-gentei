@@ -2,6 +2,10 @@
 hash = "sha1-0ea5528fb662bba0b8149e4ba7544d02476ea7b4"
 other = "這個bot最近悄悄地重啟了並且還在載入中 - 請一分鐘後再試！"
 
+[ErrorCheckingReply]
+hash = "sha1-0d0d4e199355fd95e4cb57edcd4a305b41606587"
+other = "Error checking memberships! Please try again later - an alert has been sent to the developer."
+
 [GuildNotRegisteredReply]
 hash = "sha1-69b5abba264123a142bbcc3d0a06961aeeb93d58"
 other = "這個Discord伺服器尚未申請會員資格管理，請等待伺服器擁有者解決！"

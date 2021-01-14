@@ -28,23 +28,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type guildLoadState int
-
-const (
-	guildFirstEncounter guildLoadState = iota
-	guildWaitingForAssociationData
-	guildWaitingForCreateEvent
-	guildLoaded
-)
-
-type guildState struct {
-	Doc       common.DiscordGuild
-	LoadState guildLoadState
-	localizer *i18n.Localizer
-
-	noFancyReply bool // whether we can use message replies instead of @user in this guild
-}
-
 // discordBot is the whole Discord bot.
 type discordBot struct {
 	ctx       context.Context
@@ -215,7 +198,7 @@ func (d *discordBot) handleGuildCreate(s *discordgo.Session, g *discordgo.GuildC
 	return
 }
 
-// usually called by enforceMembershipsAsync
+// usually initiated by a enforceMembershipsAsync call.
 func (d *discordBot) handleGuildMembersChunk(s *discordgo.Session, chunk *discordgo.GuildMembersChunk) {
 	logger := log.With().Str("guildID", chunk.GuildID).Int("chunkIndex", chunk.ChunkIndex).Logger()
 	state, exists := d.guildStates[chunk.GuildID]
@@ -224,31 +207,18 @@ func (d *discordBot) handleGuildMembersChunk(s *discordgo.Session, chunk *discor
 			Msg("received GuildMembersChunk for non-ready GuildState")
 		return
 	}
-	memberRoleID := state.Doc.MemberRoleID
-	if memberRoleID == "" {
+	memberInfo := state.GetMembershipInfo()
+	if len(memberInfo) == 0 {
 		logger.Warn().Int("loadState", int(state.LoadState)).
-			Msg("received GuildMembersChunk for guild without a member role ID configured")
+			Msg("received GuildMembersChunk for guild without membership mappings")
 		return
 	}
 	d.ytChannelMembershipsMutex.RLock()
 	defer d.ytChannelMembershipsMutex.RUnlock()
-	memberList := d.ytChannelMemberships[state.Doc.Channel.ID]
-	for _, user := range chunk.Members {
-		userID := user.User.ID
-		_, isMember := memberList[userID]
-		if isMember && !userHasRole(user, memberRoleID) {
-			// user needs role
-			d.newRoleApplier(
-				chunk.GuildID, user.User, roleAdd, "periodic membership refresh",
-				5, defaultRoleApplyPeriod, defaultRoleApplyTimeout,
-			)
-		} else if !isMember && userHasRole(user, memberRoleID) {
-			// user needs role removed
-			d.newRoleApplier(
-				chunk.GuildID, user.User, roleRevoke, "periodic membership refresh",
-				5, defaultRoleApplyPeriod, defaultRoleApplyTimeout,
-			)
-		}
+	for channelSlug, roleID := range memberInfo {
+		logger.Debug().Str("channelSlug", channelSlug).Msg("enforcing member role for chunk")
+		verifiedMembers := d.ytChannelMemberships[state.Doc.Channel.ID]
+		d.enforceRole(chunk.GuildID, roleID, verifiedMembers, chunk.Members)
 	}
 	if chunk.ChunkIndex == chunk.ChunkCount-1 {
 		refreshTime := time.Now()
@@ -262,7 +232,30 @@ func (d *discordBot) handleGuildMembersChunk(s *discordgo.Session, chunk *discor
 			logger.Err(err).Msg("error updating membership refresh time in Firestore")
 		}
 		logger.Info().Str("refreshTime", refreshTime.Format(time.RFC3339)).Msg("membership refresh complete")
-		// TODO: schedule another refresh. We update the bot so often that this is currently unnecessary lol
+	}
+}
+
+func (d *discordBot) enforceRole(
+	guildID string,
+	roleID string,
+	verifiedIDs map[string]struct{},
+	guildMembers []*discordgo.Member,
+) {
+	for _, guildMember := range guildMembers {
+		_, shouldHaveRole := verifiedIDs[guildMember.User.ID]
+		if shouldHaveRole && !userHasRole(guildMember, roleID) {
+			// user needs role
+			d.newRoleApplier(
+				guildID, guildMember.User, roleAdd, "periodic membership refresh",
+				5, defaultRoleApplyPeriod, defaultRoleApplyTimeout,
+			)
+		} else if !shouldHaveRole && userHasRole(guildMember, roleID) {
+			// user needs role removed
+			d.newRoleApplier(
+				guildID, guildMember.User, roleRevoke, "periodic membership refresh",
+				5, defaultRoleApplyPeriod, defaultRoleApplyTimeout,
+			)
+		}
 	}
 }
 
@@ -318,16 +311,32 @@ func (d *discordBot) handleCmdCheck(ctx *dgc.Ctx) {
 			}
 			break
 		}
-		// send typing status as a loading indicator
-		if err := ctx.Session.ChannelTyping(ctx.Event.ChannelID); err != nil {
-			log.Err(err).Msg("error sending ChannelTyping status")
-			return
-		}
-		ytSlug := guildState.Doc.Channel.ID
-		logger.Debug().Str("channel", ytSlug).Msg("checking membership for user")
+		d.checkMembershipReply(logger, guildState, m)
+	default:
+		log.Debug().Interface("state", guildState).Msg("unsolicited message")
+	}
+}
+
+func (d *discordBot) checkMembershipReply(
+	logger zerolog.Logger,
+	state guildState,
+	m *discordgo.MessageCreate,
+) {
+	// send typing status as a loading indicator
+	if err := d.dgSession.ChannelTyping(m.ChannelID); err != nil {
+		log.Err(err).Msg("error sending ChannelTyping status")
+		return
+	}
+	for channelSlug, roleID := range state.GetMembershipInfo() {
+		var (
+			replyMessage string
+			actionReason string
+			action       = roleNOOP
+		)
+		logger.Debug().Str("channelSlug", channelSlug).Msg("checking membership for user")
 		response, err := d.apiClient.CheckMembershipWithResponse(
 			d.ctx,
-			api.ChannelSlugPathParam(ytSlug),
+			api.ChannelSlugPathParam(channelSlug),
 			api.CheckMembershipJSONRequestBody{Snowflake: m.Author.ID},
 		)
 		if err != nil {
@@ -338,65 +347,58 @@ func (d *discordBot) handleCmdCheck(ctx *dgc.Ctx) {
 		if response.JSON200 != nil {
 			if response.JSON200.Member {
 				logger.Info().Msg("membership confirmed")
-				msg := mustLocalizeMessage(guildState.localizer, &i18n.Message{
+				replyMessage = mustLocalizeMessage(state.localizer, &i18n.Message{
 					ID:    "MembershipConfirmedReply",
 					Other: "Membership confirmed! You will be added as a member shortly.",
 				})
-				err = d.reply(
-					logger, m.GuildID, ctx.Event.ChannelID, ctx.Event.Author.ID,
-					ctx.Event.Reference(), msg,
-				)
-				if err != nil {
-					logger.Err(err).Msg("error replying")
-					return
-				}
 				// make change if role is not already assigned
-				if !userHasRole(m.Member, guildState.Doc.MemberRoleID) {
-					d.newRoleApplier(
-						m.GuildID, m.Author, roleAdd, "`!mg check` verified",
-						5, defaultRoleApplyPeriod, defaultRoleApplyTimeout,
-					)
+				if !userHasRole(m.Member, roleID) {
+					action = roleAdd
+					actionReason = "`!mg check` verified"
 				}
 			} else {
-				logger.Info().Str("reason", *response.JSON200.Reason).Msg("user is not a member")
-				msg := mustLocalizeMessage(guildState.localizer, &i18n.Message{
-					ID:    "MembershipUnconfirmedReply",
-					Other: "We just checked, and you don't seem to be a member.",
-				})
-				err = d.reply(
-					logger, m.GuildID, ctx.Event.ChannelID, ctx.Event.Author.ID,
-					ctx.Event.Reference(), msg,
-				)
-				if err != nil {
-					logger.Err(err).Msg("error replying")
-					return
+				reason := *response.JSON200.Reason
+				logger.Debug().Str("reason", reason).Msg("user is not a member")
+				if reason == "not connected" {
+					replyMessage = mustLocalizeMessage(state.localizer, &i18n.Message{
+						ID:    "SignupRequiredReply",
+						Other: "Please sign up on https://member-gentei.tindabox.net/app and run this command a few minutes after connecting your YouTube account!",
+					})
+				} else {
+					replyMessage = mustLocalizeMessage(state.localizer, &i18n.Message{
+						ID:    "MembershipUnconfirmedReply",
+						Other: "We just checked, and you don't seem to be a member.",
+					})
+					// make change if role is assigned
+					if userHasRole(m.Member, roleID) {
+						action = roleRevoke
+						actionReason = "`!mg check` un-verified"
+					}
 				}
-				// make change if role is assigned
-				if userHasRole(m.Member, guildState.Doc.MemberRoleID) {
-					d.newRoleApplier(
-						m.GuildID, m.Author, roleRevoke, "`!mg check` un-verified",
-						5, defaultRoleApplyPeriod, defaultRoleApplyTimeout,
-					)
-				}
+				logger.Info().Str("reason", *response.JSON200.Reason)
+
 			}
 		} else {
-			logger.Debug().Bytes("body", response.Body).Interface("headers", response.HTTPResponse.Header).Int("code", response.StatusCode()).Msg("json200 is nil")
-			logger.Info().Msg("user is not registered")
-			msg := mustLocalizeMessage(guildState.localizer, &i18n.Message{
-				ID:    "SignupRequiredReply",
-				Other: "Please sign up on https://member-gentei.tindabox.net/app and run this command a few minutes after connecting your YouTube account!",
+			logger.Warn().Bytes("body", response.Body).Interface("headers", response.HTTPResponse.Header).Int("code", response.StatusCode()).Msg("json200 is nil")
+			replyMessage = mustLocalizeMessage(state.localizer, &i18n.Message{
+				ID:    "ErrorCheckingReply",
+				Other: "Error checking memberships! Please try again later - an alert has been sent to the developer.",
 			})
-			err = d.reply(
-				logger, m.GuildID, ctx.Event.ChannelID, ctx.Event.Author.ID,
-				ctx.Event.Reference(), msg,
-			)
-			if err != nil {
-				logger.Err(err).Msg("error replying")
-				return
-			}
 		}
-	default:
-		log.Debug().Interface("state", guildState).Msg("unsolicited message")
+		err = d.reply(
+			logger, m.GuildID, m.ChannelID, m.Author.ID,
+			m.Reference(), replyMessage,
+		)
+		if err != nil {
+			logger.Err(err).Msg("error replying")
+			return
+		}
+		if action != roleNOOP {
+			d.newRoleApplier(
+				m.GuildID, m.Author, action, actionReason,
+				5, defaultRoleApplyPeriod, defaultRoleApplyTimeout,
+			)
+		}
 	}
 }
 
