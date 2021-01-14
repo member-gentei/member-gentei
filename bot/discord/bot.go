@@ -43,9 +43,7 @@ type guildState struct {
 	MembersLastRefreshed time.Time
 	localizer            *i18n.Localizer
 
-	// authoritative map. Needs to be refactored for scaling up.
-	guildMembers map[string]bool // boolean map of whether someone is a member
-	noFancyReply bool            // whether we can use message replies instead of @user in this guild
+	noFancyReply bool // whether we can use message replies instead of @user in this guild
 }
 
 // discordBot is the whole Discord bot.
@@ -106,10 +104,9 @@ func (d *discordBot) listenToGuildAssociations() error {
 				case guildFirstEncounter:
 					// totally new guild
 					d.guildStates[guild.ID] = guildState{
-						Doc:          guild,
-						LoadState:    guildWaitingForCreateEvent,
-						guildMembers: map[string]bool{},
-						localizer:    makeLocalizer(d.bundle, guild.BCP47),
+						Doc:       guild,
+						LoadState: guildWaitingForCreateEvent,
+						localizer: makeLocalizer(d.bundle, guild.BCP47),
 					}
 				case guildWaitingForAssociationData, guildLoaded:
 					var shouldCheckRoles bool
@@ -199,14 +196,9 @@ func (d *discordBot) handleGuildCreate(s *discordgo.Session, g *discordgo.GuildC
 	)
 	// create guild if it doesn't exist
 	if state, exists = d.guildStates[g.ID]; !exists {
-		memberMap := make(map[string]bool, g.MemberCount)
-		for _, member := range g.Members {
-			memberMap[member.User.ID] = false
-		}
 		state = guildState{
-			LoadState:    guildWaitingForAssociationData,
-			guildMembers: memberMap,
-			localizer:    makeLocalizer(d.bundle, language.AmericanEnglish.String()),
+			LoadState: guildWaitingForAssociationData,
+			localizer: makeLocalizer(d.bundle, language.AmericanEnglish.String()),
 		}
 		d.guildStates[g.ID] = state
 		logger.Info().Interface("state", state).Msg("guildWaitingForAssociationData")
