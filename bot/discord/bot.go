@@ -38,10 +38,9 @@ const (
 )
 
 type guildState struct {
-	Doc                  common.DiscordGuild
-	LoadState            guildLoadState
-	MembersLastRefreshed time.Time
-	localizer            *i18n.Localizer
+	Doc       common.DiscordGuild
+	LoadState guildLoadState
+	localizer *i18n.Localizer
 
 	noFancyReply bool // whether we can use message replies instead of @user in this guild
 }
