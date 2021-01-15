@@ -84,7 +84,7 @@ func (d *discordBot) newRoleApplier(
 		retryCount++
 		switch action {
 		case roleAdd:
-			logger.Info().Msg("attempting to add role")
+			logger.Debug().Msg("attempting to add role")
 			err := d.grantMemberRole(guildID, user, reason)
 			if err != nil {
 				if strings.Contains(err.Error(), "HTTP 403 Forbidden") {
@@ -96,7 +96,7 @@ func (d *discordBot) newRoleApplier(
 				return
 			}
 		case roleRevoke:
-			logger.Info().Msg("attempting to revoke role")
+			logger.Debug().Msg("attempting to revoke role")
 			err := d.revokeMemberRole(guildID, user, reason)
 			if err != nil {
 				if strings.Contains(err.Error(), "HTTP 403 Forbidden") {

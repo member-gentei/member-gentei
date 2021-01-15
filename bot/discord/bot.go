@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sort"
 	"strings"
 	"sync"
 	"syscall"
@@ -36,10 +37,11 @@ type discordBot struct {
 	fs        *firestore.Client
 	bundle    *i18n.Bundle
 
-	lastMemberCheck           map[string]time.Time  // global rate limiter for user member checks
-	guildStates               map[string]guildState // holds state for a Discord guild
-	ytChannelMembershipsMutex sync.RWMutex
-	ytChannelMemberships      map[string]map[string]struct{} // holds memberships corresponding to a particular YouTube channel
+	lastMemberCheck                map[string]time.Time  // global rate limiter for user member checks
+	guildStates                    map[string]guildState // holds state for a Discord guild
+	ytChannelMembershipsMutex      sync.RWMutex
+	ytChannelMembershipsLastLoaded map[string]time.Time
+	ytChannelMemberships           map[string]map[string]struct{} // holds memberships corresponding to a particular YouTube channel
 
 	// newMemberRoleApplier() stuff
 	// key is "guildID-userID"
@@ -168,8 +170,8 @@ func (d *discordBot) listenToMemberCheckUpdates(checkSubscription *pubsub.Subscr
 				guildIDs = append(guildIDs, key)
 			}
 			logger.Info().Strs("guildIDs", guildIDs).Msg("check message received, reloading memberships")
+			d.loadMemberships(guildIDs...)
 			for _, guildID := range guildIDs {
-				d.loadMemberships(guildID)
 				err := d.enforceMembershipsAsync(guildID)
 				if err != nil {
 					logger.Err(err).Str("guildID", guildID).Msg("error initiating enforcement after membership reload")
@@ -411,11 +413,29 @@ func (d *discordBot) checkMembershipReply(
 	}
 }
 
-func (d *discordBot) loadMemberships(guildID string) {
-	state := d.guildStates[guildID]
+func (d *discordBot) loadMemberships(guildIDs ...string) {
+	// de-duplicate desired channelSlugs
+	channelSlugs := []string{}
+	for _, guildID := range guildIDs {
+		state := d.guildStates[guildID]
+		for channelSlug := range state.GetMembershipInfo() {
+			i := sort.SearchStrings(channelSlugs, channelSlug)
+			if i >= len(channelSlugs) || channelSlugs[i] != channelSlug {
+				channelSlugs = append(channelSlugs[:i], append([]string{channelSlug}, channelSlugs[i:]...)...)
+			}
+		}
+	}
 	d.ytChannelMembershipsMutex.Lock()
 	defer d.ytChannelMembershipsMutex.Unlock()
-	for channelSlug := range state.GetMembershipInfo() {
+	for _, channelSlug := range channelSlugs {
+		// skip if this membership list was loaded in the last 2 minutes
+		logger := log.With().Str("channelSlug", channelSlug).Logger()
+		lastLoaded := d.ytChannelMembershipsLastLoaded[channelSlug]
+		if lastLoaded.Add(time.Minute * 2).After(time.Now()) {
+			logger.Debug().Str("lastLoaded", lastLoaded.Format(time.RFC3339)).
+				Msg("skipping channel membership load - happened in the last 2 minutes")
+			continue
+		}
 		// get all channel members
 		memberIDs := map[string]struct{}{}
 		iter := d.fs.
@@ -435,7 +455,7 @@ func (d *discordBot) loadMemberships(guildID string) {
 			}
 			memberIDs[snap.Ref.ID] = struct{}{}
 		}
-		log.Debug().Str("channelSlug", channelSlug).Int("count", len(memberIDs)).Msg("loaded members for channel")
+		logger.Debug().Int("count", len(memberIDs)).Msg("loaded members for channel")
 		d.ytChannelMemberships[channelSlug] = memberIDs
 	}
 }
@@ -581,13 +601,14 @@ func Start(
 	// add the GUILD_MEMBERS intent so that we can get member stuff
 	*dg.Identify.Intents |= discordgo.IntentsGuildMembers
 	bot := discordBot{
-		ctx:                  ctx,
-		apiClient:            options.APIClient,
-		fs:                   options.FirestoreClient,
-		dgSession:            dg,
-		lastMemberCheck:      map[string]time.Time{},
-		ytChannelMemberships: map[string]map[string]struct{}{},
-		bundle:               lang.NewBundle(),
+		ctx:                            ctx,
+		apiClient:                      options.APIClient,
+		fs:                             options.FirestoreClient,
+		dgSession:                      dg,
+		lastMemberCheck:                map[string]time.Time{},
+		ytChannelMemberships:           map[string]map[string]struct{}{},
+		ytChannelMembershipsLastLoaded: map[string]time.Time{},
+		bundle:                         lang.NewBundle(),
 	}
 	// create a Firestore listener for guild associations
 	err = bot.listenToGuildAssociations()
