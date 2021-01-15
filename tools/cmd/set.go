@@ -10,12 +10,13 @@ import (
 )
 
 var (
-	flagSetChannel        bool
-	flagSetChannelSlug    string
-	flagSetChannelID      string
-	flagSetChannelVideoID string
-	flagSetLinkGuild      bool
-	flagSetLinkGuildID    string
+	flagSetChannel         bool
+	flagSetChannelSlug     string
+	flagSetChannelID       string
+	flagSetChannelVideoID  string
+	flagSetLinkGuild       bool
+	flagSetLinkGuildID     string
+	flagSetLinkGuildRoleID string
 )
 
 // setCmd represents the set command
@@ -61,14 +62,17 @@ var setCmd = &cobra.Command{
 				}
 			}
 		} else if flagSetLinkGuild {
-			if flagSetChannelSlug == "" || flagSetLinkGuildID == "" {
-				log.Fatal().Msg("must specify channel slug and guild ID")
+			log.Fatal().Msg("unsafe set function - temporarily disabled")
+			if flagSetChannelSlug == "" || flagSetLinkGuildID == "" || flagSetLinkGuildRoleID == "" {
+				log.Fatal().Msg("must specify channel slug, guild ID, and guild role ID")
 			}
 			log.Info().Str("channel", flagSetChannelSlug).Str("guild", flagSetLinkGuildID).Msg("linking Discord guild")
 			_, err := fs.Collection(common.DiscordGuildCollection).Doc(flagSetLinkGuildID).Set(ctx, common.DiscordGuild{
-				Channel: fs.Collection(common.ChannelCollection).Doc(flagSetChannelSlug),
-				ID:      flagSetLinkGuildID,
-				BCP47:   "en-US", // default language
+				MembershipRoles: map[string]string{
+					flagSetChannelSlug: flagSetLinkGuildRoleID,
+				},
+				ID:    flagSetLinkGuildID,
+				BCP47: "en-US", // default language
 			})
 			if err != nil {
 				log.Fatal().Err(err).Msg("error linking Discord guild")
@@ -88,4 +92,5 @@ func init() {
 	flags.StringVar(&flagSetChannelVideoID, "channel-video-id", "", "membership video ID")
 	flags.BoolVar(&flagSetLinkGuild, "link-guild", false, "link Discord guild to channel")
 	flags.StringVar(&flagSetLinkGuildID, "guild-id", "", "Discord guild")
+	flags.StringVar(&flagSetLinkGuildRoleID, "guild-role-id", "", "Discord guild")
 }

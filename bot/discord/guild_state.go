@@ -22,10 +22,18 @@ type guildState struct {
 	noFancyReply bool // whether we can use message replies instead of @user in this guild
 }
 
-// GetMembershipInfo retrieves channelSlug -> membership role information.
+// GetMembershipInfo retrieves channelSlug -> membership role information
 func (g guildState) GetMembershipInfo() map[string]string {
-	if g.Doc.Channel == nil || g.Doc.MemberRoleID == "" || g.Doc.Channel.ID == "" {
+	if len(g.Doc.MembershipRoles) == 0 {
 		return nil
 	}
-	return map[string]string{g.Doc.Channel.ID: g.Doc.MemberRoleID}
+	return g.Doc.MembershipRoles
+}
+
+// GetMembershipInfo retrieves channelSlug -> membership role information.
+func (g guildState) GetMembershipRoleID(channelSlug string) string {
+	if len(g.Doc.MembershipRoles) == 0 {
+		return ""
+	}
+	return g.Doc.MembershipRoles[channelSlug]
 }

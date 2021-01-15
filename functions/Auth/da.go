@@ -389,22 +389,28 @@ func getCandidateChannels(
 		if len(idBatch) == 0 {
 			continue
 		}
-		snapBatch, err = fs.Collection(common.DiscordGuildCollection).Where("ID", "in", idBatch).Documents(ctx).GetAll()
+		snapBatch, err = fs.Collection(common.DiscordGuildCollection).
+			Where("ID", "in", idBatch).
+			Select("MembershipRoles").
+			Documents(ctx).GetAll()
 		if err != nil {
 			return
 		}
 		guildSnaps = append(guildSnaps, snapBatch...)
 	}
-	candidateMap := make(map[string]*firestore.DocumentRef)
+	candidateMap := map[string]*firestore.DocumentRef{}
+	chCollection := fs.Collection(common.ChannelCollection)
 	for _, snap := range guildSnaps {
 		var partialGuild struct {
-			Channel *firestore.DocumentRef
+			MembershipRoles map[string]string
 		}
 		err = snap.DataTo(&partialGuild)
 		if err != nil {
 			return
 		}
-		candidateMap[partialGuild.Channel.Path] = partialGuild.Channel
+		for channelSlug := range partialGuild.MembershipRoles {
+			candidateMap[channelSlug] = chCollection.Doc(channelSlug)
+		}
 	}
 	channelRefs = make([]*firestore.DocumentRef, 0, len(candidateMap))
 	for _, candidate := range candidateMap {
@@ -412,7 +418,7 @@ func getCandidateChannels(
 	}
 	// sort by docID
 	sort.Slice(channelRefs, func(i, j int) bool {
-		return sort.StringsAreSorted([]string{channelRefs[i].ID, channelRefs[j].ID})
+		return channelRefs[i].ID < channelRefs[j].ID
 	})
 	return
 }
