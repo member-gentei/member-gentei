@@ -3,6 +3,8 @@ package cmd
 import (
 	"context"
 
+	"cloud.google.com/go/firestore"
+
 	"github.com/member-gentei/member-gentei/pkg/clients"
 	"github.com/member-gentei/member-gentei/pkg/common"
 	"github.com/rs/zerolog/log"
@@ -47,7 +49,21 @@ var migrateCmd = &cobra.Command{
 				// 	logger.Fatal().Err(err).Msg("error performing MembershipRoles migration")
 				// }
 			}
-			// var deprecatedDeletes []firestore.Update
+			if flagMigrateDeleteDeprecated {
+				_, err = doc.Ref.Update(ctx, []firestore.Update{
+					{
+						Path:  "Channel",
+						Value: firestore.Delete,
+					},
+					{
+						Path:  "MemberRoleID",
+						Value: firestore.Delete,
+					},
+				})
+				if err != nil {
+					logger.Fatal().Err(err).Msg("error removing deprecated fields")
+				}
+			}
 		}
 	},
 }
