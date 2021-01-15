@@ -23,6 +23,14 @@ api: docs function-api
 firebase:
 	firebase deploy
 
+.PHONY:
+i18n:
+	cd bot && \
+		goi18n extract -sourceLanguage en-US -outdir i18n && \
+		goi18n merge -sourceLanguage en-US -outdir i18n i18n/active.en-US.toml i18n/active.zh-Hant.toml && \
+		goi18n merge -sourceLanguage en-US -outdir i18n i18n/active.*.toml i18n/translate.*.toml
+	rm -f bot/i18n/translate.*.toml
+
 .PHONY: translations
 translations:
 	cd tools && go run main.go botgen

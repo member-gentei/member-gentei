@@ -17,6 +17,7 @@ func (r roleAction) String() string {
 }
 
 const (
+	roleNOOP   roleAction = "NOOP"
 	roleAdd    roleAction = "Grant role"
 	roleRevoke roleAction = "Revoke role"
 

@@ -147,6 +147,7 @@ func (a *apiImpl) CheckMembership(
 	doc, err := fs.Collection(common.UsersCollection).Doc(jsonBody.Snowflake).
 		Collection(common.PrivateCollection).Doc("youtube").Get(ctx)
 	if status.Code(err) == codes.NotFound {
+		w.Header().Set("Content-Type", "application/json")
 		err = enc.Encode(map[string]interface{}{
 			"member": false,
 			"reason": accountNotConnected,
