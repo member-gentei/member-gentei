@@ -95,9 +95,18 @@ func (d *discordBot) listenToGuildAssociations() error {
 					if state.LoadState == guildWaitingForAssociationData {
 						shouldCheckRoles = true
 					} else {
-						// only check roles if the MemberRoleID changes
-						if state.Doc.MemberRoleID != guild.MemberRoleID {
+						// only check roles if mappings change
+						incomingMemberInfo := guildState{Doc: guild}.GetMembershipInfo()
+						currentMemberInfo := state.GetMembershipInfo()
+						if len(incomingMemberInfo) != len(currentMemberInfo) {
 							shouldCheckRoles = true
+						} else {
+							for channelSlug, memberRoleID := range state.GetMembershipInfo() {
+								if incomingMemberInfo[channelSlug] != memberRoleID {
+									shouldCheckRoles = true
+									break
+								}
+							}
 						}
 					}
 					// only change the localizer if the language changes
@@ -217,7 +226,7 @@ func (d *discordBot) handleGuildMembersChunk(s *discordgo.Session, chunk *discor
 	defer d.ytChannelMembershipsMutex.RUnlock()
 	for channelSlug, roleID := range memberInfo {
 		logger.Debug().Str("channelSlug", channelSlug).Msg("enforcing member role for chunk")
-		verifiedMembers := d.ytChannelMemberships[state.Doc.Channel.ID]
+		verifiedMembers := d.ytChannelMemberships[channelSlug]
 		d.enforceRole(chunk.GuildID, roleID, verifiedMembers, chunk.Members)
 	}
 	if chunk.ChunkIndex == chunk.ChunkCount-1 {
@@ -404,26 +413,31 @@ func (d *discordBot) checkMembershipReply(
 
 func (d *discordBot) loadMemberships(guildID string) {
 	state := d.guildStates[guildID]
-	// get all channel members
-	memberIDs := map[string]struct{}{}
-	iter := state.Doc.Channel.Collection(common.ChannelMemberCollection).Select().Documents(d.ctx)
-	for {
-		snap, err := iter.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			if c := status.Code(err); c != codes.OK {
-				log.Err(err).Msg("rpc error getting channel memberships")
-				break
-			}
-		}
-		memberIDs[snap.Ref.ID] = struct{}{}
-	}
-	log.Debug().Str("channelSlug", state.Doc.Channel.ID).Int("count", len(memberIDs)).Msg("loaded members for channel")
 	d.ytChannelMembershipsMutex.Lock()
 	defer d.ytChannelMembershipsMutex.Unlock()
-	d.ytChannelMemberships[state.Doc.Channel.ID] = memberIDs
+	for channelSlug := range state.GetMembershipInfo() {
+		// get all channel members
+		memberIDs := map[string]struct{}{}
+		iter := d.fs.
+			Collection(common.ChannelCollection).Doc(channelSlug).
+			Collection(common.ChannelMemberCollection).
+			Select().Documents(d.ctx)
+		for {
+			snap, err := iter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				if c := status.Code(err); c != codes.OK {
+					log.Err(err).Msg("rpc error getting channel memberships")
+					break
+				}
+			}
+			memberIDs[snap.Ref.ID] = struct{}{}
+		}
+		log.Debug().Str("channelSlug", channelSlug).Int("count", len(memberIDs)).Msg("loaded members for channel")
+		d.ytChannelMemberships[channelSlug] = memberIDs
+	}
 }
 
 func (d *discordBot) enforceMembershipsAsync(guildID string) error {
@@ -467,12 +481,8 @@ func (d *discordBot) checkRoles(session *discordgo.Session, guildID string, guil
 	var logger = log.With().Str("guildID", guild.ID).Str("name", guild.Name).Logger()
 	state := d.guildStates[guildID]
 	// xref roles for the channel against admin and member roles
-	if state.Doc.MemberRoleID == "" {
+	if state.GetMembershipInfo() == nil {
 		logger.Warn().Msg("guild has no registered members-only role ID")
-	}
-	if state.Doc.MemberRoleID == "" && len(state.Doc.AdministrativeRoles) == 0 {
-		logger.Info().Msg("skipping role existence check")
-		return
 	}
 }
 
