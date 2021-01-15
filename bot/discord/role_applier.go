@@ -29,6 +29,7 @@ const (
 // This manages a series of retry loops that rely on a GUILD_MEMBER_UPDATE event to interrupt it.
 func (d *discordBot) newRoleApplier(
 	guildID string,
+	channelSlug string,
 	user *discordgo.User,
 	action roleAction,
 	reason string,
@@ -46,7 +47,7 @@ func (d *discordBot) newRoleApplier(
 		// retryCount is 1-indexed
 		retryCount = 1
 		// if the role ID changes we flush all appliers when they come around
-		initialRoleID = d.guildStates[guildID].Doc.MemberRoleID
+		initialRoleID = d.guildStates[guildID].GetMembershipRoleID(channelSlug)
 
 		// not state, just easy
 		userID = user.ID
@@ -66,7 +67,7 @@ func (d *discordBot) newRoleApplier(
 		var (
 			guildState = d.guildStates[guildID]
 			logger     = log.With().
-					Str("guildID", guildID).Str("roleID", guildState.Doc.MemberRoleID).
+					Str("guildID", guildID).Str("roleID", guildState.GetMembershipRoleID(channelSlug)).
 					Str("userID", userID).
 					Str("reason", reason).
 					Int("retry", retryCount).Logger()
@@ -76,7 +77,7 @@ func (d *discordBot) newRoleApplier(
 			cancelRetryCtx()
 			return
 		}
-		if guildState.Doc.MemberRoleID != initialRoleID {
+		if guildState.GetMembershipRoleID(channelSlug) != initialRoleID {
 			logger.Info().Str("oldRoleID", initialRoleID).Msg("role ID has changed, terminating role applier")
 			cancelRetryCtx()
 			return
@@ -85,7 +86,7 @@ func (d *discordBot) newRoleApplier(
 		switch action {
 		case roleAdd:
 			logger.Debug().Msg("attempting to add role")
-			err := d.grantMemberRole(guildID, user, reason)
+			err := d.grantMemberRole(guildID, channelSlug, user, reason)
 			if err != nil {
 				if strings.Contains(err.Error(), "HTTP 403 Forbidden") {
 					logger.Err(err).Msg("403 adding user to member role, cancelling retries")
@@ -97,7 +98,7 @@ func (d *discordBot) newRoleApplier(
 			}
 		case roleRevoke:
 			logger.Debug().Msg("attempting to revoke role")
-			err := d.revokeMemberRole(guildID, user, reason)
+			err := d.revokeMemberRole(guildID, channelSlug, user, reason)
 			if err != nil {
 				if strings.Contains(err.Error(), "HTTP 403 Forbidden") {
 					logger.Err(err).Msg("403 removing user from member role, cancelling retries")
@@ -112,7 +113,7 @@ func (d *discordBot) newRoleApplier(
 	memberUpdateFunc := func(gmu *discordgo.GuildMemberUpdate) {
 		var (
 			guildState   = d.guildStates[guildID]
-			targetRoleID = guildState.Doc.MemberRoleID
+			targetRoleID = guildState.GetMembershipRoleID(channelSlug)
 			logger       = log.With().
 					Str("guildID", guildID).Str("roleID", targetRoleID).
 					Str("userID", userID).
@@ -164,24 +165,24 @@ func (d *discordBot) newRoleApplier(
 	}()
 }
 
-func (d *discordBot) grantMemberRole(guildID string, user *discordgo.User, reason string) error {
+func (d *discordBot) grantMemberRole(guildID string, channelSlug string, user *discordgo.User, reason string) error {
 	var (
 		guildState = d.guildStates[guildID]
 		userID     = user.ID
 	)
-	err := d.dgSession.GuildMemberRoleAdd(guildID, userID, guildState.Doc.MemberRoleID)
+	err := d.dgSession.GuildMemberRoleAdd(guildID, userID, guildState.GetMembershipRoleID(channelSlug))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (d *discordBot) revokeMemberRole(guildID string, user *discordgo.User, reason string) error {
+func (d *discordBot) revokeMemberRole(guildID string, channelSlug string, user *discordgo.User, reason string) error {
 	var (
 		guildState = d.guildStates[guildID]
 		userID     = user.ID
 	)
-	err := d.dgSession.GuildMemberRoleRemove(guildID, userID, guildState.Doc.MemberRoleID)
+	err := d.dgSession.GuildMemberRoleRemove(guildID, userID, guildState.GetMembershipRoleID(channelSlug))
 	if err != nil {
 		return err
 	}

@@ -504,14 +504,20 @@ func ReloadDiscordGuilds(
 		log.Err(err).Msg("error getting guild to channel mapping")
 		return
 	}
+	candidateMap := map[string]*firestore.DocumentRef{}
 	for _, datum := range guildMemberships {
-		if channelRef := guildsToChannels[datum.ID]; channelRef != nil {
-			candidateChannels = append(candidateChannels, channelRef)
+		if channelRefs := guildsToChannels[datum.ID]; channelRefs != nil {
+			for _, channelRef := range channelRefs {
+				candidateMap[channelRef.ID] = channelRef
+			}
 		}
+	}
+	for _, channelRef := range candidateMap {
+		candidateChannels = append(candidateChannels, channelRef)
 	}
 	// sort by docID
 	sort.Slice(candidateChannels, func(i, j int) bool {
-		return sort.StringsAreSorted([]string{candidateChannels[i].ID, candidateChannels[j].ID})
+		return candidateChannels[i].ID < candidateChannels[j].ID
 	})
 	// write to user object
 	_, err = fs.Collection(UsersCollection).Doc(userID).Update(ctx, []firestore.Update{
@@ -585,9 +591,9 @@ func SetUserMemberships(
 	return nil
 }
 
-var cachedGuildsToChannels = make(map[string]*firestore.DocumentRef)
+var cachedGuildsToChannels = make(map[string][]*firestore.DocumentRef)
 
-func getCachedGuildsToChannels(ctx context.Context, fs *firestore.Client) (map[string]*firestore.DocumentRef, error) {
+func getCachedGuildsToChannels(ctx context.Context, fs *firestore.Client) (map[string][]*firestore.DocumentRef, error) {
 	if len(cachedGuildsToChannels) > 0 {
 		return cachedGuildsToChannels, nil
 	}
@@ -595,6 +601,7 @@ func getCachedGuildsToChannels(ctx context.Context, fs *firestore.Client) (map[s
 	if err != nil {
 		return nil, err
 	}
+	chCollection := fs.Collection(ChannelCollection)
 	for _, snap := range snaps {
 		var guild DiscordGuild
 		err = snap.DataTo(&guild)
@@ -602,7 +609,11 @@ func getCachedGuildsToChannels(ctx context.Context, fs *firestore.Client) (map[s
 			log.Err(err).Msg("error unmarshalling DiscordGuild")
 			return nil, err
 		}
-		cachedGuildsToChannels[guild.ID] = guild.Channel
+		channelRefs := make([]*firestore.DocumentRef, len(guild.MembershipRoles), 0)
+		for channelSlug := range guild.MembershipRoles {
+			channelRefs = append(channelRefs, chCollection.Doc(channelSlug))
+		}
+		cachedGuildsToChannels[guild.ID] = channelRefs
 	}
 	return cachedGuildsToChannels, nil
 }

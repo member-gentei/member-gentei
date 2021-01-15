@@ -56,10 +56,9 @@ type DiscordGuild struct {
 	Name                  string
 	AdministrativeRoles   []string
 	LastMembershipRefresh time.Time `json:",omitempty"`
-	MemberRoleID          string
 	AuditLogChannelID     string
 	BCP47                 string
-	Channel               *firestore.DocumentRef
+	MembershipRoles       map[string]string // channelSlug -> roleID. Please never leave RoleID empty.
 }
 
 // DMTemplate is a message template that can be sent out (en masse).

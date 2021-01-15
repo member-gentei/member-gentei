@@ -226,10 +226,10 @@ func (d *discordBot) handleGuildMembersChunk(s *discordgo.Session, chunk *discor
 	}
 	d.ytChannelMembershipsMutex.RLock()
 	defer d.ytChannelMembershipsMutex.RUnlock()
-	for channelSlug, roleID := range memberInfo {
+	for channelSlug := range memberInfo {
 		logger.Debug().Str("channelSlug", channelSlug).Msg("enforcing member role for chunk")
 		verifiedMembers := d.ytChannelMemberships[channelSlug]
-		d.enforceRole(chunk.GuildID, roleID, verifiedMembers, chunk.Members)
+		d.enforceRole(chunk.GuildID, channelSlug, verifiedMembers, chunk.Members)
 	}
 	if chunk.ChunkIndex == chunk.ChunkCount-1 {
 		refreshTime := time.Now()
@@ -248,22 +248,23 @@ func (d *discordBot) handleGuildMembersChunk(s *discordgo.Session, chunk *discor
 
 func (d *discordBot) enforceRole(
 	guildID string,
-	roleID string,
+	channelSlug string,
 	verifiedIDs map[string]struct{},
 	guildMembers []*discordgo.Member,
 ) {
+	roleID := d.guildStates[guildID].GetMembershipRoleID(channelSlug)
 	for _, guildMember := range guildMembers {
 		_, shouldHaveRole := verifiedIDs[guildMember.User.ID]
 		if shouldHaveRole && !userHasRole(guildMember, roleID) {
 			// user needs role
 			d.newRoleApplier(
-				guildID, guildMember.User, roleAdd, "periodic membership refresh",
+				guildID, channelSlug, guildMember.User, roleAdd, "periodic membership refresh",
 				5, defaultRoleApplyPeriod, defaultRoleApplyTimeout,
 			)
 		} else if !shouldHaveRole && userHasRole(guildMember, roleID) {
 			// user needs role removed
 			d.newRoleApplier(
-				guildID, guildMember.User, roleRevoke, "periodic membership refresh",
+				guildID, channelSlug, guildMember.User, roleRevoke, "periodic membership refresh",
 				5, defaultRoleApplyPeriod, defaultRoleApplyTimeout,
 			)
 		}
@@ -406,7 +407,7 @@ func (d *discordBot) checkMembershipReply(
 		}
 		if action != roleNOOP {
 			d.newRoleApplier(
-				m.GuildID, m.Author, action, actionReason,
+				m.GuildID, channelSlug, m.Author, action, actionReason,
 				5, defaultRoleApplyPeriod, defaultRoleApplyTimeout,
 			)
 		}
@@ -463,16 +464,6 @@ func (d *discordBot) loadMemberships(guildIDs ...string) {
 func (d *discordBot) enforceMembershipsAsync(guildID string) error {
 	log.Info().Str("guildID", guildID).Msg("requesting guild members for enforcement")
 	return d.dgSession.RequestGuildMembers(guildID, "", 0, false)
-}
-
-func (d *discordBot) enforceMemberships(guildID, ytChannelID, memberRoleID string) {
-	logger := log.With().Str("guildID", guildID).Str("memberRoleID", memberRoleID).Logger()
-	state, exists := d.guildStates[guildID]
-	if !exists || state.LoadState != guildLoaded {
-		logger.Warn().Int("loadState", int(state.LoadState)).
-			Msg("received GuildMembersChunk for non-ready GuildState")
-		return
-	}
 }
 
 func (d *discordBot) cmdMiddleware(next dgc.ExecutionHandler) dgc.ExecutionHandler {

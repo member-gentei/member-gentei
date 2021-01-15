@@ -34,7 +34,7 @@ func init() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
 	persistent := rootCmd.PersistentFlags()
-	persistent.StringVar(&flagProjectID, "project-id", "", "GCP Project ID")
+	persistent.StringVar(&flagProjectID, "project-id", "member-gentei", "GCP Project ID")
 }
 
 // initConfig reads in config file and ENV variables if set.
