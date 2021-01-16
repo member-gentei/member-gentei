@@ -609,7 +609,7 @@ func getCachedGuildsToChannels(ctx context.Context, fs *firestore.Client) (map[s
 			log.Err(err).Msg("error unmarshalling DiscordGuild")
 			return nil, err
 		}
-		channelRefs := make([]*firestore.DocumentRef, len(guild.MembershipRoles), 0)
+		channelRefs := make([]*firestore.DocumentRef, 0, len(guild.MembershipRoles))
 		for channelSlug := range guild.MembershipRoles {
 			channelRefs = append(channelRefs, chCollection.Doc(channelSlug))
 		}
