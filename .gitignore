@@ -72,6 +72,7 @@ vendor
 Makefile.private.mk
 *.rpm
 /build
+/gentei/build
 .firebaserc
 /public-docs/site
 /tools/*.json

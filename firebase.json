@@ -4,7 +4,7 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
-    "public": "public",
+    "public": "gentei/build",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -13,7 +13,11 @@
     "rewrites": [
       {
         "source": "/login/discord",
-        "destination": "/app.html"
+        "destination": "/index.html"
+      },
+      {
+        "source": "/app",
+        "destination": "/index.html"
       }
     ],
     "cleanUrls": true
@@ -24,6 +28,12 @@
     },
     "ui": {
       "enabled": false
+    },
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8099
     }
   }
 }
