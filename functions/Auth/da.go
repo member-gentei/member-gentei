@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/member-gentei/member-gentei/pkg/clients"
 	"github.com/member-gentei/member-gentei/pkg/common"
@@ -30,7 +31,6 @@ import (
 const (
 	discordClientIDEnvName     = "DISCORD_CLIENT_ID"
 	discordClientSecretEnvName = "DISCORD_CLIENT_SECRET"
-	discordRedirectURIEnvName  = "DISCORD_REDIRECT_URI"
 	discordCollectionEnvName   = "DISCORD_COLLECTION"
 	youtubeClientIDEnvName     = "YOUTUBE_CLIENT_ID"
 	youtubeClientSecretEnvName = "YOUTUBE_CLIENT_SECRET"
@@ -53,9 +53,22 @@ var (
 	youtubeOAuthConfig *oauth2.Config
 )
 
-// Auth does the third leg of the OAuuth dance via an XHR.
+const (
+	defaultCORSOrigin = "https://member-gentei.tindabox.net"
+)
+
+var allowedCORSOrigins = map[string]bool{
+	defaultCORSOrigin: true,
+	"https://member-gentei--dev-0almpzv4.web.app": true, // dev
+}
+
+// Auth does the third leg of the OAuth dance via an XHR.
 func Auth(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "https://member-gentei.tindabox.net")
+	if origin := r.Header.Get("Origin"); allowedCORSOrigins[origin] {
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+	} else {
+		w.Header().Set("Access-Control-Allow-Origin", defaultCORSOrigin)
+	}
 	if r.Method == http.MethodOptions {
 		w.Header().Set("Access-Control-Allow-Methods", "OPTIONS, POST")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Requested-With")
@@ -94,6 +107,11 @@ func discordAuth(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("OAuth code not found"))
 		w.WriteHeader(http.StatusForbidden)
 		return
+	}
+	// set the redirect URI properly
+	origin := r.Header.Get("Origin")
+	if !strings.HasPrefix(discordOAuthConfig.RedirectURL, origin) {
+		discordOAuthConfig.RedirectURL = origin + "/login/discord"
 	}
 	token, err := discordOAuthConfig.Exchange(ctx, oauthCode, oauth2.AccessTypeOffline)
 	// get identity
@@ -437,8 +455,9 @@ func init() {
 			TokenURL:  "https://discord.com/api/oauth2/token",
 			AuthStyle: oauth2.AuthStyleInHeader,
 		},
-		RedirectURL: mustLoadEnv(discordRedirectURIEnvName),
-		Scopes:      []string{"identify", "guilds"},
+		// dynamically generated
+		// RedirectURL: mustLoadEnv(discordRedirectURIEnvName),
+		Scopes: []string{"identify", "guilds"},
 	}
 	youtubeOAuthConfig = &oauth2.Config{
 		ClientID:     mustLoadEnv(youtubeClientIDEnvName),
