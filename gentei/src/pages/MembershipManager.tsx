@@ -1,16 +1,17 @@
 import firebase from 'firebase/app';
 import "firebase/auth"
-import {useState, useEffect} from "react"
+import { useState, useEffect } from "react"
 import Footer from "../components/Footer"
 import UserInfo from '../components/UserInfo';
 import { LoginStatus } from './Login';
 
 interface MembershipManagerProps {
     ready: boolean
-    loginStatus?: LoginStatus
+    discordLoginStatus?: LoginStatus
+    youTubeLoginStatus?: LoginStatus
 }
 
-const MembershipManager = ({ready, loginStatus}: MembershipManagerProps) => {
+const MembershipManager = ({ ready, discordLoginStatus, youTubeLoginStatus }: MembershipManagerProps) => {
     const [user, setUser] = useState<firebase.User | null | undefined>(undefined)
     useEffect(() => {
         if (ready) {
@@ -18,7 +19,7 @@ const MembershipManager = ({ready, loginStatus}: MembershipManagerProps) => {
                 setUser(fsUser)
             })
         }
-    },[ready])
+    }, [ready])
     return (
         <div>
             <section className="hero is-primary">
@@ -31,7 +32,7 @@ const MembershipManager = ({ready, loginStatus}: MembershipManagerProps) => {
             </section>
             <section role="main" className="section">
                 <div className="container">
-                    <UserInfo user={user} loginStatus={loginStatus} />
+                    <UserInfo user={user} discordLoginStatus={discordLoginStatus} youTubeLoginStatus={youTubeLoginStatus} />
                 </div>
             </section>
             <section id="qa" className="section">
@@ -43,7 +44,7 @@ const MembershipManager = ({ready, loginStatus}: MembershipManagerProps) => {
                     <p><em>Gentei</em> periodically checks your membership and notifies the Discord bots of membership status changes.</p>
                 </div>
             </section>
-            <Footer withYouTubeImage={true}/>
+            <Footer withYouTubeImage={true} />
         </div>
     )
 }

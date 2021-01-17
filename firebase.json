@@ -16,6 +16,10 @@
         "destination": "/index.html"
       },
       {
+        "source": "/login/youtube",
+        "destination": "/index.html"
+      },
+      {
         "source": "/app",
         "destination": "/index.html"
       }

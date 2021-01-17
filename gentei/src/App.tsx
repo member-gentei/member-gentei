@@ -21,7 +21,8 @@ const firebaseConfig = {
 
 function App() {
   const [firebaseReady, setFirebaseReady] = useState(false)
-  const [loginStatus, setLoginStatus] = useState<LoginStatus>()
+  const [discordLoginStatus, setDiscordLoginStatus] = useState<LoginStatus>()
+  const [youTubeLoginStatus, setYouTubeLoginStatus] = useState<LoginStatus>()
   useEffect(() => {
     (async () => {
       if (!firebaseReady) {
@@ -37,17 +38,25 @@ function App() {
   }, [firebaseReady])
 
   const onDiscordLogin = useCallback((status: LoginStatus) => {
-    setLoginStatus(status)
-  }, [setLoginStatus])
+    setDiscordLoginStatus(status)
+  }, [setDiscordLoginStatus])
+  const onYouTubeLogin = useCallback((status: LoginStatus) => {
+    setYouTubeLoginStatus(status)
+  }, [setYouTubeLoginStatus])
   return (
     <BrowserRouter>
       <Switch>
         <Route path="/app">
-          <MembershipManager ready={firebaseReady} loginStatus={loginStatus} />
+          <MembershipManager
+            ready={firebaseReady}
+            discordLoginStatus={discordLoginStatus}
+            youTubeLoginStatus={youTubeLoginStatus} />
         </Route>
         <Route path="/login/:loginType">
           <Login
-            onDiscordLogin={onDiscordLogin} />
+            ready={firebaseReady}
+            onDiscordLogin={onDiscordLogin}
+            onYouTubeLogin={onYouTubeLogin} />
         </Route>
         <Route path="/">
           <Home />

@@ -1,13 +1,16 @@
 import firebase from "firebase/app"
 import "firebase/firestore"
 import { useState } from "react"
+import { LoginStatus } from "../pages/Login"
+import LoginErrorDisplay from "./LoginErrorDisplay"
 
 interface ChannelConnectionProps {
     user: firebase.User
     channelID?: string
+    loginStatus?: LoginStatus
 }
 
-const ChannelConnection = ({ user, channelID }: ChannelConnectionProps) => {
+const ChannelConnection = ({ user, channelID, loginStatus }: ChannelConnectionProps) => {
     const youTubeLoginURL = "https://accounts.google.com/o/oauth2/v2/auth?client_id=649732146530-s4cj4tqo2impojg7ljol2chsuj1us81s.apps.googleusercontent.com&redirect_uri=https%3A%2F%2Fmember-gentei.tindabox.net%2Flogin%2Fyoutube&response_type=code&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fyoutube.force-ssl&access_type=offline&prompt=consent"
     const [disconnecting, setDisconnecting] = useState(false)
     if (!!channelID) {
@@ -37,6 +40,7 @@ const ChannelConnection = ({ user, channelID }: ChannelConnectionProps) => {
             <p>Please connect your YouTube account to verify your membership(s).</p>
             <div className="has-text-centered">
                 <a href={youTubeLoginURL}><div className="signin-google-button"></div></a>
+                <LoginErrorDisplay loginStatus={loginStatus} />
             </div>
         </div>
     )

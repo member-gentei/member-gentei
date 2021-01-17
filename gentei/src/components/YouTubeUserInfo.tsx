@@ -1,6 +1,7 @@
 import firebase from "firebase/app"
 import "firebase/firestore"
 import React, { useState, useEffect } from "react"
+import { LoginStatus } from "../pages/Login"
 import ChannelConnection from "./ChannelConnection"
 import YouTubeMembershipCard, { YouTubeMembershipCardProps } from "./YouTubeMembershipCard"
 
@@ -10,7 +11,7 @@ interface iUserData {
     Memberships: firebase.firestore.DocumentReference[] | null
 }
 
-const YouTubeUserInfo = ({ user }: { user: firebase.User }) => {
+const YouTubeUserInfo = ({ user, loginStatus }: { user: firebase.User, loginStatus?: LoginStatus }) => {
     const [userData, setUserData] = useState<iUserData>()
     useEffect(() => {
         const fs = firebase.firestore()
@@ -71,7 +72,7 @@ const YouTubeUserInfo = ({ user }: { user: firebase.User }) => {
     }
     return (
         <div className="connection">
-            <ChannelConnection user={user} channelID={userData.YoutubeChannelID} />
+            <ChannelConnection user={user} channelID={userData.YoutubeChannelID} loginStatus={loginStatus} />
             <div className="columns is-multiline mt-4">
                 {cards}
             </div>
