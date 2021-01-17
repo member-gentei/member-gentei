@@ -36,6 +36,12 @@ i18n:
 translations:
 	cd tools && go run main.go botgen
 
+.PHONY: tools
+tools:
+	cd tools && \
+		go build -o ~/go/bin/gentei-tools .
+	gentei-tools completion | sudo tee $(shell pkg-config --variable=completionsdir bash-completion)/gentei-tools
+
 .PHONY: clean
 clean:
 	rm -rf *.rpm build
