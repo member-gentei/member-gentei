@@ -21,6 +21,7 @@ api: docs function-api
 
 .PHONY: firebase
 firebase:
+	cd gentei && yarn build
 	firebase deploy
 
 .PHONY:

@@ -12,9 +12,9 @@ OpenAPI documentation: https://docs.member-gentei.tindabox.net/api.html
 * `/docs` - https://docs.member-gentei.tindabox.net
 * `/functions` - Google Cloud Function code
 * `/init` - systemd, package files
+* `/gentei` - React Typescript app for https://member-gentei.tindabox.net
 * `/jobs` - systemd timer jobs
 * `/pkg` - stuff for reuse across multiple functions + packages
-* `/public` - https://member-gentei.tindabox.net
 * `/public-docs` - [Doctave](https://github.com/Doctave/doctave) template that generates `/docs`
 * `/tools` - command line tooling for administrative actions
 * `openapi.yml` - the authoritative OpenAPI v3 spec
