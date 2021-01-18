@@ -1,11 +1,11 @@
 package discord
 
 import (
-	"bytes"
 	"testing"
-	"text/template"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/member-gentei/member-gentei/bot/discord/lang"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 )
 
 const expectedOutput = `Memberships confirmed! You will be granted roles corresponding to the following channels:
@@ -13,19 +13,23 @@ const expectedOutput = `Memberships confirmed! You will be granted roles corresp
 ` + "◦ `what's`" + `
 ` + "◦ `this`"
 
-func TestMultiMembersConfirmedTemplate(t *testing.T) {
+func TestMultiMembershipConfirmedReply(t *testing.T) {
 	// tests that the template does newlines correctly.
 	var (
-		buf        bytes.Buffer
-		mmTemplate = template.Must(template.New("multimember").Parse(multiMembersConfirmed))
+		localizer = makeLocalizer(lang.NewBundle(), "")
 	)
-	err := mmTemplate.Execute(&buf, map[string]interface{}{
-		"titles": []string{"uwu", "what's", "this"},
+	output := localizer.MustLocalize(&i18n.LocalizeConfig{
+		DefaultMessage: &i18n.Message{
+			ID:    "MembershipConfirmedReply",
+			One:   "Membership confirmed! You will be added as a member shortly.",
+			Other: multiMembersConfirmed,
+		},
+		TemplateData: map[string]interface{}{
+			"titles": []string{"uwu", "what's", "this"},
+		},
+		PluralCount: 3,
 	})
-	if err != nil {
-		t.Fatalf("error executing template: %s", err)
-	}
-	if diff := cmp.Diff(expectedOutput, buf.String()); diff != "" {
+	if diff := cmp.Diff(expectedOutput, output); diff != "" {
 		t.Fatalf("unexpected template output: %s", diff)
 	}
 }

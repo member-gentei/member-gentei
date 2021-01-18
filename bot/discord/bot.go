@@ -176,7 +176,7 @@ func (d *discordBot) listenToChannelChanges() error {
 						continue
 					}
 					log.Debug().Interface("channel", channel).Msg("received new YouTube channel info")
-					d.ytChannels[channel.ChannelID] = channel
+					d.ytChannels[change.Doc.Ref.ID] = channel
 				}
 			}()
 			if !firstErrSent {
@@ -322,12 +322,14 @@ func (d *discordBot) enforceRole(
 }
 
 func (d *discordBot) handleGuildMemberUpdate(s *discordgo.Session, update *discordgo.GuildMemberUpdate) {
-	updateKey := fmt.Sprintf("%s-%s", update.GuildID, update.User.ID)
-	value, exists := d.guildMemberUpdateChannels.Load(updateKey)
-	if exists {
-		updateChannel := value.(chan *discordgo.GuildMemberUpdate)
-		updateChannel <- update
-		log.Debug().Str("updateKey", updateKey).Msg("sending candidate guild member update")
+	for _, roleID := range update.Member.Roles {
+		updateKey := fmt.Sprintf("%s-%s-%s", update.GuildID, update.User.ID, roleID)
+		value, exists := d.guildMemberUpdateChannels.Load(updateKey)
+		if exists {
+			updateChannel := value.(chan *discordgo.GuildMemberUpdate)
+			updateChannel <- update
+			log.Debug().Str("updateKey", updateKey).Msg("sending candidate guild member update")
+		}
 	}
 }
 
@@ -474,7 +476,7 @@ func (d *discordBot) checkMembershipReply(
 		confirmedChannelTitles = make([]string, 0, len(checks))
 		unconfirmedCount       int
 	)
-	// perform required role changes
+	// perform required role changes`
 	d.ytChannelsMutex.RLock()
 	defer d.ytChannelsMutex.RUnlock()
 	for _, check := range checks {
@@ -514,7 +516,7 @@ func (d *discordBot) checkMembershipReply(
 			TemplateData: map[string]interface{}{
 				"titles": confirmedChannelTitles,
 			},
-			PluralCount: len(confirmedChannelTitles),
+			PluralCount: len(membershipInfo), // print the plural form when there are multiple membership possibilities
 		})
 	} else {
 		replyMessage = mustLocalizeMessage(state.localizer, &i18n.Message{
