@@ -10,6 +10,7 @@ require (
 	github.com/bwmarrin/discordgo v0.22.1-0.20201217190221-8d6815dde7ed
 	github.com/deepmap/oapi-codegen v1.3.13
 	github.com/getkin/kin-openapi v0.23.0
+	github.com/google/go-cmp v0.5.2
 	github.com/mark-ignacio/zerolog-gcp v0.2.0
 	github.com/member-gentei/member-gentei/pkg v0.0.0-20201031063345-01759886af5b
 	github.com/nicksnyder/go-i18n/v2 v2.1.1

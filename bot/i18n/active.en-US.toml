@@ -1,7 +1,10 @@
 BotRestartedReply = "This bot has secretly, recently restarted and is still loading - please try again in a minute!"
 ErrorCheckingReply = "Error checking memberships! Please try again later - an alert has been sent to the developer."
 GuildNotRegisteredReply = "This Discord server isn't registered for membership management yet. Please wait until the server owner gets this sorted out!"
-MembershipConfirmedReply = "Membership confirmed! You will be added as a member shortly."
 MembershipUnconfirmedReply = "We just checked, and you don't seem to be a member."
 RateLimitReply = "Your replies are rate limited to prevent abuse - please try again in a minute!"
 SignupRequiredReply = "Please sign up on https://member-gentei.tindabox.net/app and run this command a few minutes after connecting your YouTube account!"
+
+[MembershipConfirmedReply]
+one = "Membership confirmed! You will be added as a member shortly."
+other = "Memberships confirmed! You will be granted roles corresponding to the following channels:\n{{ range .titles -}}\n◦ `{{ . }}`\n{{ end }}"

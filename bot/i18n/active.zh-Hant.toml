@@ -11,7 +11,7 @@ hash = "sha1-69b5abba264123a142bbcc3d0a06961aeeb93d58"
 other = "這個Discord伺服器尚未申請會員資格管理，請等待伺服器擁有者解決！"
 
 [MembershipConfirmedReply]
-hash = "sha1-6417674f1dec19eae228b467cd00ce4333a7ea8b"
+hash = "sha1-b918d0e8f28fe874449e96e60496ec4f63410927"
 other = "會員資格確認！很快地您將會被添加為會限身分組。"
 
 [MembershipUnconfirmedReply]

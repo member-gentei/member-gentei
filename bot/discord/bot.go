@@ -39,9 +39,11 @@ type discordBot struct {
 
 	lastMemberCheck                map[string]time.Time  // global rate limiter for user member checks
 	guildStates                    map[string]guildState // holds state for a Discord guild
-	ytChannelMembershipsMutex      sync.RWMutex
+	ytChannels                     map[string]common.Channel
+	ytChannelsMutex                sync.RWMutex
 	ytChannelMembershipsLastLoaded map[string]time.Time
 	ytChannelMemberships           map[string]map[string]struct{} // holds memberships corresponding to a particular YouTube channel
+	ytChannelMembershipsMutex      sync.RWMutex
 
 	// newMemberRoleApplier() stuff
 	// key is "guildID-userID"
@@ -130,6 +132,53 @@ func (d *discordBot) listenToGuildAssociations() error {
 					d.guildStates[guild.ID] = state
 				}
 			}
+			if !firstErrSent {
+				firstErrChan <- err
+				close(firstErrChan)
+				firstErrSent = true
+			}
+		}
+	}()
+	return <-firstErrChan
+}
+
+func (d *discordBot) listenToChannelChanges() error {
+	var (
+		firstErrChan = make(chan error)
+		firstErrSent bool
+	)
+	go func() {
+		snapsIter := d.fs.Collection(common.ChannelCollection).Snapshots(d.ctx)
+		for {
+			snaps, err := snapsIter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				if c := status.Code(err); c != codes.OK {
+					log.Fatal().Err(err).Msg("rpc error getting DiscordGuild snapshots")
+				}
+				log.Err(err).Msg("error getting DiscordGuild snapshots, still listening")
+				continue
+			}
+			func() {
+				d.ytChannelsMutex.Lock()
+				defer d.ytChannelsMutex.Unlock()
+				for _, change := range snaps.Changes {
+					var channel common.Channel
+					err = change.Doc.DataTo(&channel)
+					if err != nil {
+						log.Err(err).Msg("error unmarshalling DiscordGuild")
+						break
+					}
+					if change.Kind == firestore.DocumentRemoved {
+						delete(d.ytChannels, channel.ChannelID)
+						continue
+					}
+					log.Debug().Interface("channel", channel).Msg("received new YouTube channel info")
+					d.ytChannels[channel.ChannelID] = channel
+				}
+			}()
 			if !firstErrSent {
 				firstErrChan <- err
 				close(firstErrChan)
@@ -255,16 +304,17 @@ func (d *discordBot) enforceRole(
 	roleID := d.guildStates[guildID].GetMembershipRoleID(channelSlug)
 	for _, guildMember := range guildMembers {
 		_, shouldHaveRole := verifiedIDs[guildMember.User.ID]
+		reason := fmt.Sprintf("periodic membership refresh (%s)", channelSlug)
 		if shouldHaveRole && !userHasRole(guildMember, roleID) {
 			// user needs role
 			d.newRoleApplier(
-				guildID, channelSlug, guildMember.User, roleAdd, "periodic membership refresh",
+				guildID, channelSlug, guildMember.User, roleAdd, reason,
 				5, defaultRoleApplyPeriod, defaultRoleApplyTimeout,
 			)
 		} else if !shouldHaveRole && userHasRole(guildMember, roleID) {
 			// user needs role removed
 			d.newRoleApplier(
-				guildID, channelSlug, guildMember.User, roleRevoke, "periodic membership refresh",
+				guildID, channelSlug, guildMember.User, roleRevoke, reason,
 				5, defaultRoleApplyPeriod, defaultRoleApplyTimeout,
 			)
 		}
@@ -329,6 +379,17 @@ func (d *discordBot) handleCmdCheck(ctx *dgc.Ctx) {
 	}
 }
 
+type discordRoleCheck struct {
+	channelSlug string
+	action      roleAction
+	required    bool
+}
+
+const multiMembersConfirmed = `Memberships confirmed! You will be granted roles corresponding to the following channels:
+{{- range .titles }}
+◦ ` + "`" + "{{ . }}" + "`" + `
+{{- end }}`
+
 func (d *discordBot) checkMembershipReply(
 	logger zerolog.Logger,
 	state guildState,
@@ -339,12 +400,11 @@ func (d *discordBot) checkMembershipReply(
 		log.Err(err).Msg("error sending ChannelTyping status")
 		return
 	}
-	for channelSlug, roleID := range state.GetMembershipInfo() {
-		var (
-			replyMessage string
-			actionReason string
-			action       = roleNOOP
-		)
+	var (
+		membershipInfo = state.GetMembershipInfo()
+		checks         = make([]discordRoleCheck, 0, len(membershipInfo))
+	)
+	for channelSlug, roleID := range membershipInfo {
 		logger.Debug().Str("channelSlug", channelSlug).Msg("checking membership for user")
 		response, err := d.apiClient.CheckMembershipWithResponse(
 			d.ctx,
@@ -357,60 +417,118 @@ func (d *discordBot) checkMembershipReply(
 		}
 		d.lastMemberCheck[m.Author.ID] = time.Now()
 		if response.JSON200 != nil {
+			var changeRequired = false
 			if response.JSON200.Member {
 				logger.Info().Msg("membership confirmed")
-				replyMessage = mustLocalizeMessage(state.localizer, &i18n.Message{
-					ID:    "MembershipConfirmedReply",
-					Other: "Membership confirmed! You will be added as a member shortly.",
-				})
-				// make change if role is not already assigned
+				// make change if role is not yet assigned
 				if !userHasRole(m.Member, roleID) {
-					action = roleAdd
-					actionReason = "`!mg check` verified"
+					changeRequired = true
 				}
+				checks = append(checks, discordRoleCheck{
+					channelSlug: channelSlug,
+					action:      roleAdd,
+					required:    changeRequired,
+				})
 			} else {
 				reason := *response.JSON200.Reason
 				logger.Debug().Str("reason", reason).Msg("user is not a member")
 				if reason == "not connected" {
-					replyMessage = mustLocalizeMessage(state.localizer, &i18n.Message{
+					msg := mustLocalizeMessage(state.localizer, &i18n.Message{
 						ID:    "SignupRequiredReply",
 						Other: "Please sign up on https://member-gentei.tindabox.net/app and run this command a few minutes after connecting your YouTube account!",
 					})
-				} else {
-					replyMessage = mustLocalizeMessage(state.localizer, &i18n.Message{
-						ID:    "MembershipUnconfirmedReply",
-						Other: "We just checked, and you don't seem to be a member.",
-					})
-					// make change if role is assigned
-					if userHasRole(m.Member, roleID) {
-						action = roleRevoke
-						actionReason = "`!mg check` un-verified"
+					err = d.reply(logger, m.GuildID, m.ChannelID, m.Author.ID, m.Reference(), msg)
+					if err != nil {
+						logger.Err(err).Msg("error replying")
 					}
+					return
 				}
-				logger.Info().Str("reason", *response.JSON200.Reason)
-
+				// make change if role is assigned
+				if userHasRole(m.Member, roleID) {
+					changeRequired = true
+				}
+				checks = append(checks, discordRoleCheck{
+					channelSlug: channelSlug,
+					action:      roleRevoke,
+					required:    changeRequired,
+				})
 			}
 		} else {
 			logger.Warn().Bytes("body", response.Body).Interface("headers", response.HTTPResponse.Header).Int("code", response.StatusCode()).Msg("json200 is nil")
-			replyMessage = mustLocalizeMessage(state.localizer, &i18n.Message{
+			msg := mustLocalizeMessage(state.localizer, &i18n.Message{
 				ID:    "ErrorCheckingReply",
 				Other: "Error checking memberships! Please try again later - an alert has been sent to the developer.",
 			})
-		}
-		err = d.reply(
-			logger, m.GuildID, m.ChannelID, m.Author.ID,
-			m.Reference(), replyMessage,
-		)
-		if err != nil {
-			logger.Err(err).Msg("error replying")
+			err = d.reply(logger, m.GuildID, m.ChannelID, m.Author.ID, m.Reference(), msg)
+			if err != nil {
+				logger.Err(err).Msg("error replying")
+			}
 			return
 		}
-		if action != roleNOOP {
-			d.newRoleApplier(
-				m.GuildID, channelSlug, m.Author, action, actionReason,
-				5, defaultRoleApplyPeriod, defaultRoleApplyTimeout,
-			)
+	}
+	// sort for consistency
+	sort.Slice(checks, func(i, j int) bool {
+		return checks[i].channelSlug < checks[j].channelSlug
+	})
+	var (
+		confirmedChannelTitles = make([]string, 0, len(checks))
+		unconfirmedCount       int
+	)
+	// perform required role changes
+	d.ytChannelsMutex.RLock()
+	defer d.ytChannelsMutex.RUnlock()
+	for _, check := range checks {
+		channel := d.ytChannels[check.channelSlug]
+		if check.action == roleAdd {
+			confirmedChannelTitles = append(confirmedChannelTitles, channel.ChannelTitle)
 		}
+		if !check.required {
+			continue
+		}
+		if check.action == roleRevoke {
+			unconfirmedCount++
+		}
+		var actionReason string
+		if check.action == roleAdd {
+			actionReason = "`!mg check` verified"
+		} else {
+			actionReason = "`!mg check` un-verified"
+		}
+		if len(checks) > 1 {
+			actionReason = fmt.Sprintf("%s (%s)", actionReason, channel.ChannelTitle)
+		}
+		d.newRoleApplier(
+			m.GuildID, check.channelSlug, m.Author, check.action, actionReason,
+			5, defaultRoleApplyPeriod, defaultRoleApplyTimeout,
+		)
+	}
+	// reply!
+	var replyMessage string
+	if len(confirmedChannelTitles) > 0 {
+		replyMessage = state.localizer.MustLocalize(&i18n.LocalizeConfig{
+			DefaultMessage: &i18n.Message{
+				ID:    "MembershipConfirmedReply",
+				One:   "Membership confirmed! You will be added as a member shortly.",
+				Other: multiMembersConfirmed,
+			},
+			TemplateData: map[string]interface{}{
+				"titles": confirmedChannelTitles,
+			},
+			PluralCount: len(confirmedChannelTitles),
+		})
+	} else {
+		replyMessage = mustLocalizeMessage(state.localizer, &i18n.Message{
+			ID:    "MembershipUnconfirmedReply",
+			Other: "We just checked, and you don't seem to be a member.",
+		})
+	}
+	err := d.reply(
+		logger, m.GuildID, m.ChannelID, m.Author.ID,
+		m.Reference(), replyMessage,
+	)
+	if err != nil {
+		logger.Err(err).Msg("error replying")
+		return
 	}
 }
 
@@ -458,6 +576,7 @@ func (d *discordBot) loadMemberships(guildIDs ...string) {
 		}
 		logger.Debug().Int("count", len(memberIDs)).Msg("loaded members for channel")
 		d.ytChannelMemberships[channelSlug] = memberIDs
+		d.ytChannelMembershipsLastLoaded[channelSlug] = time.Now()
 	}
 }
 
@@ -597,14 +716,20 @@ func Start(
 		fs:                             options.FirestoreClient,
 		dgSession:                      dg,
 		lastMemberCheck:                map[string]time.Time{},
+		ytChannels:                     map[string]common.Channel{},
 		ytChannelMemberships:           map[string]map[string]struct{}{},
 		ytChannelMembershipsLastLoaded: map[string]time.Time{},
 		bundle:                         lang.NewBundle(),
 	}
-	// create a Firestore listener for guild associations
+	// create a Firestore listener for guild associations and channel info
 	err = bot.listenToGuildAssociations()
 	if err != nil {
-		log.Err(err).Msg("error initalizing bot data")
+		log.Err(err).Msg("error initalizing bot guilds")
+		return err
+	}
+	err = bot.listenToChannelChanges()
+	if err != nil {
+		log.Err(err).Msg("error initalizing bot channels")
 		return err
 	}
 	// start the membership check notification listener
