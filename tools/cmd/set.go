@@ -2,6 +2,10 @@ package cmd
 
 import (
 	"context"
+	"strings"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/member-gentei/member-gentei/pkg/clients"
 	"github.com/member-gentei/member-gentei/pkg/common"
@@ -62,24 +66,55 @@ var setCmd = &cobra.Command{
 				}
 			}
 		} else if flagSetLinkGuild {
-			log.Fatal().Msg("unsafe set function - temporarily disabled")
 			if flagSetChannelSlug == "" || flagSetLinkGuildID == "" || flagSetLinkGuildRoleID == "" {
 				log.Fatal().Msg("must specify channel slug, guild ID, and guild role ID")
 			}
 			log.Info().Str("channel", flagSetChannelSlug).Str("guild", flagSetLinkGuildID).Msg("linking Discord guild")
-			_, err := fs.Collection(common.DiscordGuildCollection).Doc(flagSetLinkGuildID).Set(ctx, common.DiscordGuild{
-				MembershipRoles: map[string]string{
-					flagSetChannelSlug: flagSetLinkGuildRoleID,
-				},
-				ID:    flagSetLinkGuildID,
-				BCP47: "en-US", // default language
-			})
+			// fetch existing
+			var guild common.DiscordGuild
+			guildRef := fs.Collection(common.DiscordGuildCollection).Doc(flagSetLinkGuildID)
+			doc, err := guildRef.Get(ctx)
+			if status.Code(err) == codes.NotFound {
+				guild.MembershipRoles = map[string]string{}
+			} else if err != nil {
+				log.Fatal().Err(err).Msg("error getting existing Discord guild")
+			}
+			err = doc.DataTo(&guild)
+			if err != nil {
+				log.Fatal().Err(err).Msg("error unmarshalling Discord guild")
+			}
+			// set
+			guild.ID = flagSetLinkGuildID
+			guild.MembershipRoles[flagSetChannelSlug] = flagSetLinkGuildRoleID
+			_, err = fs.Collection(common.DiscordGuildCollection).Doc(flagSetLinkGuildID).Set(ctx, guild)
 			if err != nil {
 				log.Fatal().Err(err).Msg("error linking Discord guild")
 			}
 			log.Warn().Msg("all users' guild memberships need to be checked if a link was added")
 		}
 	},
+}
+
+func completeChannelSlug(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	var (
+		ctx       = context.Background()
+		directive = cobra.ShellCompDirectiveNoFileComp
+	)
+	fs, err := clients.NewRetryFirestoreClient(ctx, flagProjectID)
+	if err != nil {
+		return nil, directive
+	}
+	allDocs, err := fs.Collection(common.ChannelCollection).Select().Documents(ctx).GetAll()
+	if err != nil {
+		return nil, directive
+	}
+	candidates := make([]string, 0, len(allDocs))
+	for _, doc := range allDocs {
+		if strings.HasPrefix(doc.Ref.ID, toComplete) {
+			candidates = append(candidates, doc.Ref.ID)
+		}
+	}
+	return candidates, directive
 }
 
 func init() {
@@ -93,4 +128,5 @@ func init() {
 	flags.BoolVar(&flagSetLinkGuild, "link-guild", false, "link Discord guild to channel")
 	flags.StringVar(&flagSetLinkGuildID, "guild-id", "", "Discord guild")
 	flags.StringVar(&flagSetLinkGuildRoleID, "guild-role-id", "", "Discord guild")
+	setCmd.RegisterFlagCompletionFunc("channel-slug", completeChannelSlug)
 }

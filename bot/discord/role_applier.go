@@ -41,13 +41,13 @@ func (d *discordBot) newRoleApplier(
 	// * start a ticker for the retry that applies the role and cleans up when successful
 	// * start a listener for when an applicable discordgo.GuildMemberUpdate comes in to updateChan, and cancel retryContext
 	var (
+		initialRoleID            = d.guildStates[guildID].GetMembershipRoleID(channelSlug)
 		updateChan               = make(chan *discordgo.GuildMemberUpdate, 1)
-		updateKey                = fmt.Sprintf("%s-%s", guildID, user.ID)
+		updateKey                = fmt.Sprintf("%s-%s-%s", guildID, user.ID, initialRoleID)
 		retryCtx, cancelRetryCtx = context.WithDeadline(d.ctx, time.Now().Add(timeout))
 		// retryCount is 1-indexed
 		retryCount = 1
 		// if the role ID changes we flush all appliers when they come around
-		initialRoleID = d.guildStates[guildID].GetMembershipRoleID(channelSlug)
 
 		// not state, just easy
 		userID = user.ID

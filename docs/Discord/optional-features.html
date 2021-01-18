@@ -11,15 +11,15 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Source+Sans+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" type="text/css" href="/assets/normalize.css?v=1607667488" media="screen" />
-    <link rel="stylesheet" type="text/css" href="/assets/doctave-style.css?v=1607667488" media="screen" />
+    <link rel="stylesheet" type="text/css" href="/assets/normalize.css?v=1610934664" media="screen" />
+    <link rel="stylesheet" type="text/css" href="/assets/doctave-style.css?v=1610934664" media="screen" />
 
-    <link rel="stylesheet" type="text/css" href="/assets/prism-ghcolors.css?v=1607667488" media="screen" />
+    <link rel="stylesheet" type="text/css" href="/assets/prism-ghcolors.css?v=1610934664" media="screen" />
 
     
 
     <script>
-    var DOCTAVE_TIMESTAMP = "1607667488";
+    var DOCTAVE_TIMESTAMP = "1610934664";
     var color = localStorage.getItem('doctave-color')
 
     if (color === 'dark') {
@@ -114,6 +114,11 @@
 <p>As a more information-rich alternative to the Discord server audit log, <strong>gentei-bouncer#9835</strong> can post role changes it makes to a configured channel.</p>
 <p><img src="/assets/bot-audit-log-message.png" alt="audit log message preview" /></p>
 <p>For convenient reference by a moderation team, each log message comes with a user's @tagged name, their Discord user ID, and avatar at the time of role change action.</p>
+<h1 id="multi-channel-/-multi-role-support-2">Multi-channel / multi-role support</h1>
+<p>Gentei supports checking multiple YouTube channels per server, mapping each membership to a separate role. When multiple membership checks are configured for a server, <strong>gentei-bouncer#9835</strong>'s membership check replies will list out all verified YouTube channels.</p>
+<p><img src="/assets/mg-check-multi.png" alt="multiple role preview" /></p>
+<p>If you have an audit log channel configured, log messages will be created for each role change that takes place. Each log message will mention the relevant YouTube channel.</p>
+<p><img src="/assets/bot-audit-log-message-multi.png" alt="audit log message preview" /></p>
 
             </div>
             <div class='sidebar-right'>
@@ -124,6 +129,10 @@
                         
                             <li class='page-nav-level-1'>
                                 <a href='#audit-log-channel-1'>Audit log channel</a>
+                            </li>
+                        
+                            <li class='page-nav-level-1'>
+                                <a href='#multi-channel-/-multi-role-support-2'>Multi-channel / multi-role support</a>
                             </li>
                         
                     </ul>
@@ -139,10 +148,10 @@
             </div>
         </div>
     </div>
-    <script type="text/javascript" src="/assets/mermaid.js?v=1607667488"></script>
-    <script type="text/javascript" src="/assets/elasticlunr.js?v=1607667488"></script>
-    <script type="text/javascript" src="/assets/doctave-app.js?v=1607667488"></script>
-    <script type="text/javascript" src="/assets/prism.js?v=1607667488"></script>
+    <script type="text/javascript" src="/assets/mermaid.js?v=1610934664"></script>
+    <script type="text/javascript" src="/assets/elasticlunr.js?v=1610934664"></script>
+    <script type="text/javascript" src="/assets/doctave-app.js?v=1610934664"></script>
+    <script type="text/javascript" src="/assets/prism.js?v=1610934664"></script>
 </body>
 
 </html>

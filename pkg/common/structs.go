@@ -54,10 +54,9 @@ type ChannelMember struct {
 type DiscordGuild struct {
 	ID                    string
 	Name                  string
-	AdministrativeRoles   []string
 	LastMembershipRefresh time.Time `json:",omitempty"`
 	AuditLogChannelID     string
-	BCP47                 string
+	BCP47                 string            `json:",omitempty"`
 	MembershipRoles       map[string]string // channelSlug -> roleID. Please never leave RoleID empty.
 }
 
