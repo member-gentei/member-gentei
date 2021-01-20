@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/lthibault/jitterbug"
 	"github.com/rs/zerolog/log"
 )
 
@@ -22,7 +23,8 @@ const (
 	roleRevoke roleAction = "Revoke role"
 
 	defaultRoleApplyPeriod  = time.Second * 5
-	defaultRoleApplyTimeout = time.Second * 30
+	defaultRoleApplyTimeout = time.Second * 40
+	defaultRoleApplyStdDev  = time.Second * 2
 )
 
 // sometimes Discord has a hernia and we have to keep asking it to apply a membership role change.
@@ -144,7 +146,10 @@ func (d *discordBot) newRoleApplier(
 	}
 	// the ticker
 	go func() {
-		ticker := time.NewTicker(period)
+		ticker := jitterbug.New(
+			period,
+			&jitterbug.Norm{Stdev: defaultRoleApplyStdDev},
+		)
 		defer ticker.Stop()
 		// do it once now, before the ticker starts
 		applyRoleFunc()
