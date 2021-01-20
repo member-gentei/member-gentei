@@ -278,7 +278,7 @@ func (d *discordBot) handleGuildMembersChunk(s *discordgo.Session, chunk *discor
 	for channelSlug := range memberInfo {
 		logger.Debug().Str("channelSlug", channelSlug).Msg("enforcing member role for chunk")
 		verifiedMembers := d.ytChannelMemberships[channelSlug]
-		d.enforceRole(chunk.GuildID, channelSlug, verifiedMembers, chunk.Members)
+		d.enforceRole(chunk.GuildID, channelSlug, verifiedMembers, chunk.Members, len(memberInfo) > 1)
 	}
 	if chunk.ChunkIndex == chunk.ChunkCount-1 {
 		refreshTime := time.Now()
@@ -300,11 +300,17 @@ func (d *discordBot) enforceRole(
 	channelSlug string,
 	verifiedIDs map[string]struct{},
 	guildMembers []*discordgo.Member,
+	reasonHasName bool,
 ) {
 	roleID := d.guildStates[guildID].GetMembershipRoleID(channelSlug)
 	for _, guildMember := range guildMembers {
 		_, shouldHaveRole := verifiedIDs[guildMember.User.ID]
-		reason := fmt.Sprintf("periodic membership refresh (%s)", channelSlug)
+		var reason string
+		if reasonHasName {
+			reason = fmt.Sprintf("periodic membership refresh (%s)", channelSlug)
+		} else {
+			reason = "periodic membership refresh"
+		}
 		if shouldHaveRole && !userHasRole(guildMember, roleID) {
 			// user needs role
 			d.newRoleApplier(
@@ -407,21 +413,22 @@ func (d *discordBot) checkMembershipReply(
 		checks         = make([]discordRoleCheck, 0, len(membershipInfo))
 	)
 	for channelSlug, roleID := range membershipInfo {
-		logger.Debug().Str("channelSlug", channelSlug).Msg("checking membership for user")
+		checkLogger := logger.With().Str("channelSlug", channelSlug).Logger()
+		checkLogger.Debug().Str("channelSlug", channelSlug).Msg("checking membership for user")
 		response, err := d.apiClient.CheckMembershipWithResponse(
 			d.ctx,
 			api.ChannelSlugPathParam(channelSlug),
 			api.CheckMembershipJSONRequestBody{Snowflake: m.Author.ID},
 		)
 		if err != nil {
-			logger.Err(err).Msg("error checking user membership")
+			checkLogger.Err(err).Msg("error checking user membership")
 			return
 		}
 		d.lastMemberCheck[m.Author.ID] = time.Now()
 		if response.JSON200 != nil {
 			var changeRequired = false
 			if response.JSON200.Member {
-				logger.Info().Msg("membership confirmed")
+				checkLogger.Info().Msg("membership confirmed")
 				// make change if role is not yet assigned
 				if !userHasRole(m.Member, roleID) {
 					changeRequired = true
@@ -433,15 +440,15 @@ func (d *discordBot) checkMembershipReply(
 				})
 			} else {
 				reason := *response.JSON200.Reason
-				logger.Debug().Str("reason", reason).Msg("user is not a member")
+				checkLogger.Debug().Str("reason", reason).Msg("user is not a member")
 				if reason == "not connected" {
 					msg := mustLocalizeMessage(state.localizer, &i18n.Message{
 						ID:    "SignupRequiredReply",
 						Other: "Please sign up on https://member-gentei.tindabox.net/app and run this command a few minutes after connecting your YouTube account!",
 					})
-					err = d.reply(logger, m.GuildID, m.ChannelID, m.Author.ID, m.Reference(), msg)
+					err = d.reply(checkLogger, m.GuildID, m.ChannelID, m.Author.ID, m.Reference(), msg)
 					if err != nil {
-						logger.Err(err).Msg("error replying")
+						checkLogger.Err(err).Msg("error replying")
 					}
 					return
 				}
@@ -456,14 +463,14 @@ func (d *discordBot) checkMembershipReply(
 				})
 			}
 		} else {
-			logger.Warn().Bytes("body", response.Body).Interface("headers", response.HTTPResponse.Header).Int("code", response.StatusCode()).Msg("json200 is nil")
+			checkLogger.Warn().Bytes("body", response.Body).Interface("headers", response.HTTPResponse.Header).Int("code", response.StatusCode()).Msg("json200 is nil")
 			msg := mustLocalizeMessage(state.localizer, &i18n.Message{
 				ID:    "ErrorCheckingReply",
 				Other: "Error checking memberships! Please try again later - an alert has been sent to the developer.",
 			})
-			err = d.reply(logger, m.GuildID, m.ChannelID, m.Author.ID, m.Reference(), msg)
+			err = d.reply(checkLogger, m.GuildID, m.ChannelID, m.Author.ID, m.Reference(), msg)
 			if err != nil {
-				logger.Err(err).Msg("error replying")
+				checkLogger.Err(err).Msg("error replying")
 			}
 			return
 		}
