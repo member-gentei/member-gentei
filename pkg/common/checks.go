@@ -112,6 +112,7 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 	var (
 		numWorkers = int(math.Max(1, float64(options.NumWorkers)))
 		wg         = &sync.WaitGroup{}
+		workerWG   = &sync.WaitGroup{}
 		docsChan   = make(chan *firestore.DocumentSnapshot, numWorkers)
 		resultChan = make(chan enforceMembershipsWorkerResult, numWorkers)
 	)
@@ -119,9 +120,10 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 	for i := 0; i < numWorkers; i++ {
 		go enforceMembershipsWorker(
 			ctx, fs, options, slug2MemberVideos,
-			docsChan, resultChan, wg,
+			docsChan, resultChan, workerWG,
 		)
 	}
+	workerWG.Add(numWorkers)
 	// start doc producer
 	go func() {
 		defer wg.Done()
@@ -146,9 +148,11 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 			result.MembershipsReconfirmed += workerResult.MembershipsReconfirmed
 		}
 	}()
-	// docs producer + worker result consumer + len(worker threads)
-	wg.Add(2 + numWorkers)
+	// docs producer + worker result consumer
+	wg.Add(2)
 	log.Debug().Int("numWorkers", numWorkers).Msg("waiting for worker threads to complete")
+	workerWG.Wait()
+	log.Debug().Msg("waiting for producer/result threads to complete")
 	wg.Wait()
 	return
 }
