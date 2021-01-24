@@ -70,7 +70,7 @@ var setCmd = &cobra.Command{
 				log.Fatal().Msg("must specify channel slug, guild ID, and guild role ID")
 			}
 			log.Info().Str("channel", flagSetChannelSlug).Str("guild", flagSetLinkGuildID).Msg("linking Discord guild")
-			// fetch existing
+			// fetch existing (if applicable)
 			var guild common.DiscordGuild
 			guildRef := fs.Collection(common.DiscordGuildCollection).Doc(flagSetLinkGuildID)
 			doc, err := guildRef.Get(ctx)
@@ -78,10 +78,11 @@ var setCmd = &cobra.Command{
 				guild.MembershipRoles = map[string]string{}
 			} else if err != nil {
 				log.Fatal().Err(err).Msg("error getting existing Discord guild")
-			}
-			err = doc.DataTo(&guild)
-			if err != nil {
-				log.Fatal().Err(err).Msg("error unmarshalling Discord guild")
+			} else {
+				err = doc.DataTo(&guild)
+				if err != nil {
+					log.Fatal().Err(err).Msg("error unmarshalling Discord guild")
+				}
 			}
 			// set
 			guild.ID = flagSetLinkGuildID
