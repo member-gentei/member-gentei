@@ -405,7 +405,7 @@ func (d *discordBot) checkMembershipReply(
 ) {
 	// send typing status as a loading indicator
 	if err := d.dgSession.ChannelTyping(m.ChannelID); err != nil {
-		log.Err(err).Msg("error sending ChannelTyping status")
+		logger.Err(err).Msg("error sending ChannelTyping status")
 		return
 	}
 	var (
