@@ -20,6 +20,7 @@ import (
 	"golang.org/x/text/language"
 
 	"cloud.google.com/go/firestore"
+	monitoring "cloud.google.com/go/monitoring/apiv3"
 	"cloud.google.com/go/pubsub"
 	"github.com/Lukaesebrot/dgc"
 	"github.com/bwmarrin/discordgo"
@@ -31,11 +32,12 @@ import (
 
 // discordBot is the whole Discord bot.
 type discordBot struct {
-	ctx       context.Context
-	apiClient api.ClientWithResponsesInterface
-	dgSession *discordgo.Session
-	fs        *firestore.Client
-	bundle    *i18n.Bundle
+	ctx          context.Context
+	apiClient    api.ClientWithResponsesInterface
+	dgSession    *discordgo.Session
+	fs           *firestore.Client
+	metricClient *monitoring.MetricClient
+	bundle       *i18n.Bundle
 
 	lastMemberCheck                map[string]time.Time  // global rate limiter for user member checks
 	guildStates                    map[string]guildState // holds state for a Discord guild
@@ -658,13 +660,15 @@ func (d *discordBot) reply(
 	return err
 }
 
-func (d *discordBot) startHeartbeat() *time.Ticker {
+func (d *discordBot) startHeartbeat(callback func()) *time.Ticker {
 	// sloppy because this gets cleaned up on program exit
 	ticker := time.NewTicker(time.Second * 30)
 	go func() {
 		for {
 			<-ticker.C
-			log.Debug().Msg("heartbeat")
+			if callback != nil {
+				callback()
+			}
 		}
 	}()
 	return ticker
@@ -703,6 +707,7 @@ type StartOptions struct {
 	APIClient                    api.ClientWithResponsesInterface
 	FirestoreClient              *firestore.Client
 	MembershipReloadSubscription *pubsub.Subscription
+	HeartbeatCallback            func()
 	Heartbeat                    bool
 }
 
@@ -767,7 +772,9 @@ func Start(
 		log.Err(err).Msg("error starting discordgo session")
 		return err
 	}
-	bot.startHeartbeat()
+	if options.Heartbeat {
+		bot.startHeartbeat(options.HeartbeatCallback)
+	}
 	defer dg.Close()
 	fmt.Println("Bot running - press CTRL-C ()to exit.")
 	sc := make(chan os.Signal, 1)
