@@ -6,7 +6,12 @@ import (
 	"net/http"
 	"os"
 
+	monitoring "cloud.google.com/go/monitoring/apiv3"
 	"cloud.google.com/go/pubsub"
+	metricpb "google.golang.org/genproto/googleapis/api/metric"
+	monitoredrespb "google.golang.org/genproto/googleapis/api/monitoredres"
+	monitoringpb "google.golang.org/genproto/googleapis/monitoring/v3"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	zlg "github.com/mark-ignacio/zerolog-gcp"
 	"github.com/member-gentei/member-gentei/bot/discord"
@@ -93,12 +98,52 @@ var rootCmd = &cobra.Command{
 			APIClient:                    apiClient,
 			FirestoreClient:              fs,
 			MembershipReloadSubscription: psSubscription,
+			HeartbeatCallback:            makeHeartbeatCallback(ctx, gcpProject),
 			Heartbeat:                    !flagNoHeartbeat,
 		}
 		if err := discord.Start(ctx, opts); err != nil {
 			log.Fatal().Err(err).Msg("error running Discord bot")
 		}
 	},
+}
+
+func makeHeartbeatCallback(ctx context.Context, projectID string) func() {
+	client, err := monitoring.NewMetricClient(ctx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("error creating monitoring metric client")
+	}
+	hostname, _ := os.Hostname()
+	resource := &monitoredrespb.MonitoredResource{
+		Type:   "global",
+		Labels: map[string]string{"project_id": projectID},
+	}
+	timeSeriesMetric := &metricpb.Metric{
+		Type:   "custom.googleapis.com/gentei/heartbeat",
+		Labels: map[string]string{"host": hostname},
+	}
+	timeSeriesValue := &monitoringpb.TypedValue{
+		Value: &monitoringpb.TypedValue_Int64Value{Int64Value: 1},
+	}
+	return func() {
+		err := client.CreateTimeSeries(ctx, &monitoringpb.CreateTimeSeriesRequest{
+			Name: monitoring.MetricProjectPath(projectID),
+			TimeSeries: []*monitoringpb.TimeSeries{
+				{
+					Metric:   timeSeriesMetric,
+					Resource: resource,
+					Points: []*monitoringpb.Point{
+						{
+							Interval: &monitoringpb.TimeInterval{EndTime: timestamppb.Now()},
+							Value:    timeSeriesValue,
+						},
+					},
+				},
+			},
+		})
+		if err != nil {
+			log.Err(err).Msg("error sending heartbeat gauge metric")
+		}
+	}
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

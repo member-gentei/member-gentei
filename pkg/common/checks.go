@@ -525,7 +525,7 @@ func ReloadDiscordGuilds(
 	})
 	// write to user object
 	_, err = fs.Collection(UsersCollection).Doc(userID).Update(ctx, []firestore.Update{
-		firestore.Update{
+		{
 			Path:  "CandidateChannels",
 			Value: candidateChannels,
 		},
