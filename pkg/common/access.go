@@ -36,11 +36,11 @@ func RevokeYouTubeAccess(ctx context.Context, fs *firestore.Client, userID strin
 	}
 	// delete memberships
 	_, err = userDocRef.Update(ctx, []firestore.Update{
-		firestore.Update{
+		{
 			Path:  "YoutubeChannelID",
 			Value: "",
 		},
-		firestore.Update{
+		{
 			Path:  "Memberships",
 			Value: firestore.Delete,
 		},

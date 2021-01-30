@@ -51,11 +51,11 @@ func DisconnectYTAccount(ctx context.Context, event FirestoreEvent) (err error) 
 	resourcePath := strings.Split(event.OldValue.Name, "/documents/")[1]
 	userDocRef := fs.Doc(resourcePath).Parent.Parent
 	_, err = userDocRef.Update(ctx, []firestore.Update{
-		firestore.Update{
+		{
 			Path:  "Memberships",
 			Value: []*firestore.DocumentRef{},
 		},
-		firestore.Update{
+		{
 			Path:  "YoutubeChannelID",
 			Value: "",
 		},

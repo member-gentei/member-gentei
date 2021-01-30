@@ -26,28 +26,28 @@ func (d *discordBot) emitMemberAuditLog(
 			URL: avatarURL,
 		},
 		Fields: []*discordgo.MessageEmbedField{
-			&discordgo.MessageEmbedField{
+			{
 				Name:   "Name",
 				Value:  fmt.Sprintf("<@%s>", userID),
 				Inline: true,
 			},
-			&discordgo.MessageEmbedField{
+			{
 				Name:   "ID",
 				Value:  userID,
 				Inline: true,
 			},
-			&discordgo.MessageEmbedField{
+			{
 				Name:   "Action",
 				Value:  action.String(),
 				Inline: true,
 			},
-			&discordgo.MessageEmbedField{
+			{
 				Name: "Timestamp",
 				// RFC 3339 with some readability changes
 				Value:  time.Now().In(time.UTC).Format("2006/01/02 15:04:05Z"),
 				Inline: true,
 			},
-			&discordgo.MessageEmbedField{
+			{
 				Name:   "Reason",
 				Value:  reason,
 				Inline: true,

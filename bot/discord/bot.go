@@ -283,7 +283,7 @@ func (d *discordBot) handleGuildMembersChunk(s *discordgo.Session, chunk *discor
 	if chunk.ChunkIndex == chunk.ChunkCount-1 {
 		refreshTime := time.Now()
 		_, err := d.fs.Collection(common.DiscordGuildCollection).Doc(state.Doc.ID).Update(d.ctx, []firestore.Update{
-			firestore.Update{
+			{
 				Path:  "LastMembershipRefresh",
 				Value: refreshTime,
 			},
