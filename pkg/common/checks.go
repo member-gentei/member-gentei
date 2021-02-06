@@ -353,6 +353,8 @@ type CheckChannelMembershipOptions struct {
 	Logger *zerolog.Logger // optional logging context
 }
 
+const checkRetries = 4
+
 // CheckChannelMembership checks a user's membership against a channel.
 func CheckChannelMembership(
 	ctx context.Context, fs *firestore.Client,
@@ -400,30 +402,39 @@ func CheckChannelMembership(
 		}
 	}
 	// perform The Membership Check
-	ctr, err := userService.CommentThreads.List([]string{"id"}).VideoId(memberCheckVideoID).Do()
-	if err != nil {
-		errString := err.Error()
-		if strings.HasSuffix(errString, "commentsDisabled") {
-			err = nil
-			return
-		} else if strings.Contains(errString, "Token has been expired or revoked.") {
-			logger.Warn().Err(err).Send()
-			err = ErrYouTubeTokenInvalid
-			return
-		} else if strings.Contains(errString, "Request had invalid authentication credentials") {
-			logger.Warn().Err(err).Send()
-			err = ErrYouTubeTokenInvalid
-			return
-		} else if strings.Contains(errString, `"error": "invalid_grant",`) {
-			logger.Warn().Err(err).Send()
-			err = ErrYouTubeInvalidGrant
-		} else if strings.Contains(errString, "Invalid \\\"invalid_grant\\\" in request.") {
-			logger.Warn().Err(err).Send()
-			err = ErrYouTubeInvalidGrant
+	var ctr *youtube.CommentThreadListResponse
+	for i := 0; i < checkRetries; i++ {
+		ctr, err = userService.CommentThreads.List([]string{"id"}).VideoId(memberCheckVideoID).Do()
+		if err != nil {
+			errString := err.Error()
+			if strings.HasSuffix(errString, "commentsDisabled") {
+				err = nil
+				return
+			} else if strings.Contains(errString, "Token has been expired or revoked.") {
+				logger.Warn().Err(err).Send()
+				err = ErrYouTubeTokenInvalid
+				return
+			} else if strings.Contains(errString, "Request had invalid authentication credentials") {
+				logger.Warn().Err(err).Send()
+				err = ErrYouTubeTokenInvalid
+				return
+			} else if strings.Contains(errString, `"error": "invalid_grant",`) {
+				logger.Warn().Err(err).Send()
+				err = ErrYouTubeInvalidGrant
+			} else if strings.Contains(errString, "Invalid \\\"invalid_grant\\\" in request.") {
+				logger.Warn().Err(err).Send()
+				err = ErrYouTubeInvalidGrant
+				return
+			} else if strings.Contains(errString, "processingFailure") {
+				// retry with linear backoff
+				logger.Warn().Int("try", i+1).Err(err).Msg("membership check attempt failed")
+				time.Sleep(time.Second * time.Duration(i+1))
+				continue
+			}
+			logger.Err(err).Msg("error getting comment threads for video")
 			return
 		}
-		logger.Err(err).Msg("error getting comment threads for video")
-		return
+		break
 	}
 	logger.Info().
 		Int("commentThreads", len(ctr.Items)).
