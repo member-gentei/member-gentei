@@ -23,7 +23,6 @@ var (
 	flagDryRun         bool
 	flagNoCloudLogging bool
 	flagUID            string
-	flagPubsubTopic    string
 	flagStartAfter     string
 )
 var rootCmd = &cobra.Command{
@@ -31,10 +30,11 @@ var rootCmd = &cobra.Command{
 	Short: "Checks memberships for Gentei users",
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
-			ctx        = context.Background()
-			gcpProject = viper.GetString("gcp-project")
-			numWorkers = viper.GetUint("num-workers")
-			psTopic    *pubsub.Topic
+			ctx             = context.Background()
+			gcpProject      = viper.GetString("gcp-project")
+			pubsubTopicName = viper.GetString("pubsub-topic")
+			numWorkers      = viper.GetUint("num-workers")
+			psTopic         *pubsub.Topic
 		)
 		// set up logger
 		if flagVerbose {
@@ -56,12 +56,12 @@ var rootCmd = &cobra.Command{
 				gcpWriter,
 			))
 		}
-		if flagPubsubTopic != "" {
+		if pubsubTopicName != "" {
 			psClient, err := pubsub.NewClient(ctx, gcpProject)
 			if err != nil {
 				log.Fatal().Err(err).Msg("could not create Pub/Sub Client")
 			}
-			psTopic = psClient.Topic(flagPubsubTopic)
+			psTopic = psClient.Topic(pubsubTopicName)
 		}
 		// start up Firestore
 		fs, err := clients.NewRetryFirestoreClient(ctx, gcpProject)
@@ -89,7 +89,7 @@ var rootCmd = &cobra.Command{
 		endTime := time.Now()
 		runtime := uint64(endTime.Sub(startTime).Seconds())
 		if psTopic != nil {
-			logger := log.With().Str("topic", flagPubsubTopic).Logger()
+			logger := log.With().Str("topic", pubsubTopicName).Logger()
 			result := psTopic.Publish(ctx, &pubsub.Message{
 				Data: []byte(endTime.In(time.UTC).Format(time.RFC3339)),
 			})
@@ -126,7 +126,7 @@ func init() {
 	persistent.BoolVar(&flagNoCloudLogging, "no-cloud-logging", false, "do not output results to Google Cloud Logging")
 	persistent.String("gcp-project", "member-gentei", "GCP project ID")
 	persistent.StringVar(&flagUID, "uid", "", "specific user ID")
-	persistent.StringVar(&flagPubsubTopic, "pubsub-topic", "", "pubsub topic to notify on completion")
+	persistent.String("pubsub-topic", "", "pubsub topic to notify on completion")
 	persistent.Uint("num-workers", 4, "number of worker threads")
 	viper.BindPFlags(persistent)
 	rootCmd.Flags().StringVar(&flagStartAfter, "start-after", "", "StartAfter argument")
