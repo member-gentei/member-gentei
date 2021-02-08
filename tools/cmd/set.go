@@ -21,6 +21,7 @@ var (
 	flagSetLinkGuild       bool
 	flagSetLinkGuildID     string
 	flagSetLinkGuildRoleID string
+	flagSetLinkGuildBCP47  string
 )
 
 // setCmd represents the set command
@@ -86,6 +87,7 @@ var setCmd = &cobra.Command{
 			}
 			// set
 			guild.ID = flagSetLinkGuildID
+			guild.BCP47 = flagSetLinkGuildBCP47
 			guild.MembershipRoles[flagSetChannelSlug] = flagSetLinkGuildRoleID
 			_, err = fs.Collection(common.DiscordGuildCollection).Doc(flagSetLinkGuildID).Set(ctx, guild)
 			if err != nil {
@@ -118,6 +120,11 @@ func completeChannelSlug(cmd *cobra.Command, args []string, toComplete string) (
 	return candidates, directive
 }
 
+func completeBCP47(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	// currently supported languages
+	return []string{"en-US", "zh-Hant"}, cobra.ShellCompDirectiveNoFileComp
+}
+
 func init() {
 	rootCmd.AddCommand(setCmd)
 
@@ -128,6 +135,8 @@ func init() {
 	flags.StringVar(&flagSetChannelVideoID, "channel-video-id", "", "membership video ID")
 	flags.BoolVar(&flagSetLinkGuild, "link-guild", false, "link Discord guild to channel")
 	flags.StringVar(&flagSetLinkGuildID, "guild-id", "", "Discord guild")
-	flags.StringVar(&flagSetLinkGuildRoleID, "guild-role-id", "", "Discord guild")
+	flags.StringVar(&flagSetLinkGuildRoleID, "guild-role-id", "", "Discord guild member role ID")
+	flags.StringVar(&flagSetLinkGuildBCP47, "guild-bcp47", "en-US", "Discord guild BCP47 string")
 	setCmd.RegisterFlagCompletionFunc("channel-slug", completeChannelSlug)
+	setCmd.RegisterFlagCompletionFunc("guild-bcp47", completeBCP47)
 }
