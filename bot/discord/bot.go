@@ -217,7 +217,10 @@ func (d *discordBot) listenToMemberCheckUpdates(checkSubscription *pubsub.Subscr
 			deliveredTimestampIndex = (deliveredTimestampIndex + 1) % 4
 			// load all memberships in a mildly-threadsafe manner
 			guildIDs := make([]string, 0, len(d.guildStates))
-			for key := range d.guildStates {
+			for key, state := range d.guildStates {
+				if state.LoadState != guildLoaded {
+					continue
+				}
 				guildIDs = append(guildIDs, key)
 			}
 			logger.Info().Strs("guildIDs", guildIDs).Msg("check message received, reloading memberships")
@@ -262,7 +265,7 @@ func (d *discordBot) handleGuildCreate(s *discordgo.Session, g *discordgo.GuildC
 
 // usually initiated by a enforceMembershipsAsync call.
 func (d *discordBot) handleGuildMembersChunk(s *discordgo.Session, chunk *discordgo.GuildMembersChunk) {
-	logger := log.With().Str("guildID", chunk.GuildID).Int("chunkIndex", chunk.ChunkIndex).Logger()
+	logger := log.With().Str("guildID", chunk.GuildID).Int("chunkIndex", chunk.ChunkIndex).Int("chunkCount", chunk.ChunkCount).Logger()
 	state, exists := d.guildStates[chunk.GuildID]
 	if !exists || state.LoadState != guildLoaded {
 		logger.Warn().Int("loadState", int(state.LoadState)).

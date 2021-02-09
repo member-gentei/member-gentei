@@ -9,6 +9,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/member-gentei/member-gentei/pkg/clients"
+	"github.com/member-gentei/member-gentei/pkg/common"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
@@ -63,6 +64,25 @@ func DisconnectYTAccount(ctx context.Context, event FirestoreEvent) (err error) 
 	if status.Code(err) == codes.NotFound {
 		log.Info().Str("userID", userDocRef.ID).Err(err).Msg("user doc deleted, no need to update")
 		err = nil
+	} else if err != nil {
+		log.Err(err).Msg("error updating user doc")
+		return
+	}
+	// delete any ChannelMember docs
+	snaps, err := fs.CollectionGroup(common.ChannelMemberCollection).
+		Where("DiscordID", "==", userDocRef.ID).Select().Documents(ctx).GetAll()
+	if status.Code(err) == codes.NotFound {
+		log.Info().Str("userID", userDocRef.ID).Err(err).Msg("ChannelMember docs nonexistent")
+	} else if err != nil {
+		log.Err(err).Msg("error getting ChannelMember collection group")
+		return
+	}
+	for _, snap := range snaps {
+		_, err = snap.Ref.Delete(ctx)
+		if err != nil {
+			log.Err(err).Msg("error deleting ChannelMember doc")
+			return
+		}
 	}
 	return
 }
