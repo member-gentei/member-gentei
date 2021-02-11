@@ -79,6 +79,16 @@ func (d *discordBot) newRoleApplier(
 			cancelRetryCtx()
 			return
 		}
+		if retryCount == tries-1 {
+			logger.Debug().Msg("fetching GuildMember on last retry")
+			guildMember, err := d.dgSession.GuildMember(guildID, userID)
+			if err != nil {
+				logger.Err(err).Msg("error getting guildMember on last retry")
+			} else {
+				updateChan <- &discordgo.GuildMemberUpdate{Member: guildMember}
+				return
+			}
+		}
 		if guildState.GetMembershipRoleID(channelSlug) != initialRoleID {
 			logger.Info().Str("oldRoleID", initialRoleID).Msg("role ID has changed, terminating role applier")
 			cancelRetryCtx()
@@ -140,9 +150,9 @@ func (d *discordBot) newRoleApplier(
 			if auditChannelID := guildState.Doc.AuditLogChannelID; auditChannelID != "" {
 				d.emitMemberAuditLog(auditChannelID, action, userID, user.AvatarURL(""), reason)
 			}
+			// success!
+			cancelRetryCtx()
 		}
-		// success!
-		cancelRetryCtx()
 	}
 	// the ticker
 	go func() {
