@@ -81,6 +81,9 @@ func RefreshDiscordGuilds(ctx context.Context, fs *firestore.Client, dg *discord
 			logger.Err(err).Msg("error unmarshalling Guild")
 			return err
 		}
+		if guild.APIOnly {
+			continue
+		}
 		dgGuild, err := dg.Guild(doc.Ref.ID)
 		if err != nil {
 			logger.Err(err).Msg("error getting guild info")
