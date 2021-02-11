@@ -58,6 +58,7 @@ type DiscordGuild struct {
 	AuditLogChannelID     string
 	BCP47                 string            `json:",omitempty"`
 	MembershipRoles       map[string]string // channelSlug -> roleID. Please never leave RoleID empty.
+	APIOnly               bool              `json:",omitempty"` // denotes an API-only guild
 }
 
 // DMTemplate is a message template that can be sent out (en masse).
