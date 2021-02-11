@@ -51,6 +51,7 @@ func DisconnectYTAccount(ctx context.Context, event FirestoreEvent) (err error) 
 	}()
 	resourcePath := strings.Split(event.OldValue.Name, "/documents/")[1]
 	userDocRef := fs.Doc(resourcePath).Parent.Parent
+	log.Info().Str("userID", userDocRef.ID).Msg("user disconnected their YouTube account")
 	_, err = userDocRef.Update(ctx, []firestore.Update{
 		{
 			Path:  "Memberships",
