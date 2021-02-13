@@ -4,6 +4,7 @@ package membership
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
+	"google.golang.org/api/youtube/v3"
 )
 
 // FirestoreEvent is the payload of a Firestore event.
@@ -38,6 +40,7 @@ type FirestoreValue struct {
 
 var (
 	fs *firestore.Client
+	yt *youtube.Service
 )
 
 // CheckMembershipWrite checks memberships when Youtube tokens are provisioned.
@@ -48,33 +51,63 @@ func CheckMembershipWrite(ctx context.Context, event FirestoreEvent) (err error)
 			err, _ = r.(error)
 		}
 	}()
+	resourcePath := strings.Split(event.Value.Name, "/documents/")[1]
+	userDocRef := fs.Doc(resourcePath).Parent.Parent
+	userID := userDocRef.ID
+	logger := log.With().Str("userID", userID).Logger()
 	if event.Value.Fields == nil {
-		log.Debug().Msg("ignoring delete")
+		logger.Debug().Msg("ignoring delete")
 		return
 	}
-	// ignore refresh tokens that did not change
 	if event.OldValue.Fields != nil {
 		oldToken, uErr := protoUnmarshalToken(event.OldValue.Fields)
 		if uErr != nil {
-			log.Err(uErr).Msg("error unmarshalling OldValue.Fields")
+			logger.Err(uErr).Msg("error unmarshalling OldValue.Fields")
 			return uErr
 		}
 		newToken, uErr := protoUnmarshalToken(event.Value.Fields)
 		if uErr != nil {
-			log.Err(uErr).Msg("error unmarshalling OldValue.Fields")
+			logger.Err(uErr).Msg("error unmarshalling OldValue.Fields")
 			return uErr
 		}
+		// ignore refresh tokens that did not change
 		if oldToken.RefreshToken == newToken.RefreshToken {
-			log.Debug().Msg("ignoring write, refresh token did not change")
+			logger.Debug().Msg("ignoring write, refresh token did not change")
 			return
 		}
+		// ignore if this is the same user - this is likely a reauth and/or just a new refresh token
+		svc, err := common.GetYouTubeService(ctx, fs, userID)
+		if err != nil {
+			logger.Err(err).Msg("error creating YouTube service for new user token")
+			return err
+		}
+		clr, err := svc.Channels.List([]string{"id"}).Mine(true).Do()
+		if err != nil {
+			logger.Err(err).Msg("error getting YouTube channel ID")
+			return err
+		}
+		if len(clr.Items) == 0 {
+			err = fmt.Errorf("unable to get channel")
+			logger.Err(err).Msg("new token cannot get own channel ID")
+			return err
+		}
+		var user common.DiscordIdentity
+		userDoc, err := userDocRef.Get(ctx)
+		if err != nil {
+			logger.Err(err).Msg("error getting Discord user doc")
+			return err
+		}
+		if err = userDoc.DataTo(&user); err != nil {
+			logger.Err(err).Msg("error unmarshalling Discord user")
+			return err
+		}
+		if user.YoutubeChannelID == clr.Items[0].Id {
+			return nil
+		}
 	}
-	resourcePath := strings.Split(event.Value.Name, "/documents/")[1]
-	log.Info().Str("resourcePath", resourcePath).Msg("handling resource")
-	userDocRef := fs.Doc(resourcePath).Parent.Parent
 	_, err = common.EnforceMemberships(ctx, fs, &common.EnforceMembershipsOptions{
 		Apply:   true,
-		UserIDs: []string{userDocRef.ID},
+		UserIDs: []string{userID},
 	})
 	return
 }
