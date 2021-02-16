@@ -425,6 +425,10 @@ func CheckChannelMembership(
 				logger.Warn().Err(err).Send()
 				err = ErrYouTubeInvalidGrant
 				return
+			} else if strings.HasSuffix(errString, "authenticatedUserAccountClosed") {
+				logger.Warn().Err(err).Send()
+				err = ErrYouTubeTokenInvalid
+				return
 			} else if strings.Contains(errString, "processingFailure") {
 				// retry with linear backoff
 				logger.Warn().Int("try", i+1).Err(err).Msg("membership check attempt failed")
