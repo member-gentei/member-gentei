@@ -51,7 +51,12 @@ func CheckMembershipWrite(ctx context.Context, event FirestoreEvent) (err error)
 			err, _ = r.(error)
 		}
 	}()
-	resourcePath := strings.Split(event.Value.Name, "/documents/")[1]
+	var resourcePath string
+	if event.Value.Fields != nil {
+		resourcePath = strings.Split(event.Value.Name, "/documents/")[1]
+	} else {
+		resourcePath = strings.Split(event.OldValue.Name, "/documents/")[1]
+	}
 	userDocRef := fs.Doc(resourcePath).Parent.Parent
 	userID := userDocRef.ID
 	logger := log.With().Str("userID", userID).Logger()
