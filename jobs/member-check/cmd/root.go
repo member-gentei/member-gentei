@@ -23,7 +23,7 @@ var (
 	flagDryRun         bool
 	flagNoCloudLogging bool
 	flagUID            string
-	flagStartAfter     string
+	flagBefore         string
 )
 var rootCmd = &cobra.Command{
 	Use:   "gentei-member-check",
@@ -35,12 +35,22 @@ var rootCmd = &cobra.Command{
 			pubsubTopicName = viper.GetString("pubsub-topic")
 			numWorkers      = viper.GetUint("num-workers")
 			psTopic         *pubsub.Topic
+			refreshBefore   time.Time
 		)
 		// set up logger
 		if flagVerbose {
 			zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		} else {
 			zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		}
+		if flagBefore == "" {
+			refreshBefore = time.Now().Add(-time.Hour)
+		} else {
+			var err error
+			refreshBefore, err = time.Parse(flagBefore, time.RFC3339)
+			if err != nil {
+				log.Fatal().Err(err).Msg("error parsing --before")
+			}
 		}
 		if flagNoCloudLogging {
 			log.Logger = log.Output(zerolog.NewConsoleWriter())
@@ -80,7 +90,7 @@ var rootCmd = &cobra.Command{
 			RemoveInvalidYouTubeToken: true,
 			Apply:                     !flagDryRun,
 			UserIDs:                   uids,
-			StartAfter:                flagStartAfter,
+			RefreshBefore:             refreshBefore,
 			NumWorkers:                numWorkers,
 		})
 		if err != nil {
@@ -129,7 +139,7 @@ func init() {
 	persistent.String("pubsub-topic", "", "pubsub topic to notify on completion")
 	persistent.Uint("num-workers", 4, "number of worker threads")
 	viper.BindPFlags(persistent)
-	rootCmd.Flags().StringVar(&flagStartAfter, "start-after", "", "StartAfter argument")
+	rootCmd.Flags().StringVar(&flagBefore, "before", "", "check memberships before this time in RFC3339")
 }
 
 // initConfig reads in config file and ENV variables if set.

@@ -26,6 +26,7 @@ type DiscordIdentity struct {
 	YoutubeChannelID  string                   // the user's linked Youtube Channel ID
 	CandidateChannels []*firestore.DocumentRef // possibly relevant YouTube channels
 	Memberships       []*firestore.DocumentRef // verified memberships
+	LastRefreshed     time.Time                `json:",omitempty"`
 }
 
 // Channel defines a YouTube channel whose membership we might check.
