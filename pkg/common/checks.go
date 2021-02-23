@@ -44,8 +44,8 @@ type EnforceMembershipsOptions struct {
 	Apply                     bool // apply changes
 	UserIDs                   []string
 
-	// Document ID passed as a Firestore StartAfter pagination argument
-	StartAfter string
+	// only refresh memberships that were validated before this time
+	RefreshBefore time.Time
 
 	// amount of worker threads to use (default is 1)
 	NumWorkers uint
@@ -79,16 +79,14 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 		} else {
 			query = fs.Collection(UsersCollection).Where("YoutubeChannelID", ">", "")
 		}
+		if !options.RefreshBefore.IsZero() {
+			query = query.Where("LastRefreshed", "<", options.RefreshBefore)
+		}
 		if options.ReloadDiscordGuilds {
 			query = query.Select()
 		} else {
 			query = query.Select("CandidateChannels")
 		}
-		if options.StartAfter != "" {
-			// YoutubeChannelID, UserID
-			query = query.StartAfter("", options.StartAfter)
-		}
-		query = query.OrderBy("YoutubeChannelID", firestore.Asc).OrderBy("UserID", firestore.Asc)
 	}
 	// cache so that we don't have to perform a lot of expensive array-in queries
 	slug2MemberVideos, err := getMemberVideoIDs(ctx, fs)
@@ -123,7 +121,15 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 			docsChan, resultChan, workerWG,
 		)
 	}
+	// when all of the workers are done, close the channel
 	workerWG.Add(numWorkers)
+	go func() {
+		log.Debug().Msg("waiting for workers to complete")
+		workerWG.Wait()
+		close(resultChan)
+		log.Debug().Msg("workers are done")
+		wg.Done()
+	}()
 	// start doc producer
 	go func() {
 		defer wg.Done()
@@ -135,8 +141,7 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 	// start results consumer
 	go func() {
 		defer wg.Done()
-		for i := 0; i < len(docs); i++ {
-			workerResult := <-resultChan
+		for workerResult := range resultChan {
 			if workerResult.err != nil {
 				err = workerResult.err
 				return
@@ -148,11 +153,8 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 			result.MembershipsReconfirmed += workerResult.MembershipsReconfirmed
 		}
 	}()
-	// docs producer + worker result consumer
-	wg.Add(2)
-	log.Debug().Int("numWorkers", numWorkers).Msg("waiting for worker threads to complete")
-	workerWG.Wait()
-	log.Debug().Msg("waiting for producer/result threads to complete")
+	// docs producer + workers done + worker result consumer
+	wg.Add(3)
 	wg.Wait()
 	return
 }
@@ -327,10 +329,18 @@ func enforceMembershipsWorker(
 			for slug := range verifiedMemberships {
 				membershipDocRefs = append(membershipDocRefs, fs.Collection("channels").Doc(slug))
 			}
-			_, err = fs.Collection("users").Doc(userID).Update(ctx, []firestore.Update{{
-				Path:  "Memberships",
-				Value: membershipDocRefs,
-			}})
+			_, err = fs.Collection("users").Doc(userID).Update(ctx,
+				[]firestore.Update{
+					{
+						Path:  "Memberships",
+						Value: membershipDocRefs,
+					},
+					{
+						Path:  "LastRefreshed",
+						Value: time.Now().In(time.UTC),
+					},
+				},
+			)
 			if err != nil {
 				logger.Err(err).Msg("error updating user object memberships")
 				result.err = err
@@ -429,7 +439,7 @@ func CheckChannelMembership(
 				logger.Warn().Err(err).Send()
 				err = ErrYouTubeTokenInvalid
 				return
-			} else if strings.Contains(errString, "processingFailure") {
+			} else if strings.Contains(errString, "processingFailure") || strings.HasSuffix(errString, "videoNotFound") {
 				// retry with linear backoff
 				logger.Warn().Int("try", i+1).Err(err).Msg("membership check attempt failed")
 				time.Sleep(time.Second * time.Duration(i+1))
