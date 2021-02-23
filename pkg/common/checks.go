@@ -77,7 +77,7 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 		if options.OnlyChannelSlug != "" {
 			query = fs.Collection(UsersCollection).Where("CandidateChannels", "array-contains", fs.Collection(ChannelCollection).Doc(options.OnlyChannelSlug))
 		} else {
-			query = fs.Collection(UsersCollection).Where("YoutubeChannelID", ">", "")
+			query = fs.Collection(UsersCollection).Query
 		}
 		if !options.RefreshBefore.IsZero() {
 			query = query.Where("LastRefreshed", "<", options.RefreshBefore)
@@ -268,6 +268,11 @@ func enforceMembershipsWorker(
 			logger.Info().Interface("memberships", verifiedMemberships).Msg("verified memberships")
 		}
 		if skipUser {
+			_, err = fs.Collection(UsersCollection).Doc(userID).Update(ctx, []firestore.Update{{
+				Path:  "LastRefreshed",
+				Value: time.Now().In(time.UTC),
+			}})
+			result.err = err
 			resultChan <- result
 			continue
 		}
@@ -483,12 +488,14 @@ func ReloadDiscordGuilds(
 				Error            string
 				ErrorDescription string `json:"error_description"`
 			}
-			log.Debug().Msg("oauth2.RetrieveError")
 			// if this fails to unmarshal, we return the error as-is anyway
 			json.Unmarshal(rErr.Body, &errResponse)
 			if errResponse.ErrorDescription == `Invalid "refresh_token" in request.` {
 				err = ErrDiscordTokenInvalid
+			} else if errResponse.Error == "invalid_grant" {
+				err = ErrDiscordTokenInvalid
 			}
+			log.Debug().Str("userID", userID).Interface("retrieveError", errResponse).Send()
 		}
 		return
 	}

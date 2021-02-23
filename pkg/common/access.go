@@ -19,7 +19,7 @@ func RevokeYouTubeAccess(ctx context.Context, fs *firestore.Client, userID strin
 	var token oauth2.Token
 	youtubeDoc, err := youtubeDocRef.Get(ctx)
 	if err != nil {
-		logger.Warn().Err(err).Msg("error getting user's stored YouTube token, skipping revocation")
+		logger.Warn().Err(err).Msg("error getting user's stored YouTube token, skipping token revocation")
 	} else {
 		err = youtubeDoc.DataTo(&token)
 		if err != nil {
