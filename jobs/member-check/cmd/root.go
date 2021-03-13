@@ -44,7 +44,7 @@ var rootCmd = &cobra.Command{
 			zerolog.SetGlobalLevel(zerolog.InfoLevel)
 		}
 		if flagBefore == "" {
-			refreshBefore = time.Now().Add(-time.Hour)
+			refreshBefore = time.Now().Add(-time.Hour * 12)
 		} else {
 			var err error
 			refreshBefore, err = time.Parse(flagBefore, time.RFC3339)
