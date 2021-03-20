@@ -461,10 +461,6 @@ func CheckChannelMembership(
 			Int("commentThreads", len(ctr.Items)).
 			Str("memberCheckVideoID", memberCheckVideoID).
 			Msg("confirmed membership")
-	} else {
-		logger.Warn().
-			Str("memberCheckVideoID", memberCheckVideoID).
-			Msg("error checking membership for user")
 	}
 	return
 }
