@@ -104,7 +104,7 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 	}
 	result.UserCount = uint(len(docs))
 	log.Debug().
-		Uint64("duration", uint64(time.Now().Sub(startTime).Seconds())).
+		Str("duration", time.Since(startTime).String()).
 		Uint("count", result.UserCount).
 		Msg("loaded user IDs")
 	var (
@@ -455,11 +455,17 @@ func CheckChannelMembership(
 		}
 		break
 	}
-	logger.Info().
-		Int("commentThreads", len(ctr.Items)).
-		Str("memberCheckVideoID", memberCheckVideoID).
-		Msg("confirmed membership")
-	isMember = true
+	if err != nil {
+		isMember = true
+		logger.Info().
+			Int("commentThreads", len(ctr.Items)).
+			Str("memberCheckVideoID", memberCheckVideoID).
+			Msg("confirmed membership")
+	} else {
+		logger.Warn().
+			Str("memberCheckVideoID", memberCheckVideoID).
+			Msg("error checking membership for user")
+	}
 	return
 }
 
