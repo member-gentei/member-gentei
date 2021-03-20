@@ -455,7 +455,7 @@ func CheckChannelMembership(
 		}
 		break
 	}
-	if err != nil {
+	if err == nil {
 		isMember = true
 		logger.Info().
 			Int("commentThreads", len(ctr.Items)).
