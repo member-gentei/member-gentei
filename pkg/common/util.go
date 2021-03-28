@@ -12,6 +12,7 @@ import (
 	"libs.altipla.consulting/tokensource"
 
 	"cloud.google.com/go/firestore"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
@@ -57,7 +58,12 @@ func GetYouTubeService(ctx context.Context, fs *firestore.Client, userID string)
 			return err
 		},
 	)
-	return youtube.New(notifyHook.Client(ctx))
+	client := retryablehttp.NewClient()
+	client.HTTPClient = notifyHook.Client(ctx)
+	return youtube.NewService(
+		ctx,
+		option.WithHTTPClient(client.StandardClient()),
+	)
 }
 
 // GetDiscordHTTPClient creates a Discord HTTP client for a user.

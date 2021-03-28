@@ -108,21 +108,23 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 		Uint("count", result.UserCount).
 		Msg("loaded user IDs")
 	var (
-		numWorkers = int(math.Max(1, float64(options.NumWorkers)))
-		wg         = &sync.WaitGroup{}
-		workerWG   = &sync.WaitGroup{}
-		docsChan   = make(chan *firestore.DocumentSnapshot, numWorkers)
-		resultChan = make(chan enforceMembershipsWorkerResult, numWorkers)
+		numWorkers   = int(math.Max(1, float64(options.NumWorkers)))
+		wg           = &sync.WaitGroup{}
+		workerWG     = &sync.WaitGroup{}
+		docsChan     = make(chan *firestore.DocumentSnapshot, numWorkers)
+		resultChan   = make(chan enforceMembershipsWorkerResult, numWorkers)
+		cctx, cancel = context.WithCancel(ctx)
 	)
+	defer cancel()
 	// start workers
 	for i := 0; i < numWorkers; i++ {
+		workerWG.Add(1)
 		go enforceMembershipsWorker(
-			ctx, fs, options, slug2MemberVideos,
+			cctx, fs, options, slug2MemberVideos,
 			docsChan, resultChan, workerWG,
 		)
 	}
 	// when all of the workers are done, close the channel
-	workerWG.Add(numWorkers)
 	go func() {
 		log.Debug().Msg("waiting for workers to complete")
 		workerWG.Wait()
@@ -144,7 +146,7 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 		for workerResult := range resultChan {
 			if workerResult.err != nil {
 				err = workerResult.err
-				return
+				cancel()
 			}
 			// aggregate
 			result.UsersDisconnected += workerResult.UsersDisconnected
@@ -171,6 +173,12 @@ func enforceMembershipsWorker(
 ) {
 	defer wg.Done()
 	for doc := range docs {
+		select {
+		case <-ctx.Done():
+			log.Warn().Msg("worker aborting")
+			return
+		default:
+		}
 		// acquire candidate YouTube channels (via a Discord refresh or otherwise)
 		var (
 			result            enforceMembershipsWorkerResult
@@ -243,12 +251,11 @@ func enforceMembershipsWorker(
 						return
 					}
 					result.UsersDisconnected++
-					skipUser = true
 				} else {
 					logger.Info().Err(err).Msg("YouTube token invalid for user, skipping")
 					err = nil
-					skipUser = true
 				}
+				skipUser = true
 				break
 			} else if errors.Is(err, ErrYouTubeInvalidGrant) {
 				logger.Warn().Err(err).Msg("mystery invalid_grant, need to retry user's checks later")
