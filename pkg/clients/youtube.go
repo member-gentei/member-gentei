@@ -13,7 +13,7 @@ import (
 
 // YouTubeAPIRetryPolicy is either some known 400 errors or retryablehttp.DefaultRetryPolicy.
 func YouTubeAPIRetryPolicy(ctx context.Context, r *http.Response, err error) (bool, error) {
-	if err != nil {
+	if err != nil && r != nil {
 		if r.StatusCode == http.StatusBadRequest {
 			if rErr, ok := scavengeRetrieveError(r, err); ok {
 				var errResponse struct {
