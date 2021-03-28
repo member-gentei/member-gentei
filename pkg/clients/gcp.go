@@ -6,7 +6,6 @@ import (
 	"cloud.google.com/go/firestore"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"google.golang.org/api/option"
-	"google.golang.org/api/youtube/v3"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
@@ -22,8 +21,4 @@ func NewRetryFirestoreClient(ctx context.Context, projectID string) (*firestore.
 		option.WithGRPCDialOption(retryStreamInterceptor),
 		option.WithGRPCDialOption(retryUnaryInterceptor),
 	)
-}
-
-func NewYoutubeService(ctx context.Context) (*youtube.Service, error) {
-	return nil, nil
 }
