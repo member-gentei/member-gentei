@@ -125,12 +125,13 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 		)
 	}
 	// when all of the workers are done, close the channel
+	wg.Add(3)
 	go func() {
+		defer wg.Done()
 		log.Debug().Msg("waiting for workers to complete")
 		workerWG.Wait()
 		close(resultChan)
 		log.Debug().Msg("workers are done")
-		wg.Done()
 	}()
 	// start doc producer
 	go func() {
@@ -156,7 +157,6 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 		}
 	}()
 	// docs producer + workers done + worker result consumer
-	wg.Add(3)
 	wg.Wait()
 	return
 }
