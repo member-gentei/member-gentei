@@ -33,6 +33,9 @@ var (
 
 	// ErrYouTubeInvalidGrant denotes an ephemeral invalid_grant error that can mean anything, really
 	ErrYouTubeInvalidGrant = errors.New("generic invalid_grant error")
+
+	// ErrYouTubeUserGone
+	ErrYouTubeUserUnavailable = errors.New("YouTube user account closed or suspended")
 )
 
 // EnforceMembershipsOptions is the multiselect-y options struct for EnforceMemberships
@@ -439,7 +442,6 @@ func CheckChannelMembership(
 			} else if strings.Contains(errString, "Request had invalid authentication credentials") {
 				logger.Warn().Err(err).Send()
 				err = ErrYouTubeTokenInvalid
-				return
 			} else if strings.Contains(errString, `"error": "invalid_grant",`) {
 				logger.Warn().Err(err).Send()
 				err = ErrYouTubeInvalidGrant
@@ -447,7 +449,7 @@ func CheckChannelMembership(
 				logger.Warn().Err(err).Send()
 				err = ErrYouTubeInvalidGrant
 				return
-			} else if strings.HasSuffix(errString, "authenticatedUserAccountClosed") {
+			} else if strings.HasSuffix(errString, "authenticatedUserAccountClosed") || strings.HasSuffix(errString, "authenticatedUserAccountSuspended") {
 				logger.Warn().Err(err).Send()
 				err = ErrYouTubeTokenInvalid
 				return
