@@ -13,9 +13,9 @@ import (
 // NewRetryFirestoreClient implements a client that performs 50ms +/- 10% linear backoff when it gets
 // an 'Unavailable' gRPC return code.
 func NewRetryFirestoreClient(ctx context.Context, projectID string) (*firestore.Client, error) {
-	unavailable := grpc_retry.WithCodes(codes.Unavailable)
-	retryStreamInterceptor := grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(unavailable))
-	retryUnaryInterceptor := grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(unavailable))
+	retryables := grpc_retry.WithCodes(codes.Unavailable, codes.DeadlineExceeded)
+	retryStreamInterceptor := grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(retryables))
+	retryUnaryInterceptor := grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryables))
 	return firestore.NewClient(
 		ctx, projectID,
 		option.WithGRPCDialOption(retryStreamInterceptor),
