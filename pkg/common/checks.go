@@ -149,8 +149,17 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 		defer wg.Done()
 		for workerResult := range resultChan {
 			if workerResult.err != nil {
-				err = workerResult.err
+				log.Err(err).Msg("recieved error from worker, cancelling context")
 				cancel()
+				// deplete the error queue
+				go func() {
+					for result := range resultChan {
+						if result.err != nil {
+							log.Err(err).Msg("post-cancellation")
+						}
+					}
+				}()
+				return
 			}
 			// aggregate
 			result.UsersDisconnected += workerResult.UsersDisconnected
