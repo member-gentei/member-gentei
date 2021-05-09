@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
-	monitoring "cloud.google.com/go/monitoring/apiv3"
+	monitoring "cloud.google.com/go/monitoring/apiv3/v2"
 	"cloud.google.com/go/pubsub"
 	metricpb "google.golang.org/genproto/googleapis/api/metric"
 	monitoredrespb "google.golang.org/genproto/googleapis/api/monitoredres"
@@ -24,9 +25,8 @@ import (
 )
 
 var (
-	cfgFile         string
-	flagVerbose     bool
-	flagNoHeartbeat bool
+	cfgFile     string
+	flagVerbose bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -49,6 +49,7 @@ var rootCmd = &cobra.Command{
 			apiServer       = viper.GetString("api-server")
 			gcpProject      = viper.GetString("gcp-project")
 			membershipSubID = viper.GetString("membership-sub-id")
+			noHeartbeat     = viper.GetBool("no-heartbeat")
 		)
 		if token == "" {
 			log.Fatal().Msg("must specify a Discord token")
@@ -99,7 +100,7 @@ var rootCmd = &cobra.Command{
 			FirestoreClient:              fs,
 			MembershipReloadSubscription: psSubscription,
 			HeartbeatCallback:            makeHeartbeatCallback(ctx, gcpProject),
-			Heartbeat:                    !flagNoHeartbeat,
+			Heartbeat:                    !noHeartbeat,
 		}
 		if err := discord.Start(ctx, opts); err != nil {
 			log.Fatal().Err(err).Msg("error running Discord bot")
@@ -126,7 +127,7 @@ func makeHeartbeatCallback(ctx context.Context, projectID string) func() {
 	}
 	return func() {
 		err := client.CreateTimeSeries(ctx, &monitoringpb.CreateTimeSeriesRequest{
-			Name: monitoring.MetricProjectPath(projectID),
+			Name: fmt.Sprintf("projects/%s", projectID),
 			TimeSeries: []*monitoringpb.TimeSeries{
 				{
 					Metric:   timeSeriesMetric,
@@ -163,7 +164,7 @@ func init() {
 	persistent.String("token", "", "Discord bot token")
 	persistent.String("api-server", "https://us-central1-member-gentei.cloudfunctions.net/API", "API URL")
 	persistent.String("membership-sub-id", "", "Pub/Sub subscription ID for membership list reloads")
-	persistent.BoolVar(&flagNoHeartbeat, "no-heartbeat", false, "do not emit heartbeat metrics to GCP Monitoring")
+	persistent.Bool("no-heartbeat", false, "do not emit heartbeat metrics to GCP Monitoring")
 	viper.BindPFlags(persistent)
 }
 
@@ -176,7 +177,7 @@ func initConfig() {
 		viper.AddConfigPath(".")
 		viper.SetConfigName(".bot")
 	}
-
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
