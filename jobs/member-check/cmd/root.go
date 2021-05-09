@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/pubsub"
@@ -140,7 +141,7 @@ func init() {
 	persistent.StringVar(&flagUID, "uid", "", "specific user ID")
 	persistent.String("pubsub-topic", "", "pubsub topic to notify on completion")
 	persistent.Uint("num-workers", 4, "number of worker threads")
-	persistent.Uint("partitions", 0, "number of user partitions")
+	persistent.Uint("num-partitions", 0, "number of user partitions")
 	viper.BindPFlags(persistent)
 	rootCmd.Flags().StringVar(&flagBefore, "before", "", "check memberships before this time in RFC3339")
 }
@@ -163,6 +164,7 @@ func initConfig() {
 		viper.SetConfigName(".member-check")
 	}
 
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv() // read in environment variables that match
 
 	// If a config file is found, read it in.
