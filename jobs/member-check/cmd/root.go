@@ -34,6 +34,7 @@ var rootCmd = &cobra.Command{
 			gcpProject      = viper.GetString("gcp-project")
 			pubsubTopicName = viper.GetString("pubsub-topic")
 			numWorkers      = viper.GetUint("num-workers")
+			numPartitions   = viper.GetUint("num-partitions")
 			psTopic         *pubsub.Topic
 			refreshBefore   time.Time
 		)
@@ -92,6 +93,7 @@ var rootCmd = &cobra.Command{
 			UserIDs:                   uids,
 			RefreshBefore:             refreshBefore,
 			NumWorkers:                numWorkers,
+			Partitions:                numPartitions,
 		})
 		if err != nil {
 			log.Fatal().Err(err).Msg("error performing enforcement check")
@@ -138,6 +140,7 @@ func init() {
 	persistent.StringVar(&flagUID, "uid", "", "specific user ID")
 	persistent.String("pubsub-topic", "", "pubsub topic to notify on completion")
 	persistent.Uint("num-workers", 4, "number of worker threads")
+	persistent.Uint("partitions", 0, "number of user partitions")
 	viper.BindPFlags(persistent)
 	rootCmd.Flags().StringVar(&flagBefore, "before", "", "check memberships before this time in RFC3339")
 }
