@@ -49,10 +49,18 @@ type EnforceMembershipsOptions struct {
 
 	// only refresh memberships that were validated before this time
 	RefreshBefore time.Time
-
 	// amount of worker threads to use (default is 1)
 	NumWorkers uint
+
+	// For partial updates due to API constraints, split the pending user list into partitions. Partition
+	// selection is modulo of the day of the year (i.e. 01/31 = 31, 02/01 = 32. If there are 4 partitions,
+	// the 4th partition would be selected if today is 02/01.)
+	Partitions uint
+	// If .Partitions > 0, this determines the minimum amount of users to even bother partitioning.
+	PartitionThreshold uint
 }
+
+const DefaultPartitionThreshold uint = 1000
 
 // EnforceMembershipsResult contains metrics useful for monitoring/debugging/fun.
 type EnforceMembershipsResult struct {
@@ -104,6 +112,20 @@ func EnforceMemberships(ctx context.Context, fs *firestore.Client, options *Enfo
 	if err != nil {
 		log.Err(err).Msg("error getting all user IDs")
 		return
+	}
+	if options.Partitions > 0 {
+		threshold := options.PartitionThreshold
+		if threshold == 0 {
+			threshold = DefaultPartitionThreshold
+		}
+		prePartitionLen := len(docs)
+		docs = getPartition(docs, options.Partitions, options.PartitionThreshold)
+		logEvent := log.Info().Int("count", len(docs))
+		if prePartitionLen == len(docs) {
+			logEvent.Msg("all users returned in one partition")
+		} else {
+			logEvent.Msg("users partitioned")
+		}
 	}
 	result.UserCount = uint(len(docs))
 	log.Debug().
@@ -672,4 +694,18 @@ func getCachedGuildsToChannels(ctx context.Context, fs *firestore.Client) (map[s
 		cachedGuildsToChannels[guild.ID] = channelRefs
 	}
 	return cachedGuildsToChannels, nil
+}
+
+func getPartition(snaps []*firestore.DocumentSnapshot, partitions, threshold uint) []*firestore.DocumentSnapshot {
+	if len(snaps) < int(threshold) {
+		return snaps
+	}
+	// includes a bit of overflow
+	var partition = make([]*firestore.DocumentSnapshot, 0, len(snaps)/int(partitions))
+	partitionOfTheDay := time.Now().YearDay() % int(partitions)
+	log.Debug().Int("partition", partitionOfTheDay).Msg("today's partition")
+	for i := partitionOfTheDay; i < len(snaps); i += int(partitions) {
+		partition = append(partition, snaps[i])
+	}
+	return partition
 }
