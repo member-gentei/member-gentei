@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash/crc32"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -700,12 +701,25 @@ func getPartition(snaps []*firestore.DocumentSnapshot, partitions, threshold uin
 	if len(snaps) < int(threshold) {
 		return snaps
 	}
-	// includes a bit of overflow
-	var partition = make([]*firestore.DocumentSnapshot, 0, len(snaps)/int(partitions))
-	partitionOfTheDay := time.Now().YearDay() % int(partitions)
+	// using CRC32 to distribute userIDs as uniformly as possible
+	var (
+		partition                = make([]*firestore.DocumentSnapshot, 0, len(snaps)/int(partitions))
+		partitionOfTheDay        = time.Now().YearDay() % int(partitions)
+		crc32Min          uint32 = uint32(math.MaxUint32/partitions) * uint32(partitionOfTheDay)
+		crc32Max          uint32
+	)
+	if partitionOfTheDay == int(partitions)-1 {
+		// this ensures that we don't miss 0xFFFFFFFF
+		crc32Max = math.MaxUint32
+	} else {
+		crc32Max = uint32(math.MaxUint32/partitions) * uint32(partitionOfTheDay+1)
+	}
 	log.Debug().Int("partition", partitionOfTheDay).Msg("today's partition")
-	for i := partitionOfTheDay; i < len(snaps); i += int(partitions) {
-		partition = append(partition, snaps[i])
+	for i, snap := range snaps {
+		checksum := crc32.ChecksumIEEE([]byte(snap.Ref.ID))
+		if checksum >= crc32Min && checksum <= crc32Max {
+			partition = append(partition, snaps[i])
+		}
 	}
 	return partition
 }
