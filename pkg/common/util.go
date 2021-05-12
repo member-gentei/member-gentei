@@ -73,6 +73,7 @@ func GetDiscordHTTPClient(ctx context.Context, fs *firestore.Client, userID stri
 	if discordOAuthConfig.ClientID == "" {
 		err = loadDiscordConfig(ctx, fs)
 		if err != nil {
+			err = fmt.Errorf("error loading Discord config: %s", err)
 			return
 		}
 	}
