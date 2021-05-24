@@ -46,7 +46,7 @@ function App() {
   return (
     <BrowserRouter>
       <Switch>
-        <Route path="/app">
+        {/* <Route path="/app">
           <MembershipManager
             ready={firebaseReady}
             discordLoginStatus={discordLoginStatus}
@@ -57,7 +57,7 @@ function App() {
             ready={firebaseReady}
             onDiscordLogin={onDiscordLogin}
             onYouTubeLogin={onYouTubeLogin} />
-        </Route>
+        </Route> */}
         <Route path="/">
           <Home />
         </Route>

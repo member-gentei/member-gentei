@@ -1,9 +1,11 @@
 import Footer from "../components/Footer"
+import ShutdownModal from "../components/ShutdownModal"
 
 
 const Home = () => {
     return (
         <div className="home">
+            <ShutdownModal />
             <section className="hero is-medium is-primary is-bold">
                 <div className="hero-body">
                     <div className="container">
@@ -46,14 +48,14 @@ const Home = () => {
                         </div>
                         <div className="column">
                             <div className="content has-text-centered">
-                                <img src="/img/security_keibi_robot.png" style={{maxHeight: 180}} alt="security robot" />
+                                <img src="/img/security_keibi_robot.png" style={{ maxHeight: 180 }} alt="security robot" />
                             </div>
                         </div>
                     </div>
                     <div className="columns">
                         <div className="column">
                             <div className="content has-text-centered">
-                                <img src="/img/monkey_wrench.png" style={{maxHeight: 180}} alt="monkey wrench" />
+                                <img src="/img/monkey_wrench.png" style={{ maxHeight: 180 }} alt="monkey wrench" />
                             </div>
                         </div>
                         <div className="column">
