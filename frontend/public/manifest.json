@@ -3,12 +3,12 @@
   "name": "Gentei / 限定 - Membership Verification",
   "icons": [
     {
-      "src": "img/fav-icon-16-x-16.png",
+      "src": "fav-icon-16-x-16.png",
       "type": "image/png",
       "sizes": "16x16"
     },
     {
-      "src": "img/fav-icon-64-x-64.png",
+      "src": "fav-icon-64-x-64.png",
       "type": "image/png",
       "sizes": "64x64"
     }
