@@ -4,6 +4,8 @@ _Gentei_ is a web and Discord application that monitors YouTube channel membersh
 
 ## Additional credit
 
+The Bulma color theme used here is derived from the Cosmo theme available at https://github.com/jenil/bulmaswatch.
+
 Gentei's Discord avatar and favicon is by [@Dakuma_Art](https://twitter.com/Dakuma_Art). Check her out!
 
 ## v1
