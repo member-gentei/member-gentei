@@ -1,4 +1,8 @@
 {
+    "[html]": {
+        "editor.tabSize": 2,
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
     "[typescriptreact]": {
         "editor.tabSize": 2,
         "editor.defaultFormatter": "esbenp.prettier-vscode"
