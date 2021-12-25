@@ -43,6 +43,7 @@
   },
   "devDependencies": {
     "bulma": "^0.9.3",
+    "prettier": "2.5.1",
     "sass": "^1.45.1"
   }
 }

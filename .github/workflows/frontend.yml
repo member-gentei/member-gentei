@@ -1,0 +1,22 @@
+name: frontend
+
+on:
+  pull_request:
+
+defaults:
+  run:
+    working-directory: frontend
+
+jobs:
+  prettier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: "16.x"
+      - name: node prereqs
+        run: |
+          corepack enable
+          yarn add -D --exact prettier
+      - run: yarn prettier --check .
