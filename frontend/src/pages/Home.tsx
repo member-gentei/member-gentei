@@ -3,6 +3,7 @@ import Footer from "../components/Footer";
 import membershipDiagram from "../assets/img/01.png";
 import securityKeibiRobot from "../assets/img/security_keibi_robot.png";
 import monkeyWrench from "../assets/img/monkey_wrench.png";
+import { Link } from "react-router-dom";
 
 function Home() {
   return (
@@ -15,20 +16,11 @@ function Home() {
           </div>
         </div>
         <div className="hero-foot has-text-centered pb-5">
-          <a
-            href="https://forms.gle/rr4Psqbzz1Nhuqno6"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <button className="button is-link is-light is-size-4">
-              Enroll a Community
-            </button>
-          </a>
-          <a href="/app">
+          <Link to="/app">
             <button className="button is-link is-size-4">
-              Validate Membership
+              Enroll a Community / Validate Membership
             </button>
-          </a>
+          </Link>
         </div>
       </section>
       <section className="section"></section>
