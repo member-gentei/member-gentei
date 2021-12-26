@@ -1,0 +1,7 @@
+.height200 {
+  max-height: 200px;
+}
+
+.scrolly {
+  overflow-y: auto;
+}

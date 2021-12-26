@@ -23,7 +23,18 @@ $primary: #2780e3 !default;
   animation: spinAround 500ms infinite linear;
 }
 
+.spin-hover:hover .spin-me {
+  animation-duration: 300ms;
+}
+.spin-me {
+  animation: spinAround 1000ms infinite linear;
+}
+
 .image.avatar {
   height: 28px;
   width: 28px;
+}
+
+.developed-with-youtube > img {
+  max-height: 13em;
 }
