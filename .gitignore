@@ -1,2 +1,1 @@
-frontend/build
-node_modules
+*.sqlite3

@@ -2,6 +2,11 @@
 
 _Gentei_ is a web and Discord application that monitors YouTube channel memberships via client credentials. It facilitates automatic, members-only role assignment for Discord fan server administrators.
 
+## Project layout
+
+- `/frontend` - React SPA @ https://gentei.tindabox.net and https://gentei.pages.dev
+- `/gentei` - Go application server @ https://api.gentei.tindabox.net
+
 ## Additional credit
 
 The Bulma color theme used here is derived from the Cosmo theme available at https://github.com/jenil/bulmaswatch.

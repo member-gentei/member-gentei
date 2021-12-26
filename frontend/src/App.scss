@@ -14,3 +14,16 @@ $grey: #dbdbdb;
 $primary: #2780e3 !default;
 
 @import "~bulma/bulma.sass";
+
+.spinner {
+  @include loader;
+}
+
+.spin {
+  animation: spinAround 500ms infinite linear;
+}
+
+.image.avatar {
+  height: 28px;
+  width: 28px;
+}
