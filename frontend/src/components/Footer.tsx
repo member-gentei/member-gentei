@@ -16,7 +16,7 @@ function Footer({ withYouTubeImage }: FooterProps) {
     );
   }
   return (
-    <footer className="footer">
+    <footer className="footer pb-4">
       <div className="container">
         <div className="content has-text-centered is-size-7">
           <a href="/privacy">Privacy Policy</a> | Gentei / 限定 <br />

@@ -11,6 +11,12 @@ export const REDIRECT_URI = process.env.REACT_APP_PROD
   ? "https://gentei.tindabox.net/login/discord"
   : "http://localhost:3000/login/discord";
 
+export const BOT_REDIRECT_URI = process.env.REACT_APP_PROD
+  ? "https://gentei.tindabox.net/app/enroll"
+  : "http://localhost:3000/app/enroll";
+
+export const DISCORD_BOT_PERMISSIONS = "268437504";
+
 /** General-purpose load state enum. */
 export enum LoadState {
   NotStarted,

@@ -10,7 +10,13 @@ interface State {
       ID: string;
       Valid: boolean;
     };
-    Memberships: {};
+    Memberships?: {};
+    ServerAdmin?: string[];
+    Servers?: string[];
+    Roles?: { [roleID: string]: number };
+  };
+  derived: {
+    sortedServers: string[];
   };
   userLoad: LoadState;
   discordLogin: LoadState;
@@ -19,6 +25,9 @@ interface State {
 
 const initialState: State = {
   userLoad: LoadState.NotStarted,
+  derived: {
+    sortedServers: [],
+  },
   discordLogin: LoadState.NotStarted,
 };
 
@@ -44,8 +53,20 @@ const actions = {
           return;
         }
       }
+      const user: State["user"] = await response.json();
+      // concat servers
+      const serverSet = new Set(
+        (user?.Servers || []).concat(user?.ServerAdmin || [])
+      );
+      let sortedServers = [];
+      for (const key of serverSet.keys()) {
+        sortedServers.push(key);
+      }
       setState({
-        user: await response.json(),
+        user: user,
+        derived: {
+          sortedServers: sortedServers.sort(),
+        },
         userLoad: LoadState.Succeeded,
       });
     },
@@ -77,7 +98,7 @@ const actions = {
         return;
       }
       setState({ user: undefined });
-      await fetch(`${API_BASE_URL}/logout`);
+      await authedFetchJSON(`${API_BASE_URL}/logout`, "POST");
     },
 };
 
