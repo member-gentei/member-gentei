@@ -5,7 +5,7 @@ on:
 
 defaults:
   run:
-    working-direcotry: gentei
+    working-directory: gentei
 
 jobs:
   test:
