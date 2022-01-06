@@ -29,6 +29,8 @@ jobs:
         run: |
           docker build . -t gentei
           docker tag gentei ghcr.io/member-gentei/gentei:${{ github.sha }}
+          docker tag gentei ghcr.io/member-gentei/gentei:latest
       - name: docker push
         run: |
           docker push ghcr.io/member-gentei/gentei:${{ github.sha }}
+          docker push ghcr.io/member-gentei/gentei:latest
