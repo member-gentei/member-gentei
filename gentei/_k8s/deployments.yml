@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/member-gentei/gentei:latest
+          args:
+            - serve
+          env:
+            - name: DISCORD_CLIENT_ID
+              value: "768486576388177950"
+          envFrom:
+            - secretRef:
+                name: gentei-db
+            - secretRef:
+                name: gentei-web
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          ports:
+            - containerPort: 5000

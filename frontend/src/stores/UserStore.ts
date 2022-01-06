@@ -43,15 +43,23 @@ const actions = {
       }
       setState({ userLoad: LoadState.Started });
       const response = await authedFetchJSON(`${API_BASE_URL}/me`);
-      if (response.status === 400) {
-        const data: { message: string } = await response.json();
-        if (data.message === "missing or malformed jwt") {
+      switch (response.status) {
+        case 400:
+          const data: { message: string } = await response.json();
+          if (data.message === "missing or malformed jwt") {
+            setState({
+              user: undefined,
+              userLoad: LoadState.Succeeded,
+            });
+            return;
+          }
+          break;
+        case 401:
           setState({
             user: undefined,
             userLoad: LoadState.Succeeded,
           });
           return;
-        }
       }
       const user: State["user"] = await response.json();
       // concat servers

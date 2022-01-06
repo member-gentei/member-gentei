@@ -1,0 +1,29 @@
+name: prod
+
+on:
+  push:
+    branches:
+      - "main"
+
+defaults:
+  run:
+    working-directory: gentei
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: docker build + tag
+        env:
+          DOCKER_BUILDKIT: "1"
+        run: |
+          docker build . -t gentei
+          docker tag gentei ghcr.io/member-gentei/gentei:${{ github.sha }}
+      - name: docker push
+        run: |
+          docker push ghcr.io/member-gentei/gentei:${{ github.sha }}

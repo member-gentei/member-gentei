@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/migrate"
@@ -39,7 +40,7 @@ var rootCmd = &cobra.Command{
 			zerolog.SetGlobalLevel(zerolog.InfoLevel)
 		}
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-		flagOpenDB = viper.GetString("DB")
+		flagOpenDB = viper.GetString("db")
 		flagDBEngine = viper.GetString("engine")
 		flagDiscordClientID = os.Getenv(envNameDiscordClientID)
 		flagDiscordClientSecret = os.Getenv(envNameDiscordClientSecret)
