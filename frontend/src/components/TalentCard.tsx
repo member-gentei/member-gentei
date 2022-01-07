@@ -42,7 +42,7 @@ export default function TalentCard({
       <div className={cardClassName}>
         <div className="card-image">
           <figure className="image is-128x128">
-            <IoPersonOutline className="is-rounded" />
+            <IoPersonOutline size={128} />
           </figure>
         </div>
         <div className="card-content is-clipped">

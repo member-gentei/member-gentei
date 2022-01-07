@@ -38,3 +38,11 @@ $primary: #2780e3 !default;
 .developed-with-youtube > img {
   max-height: 13em;
 }
+
+.overlay {
+  @include overlay(1.5rem);
+  background-color: $grey-darker;
+  border-radius: 0.25em;
+  color: white;
+  opacity: 0.9;
+}
