@@ -247,9 +247,9 @@ type guildResponse struct {
 	ID        string
 	Name      string
 	Icon      string
-	TalentIDs []string
+	TalentIDs []string `json:",omitempty"`
 	AdminIDs  []string
-	Settings  *schema.GuildSettings
+	Settings  *schema.GuildSettings `json:",omitempty"`
 }
 
 func enrollGuild(db *ent.Client, discordConfig *oauth2.Config) echo.HandlerFunc {

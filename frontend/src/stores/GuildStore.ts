@@ -10,7 +10,7 @@ interface Guild {
   ID: string;
   Name: string;
   Icon: string;
-  TalentIDs: string[];
+  TalentIDs?: string[];
   AdminIDs: string[];
   Settings?: GuildSettings;
 }

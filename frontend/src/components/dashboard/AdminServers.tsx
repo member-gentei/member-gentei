@@ -111,7 +111,7 @@ function AdminServerSnippetInner({ guildID }: AdminServerSnippetProps) {
               </tr>
               <tr>
                 <th>Memberships</th>
-                <td>{guild.TalentIDs.length}</td>
+                <td>{guild.TalentIDs?.length || 0}</td>
               </tr>
             </tbody>
           </table>

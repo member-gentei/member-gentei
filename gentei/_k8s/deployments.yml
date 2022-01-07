@@ -16,6 +16,8 @@ spec:
       labels:
         app: web
     spec:
+      nodeSelector:
+        ignacio.io/cloud: "true"
       terminationGracePeriodSeconds: 0
       containers:
         - name: web
