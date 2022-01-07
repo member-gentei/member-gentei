@@ -4,6 +4,8 @@ metadata:
   name: web
   labels:
     name: web
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
 spec:
   rules:
     - host: gentei-api.tindabox.net

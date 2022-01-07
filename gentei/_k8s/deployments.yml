@@ -6,16 +6,24 @@ spec:
   selector:
     matchLabels:
       app: web
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 50%
+      maxSurge: 100%
+  replicas: 2
   template:
     metadata:
       labels:
         app: web
     spec:
+      terminationGracePeriodSeconds: 0
       containers:
         - name: web
           image: ghcr.io/member-gentei/gentei:latest
           args:
             - serve
+            - "--address"
+            - ":5000"
           env:
             - name: DISCORD_CLIENT_ID
               value: "768486576388177950"
