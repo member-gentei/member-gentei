@@ -24,6 +24,8 @@ spec:
             - serve
             - "--address"
             - ":5000"
+            - "--discord-redirect-url"
+            - "https://gentei.tindabox.net/login/discord"
           env:
             - name: DISCORD_CLIENT_ID
               value: "768486576388177950"

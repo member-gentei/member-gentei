@@ -76,11 +76,15 @@ export function LoginDiscord() {
       );
   }
   return (
-    <section>
-      <div className={`columns is-mobile is-centered mt-4 ${columnsClasses}`}>
-        <div className={`column ${columnClasses}`}>
-          <div className="card">
-            <div className="card-content has-text-centered">{cardContent}</div>
+    <section className="section">
+      <div className="container">
+        <div className={`columns is-mobile is-centered mt-4 ${columnsClasses}`}>
+          <div className={`column ${columnClasses}`}>
+            <div className="card">
+              <div className="card-content has-text-centered">
+                {cardContent}
+              </div>
+            </div>
           </div>
         </div>
       </div>
