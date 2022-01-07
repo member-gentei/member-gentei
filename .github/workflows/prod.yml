@@ -35,12 +35,15 @@ jobs:
           docker push ghcr.io/member-gentei/gentei:${{ github.sha }}
           docker push ghcr.io/member-gentei/gentei:latest
   deploy:
+    needs: docker
     runs-on: self-hosted
     defaults:
       run:
         working-directory: gentei/_k8s
     steps:
       - uses: actions/checkout@v2
+      - uses: azure/setup-kubectl@v2.0
+      - uses: imranismail/setup-kustomize@v1
       - name: kustomize
         run: |
           kustomize edit set image ghcr.io/member-gentei/gentei=ghcr.io/member-gentei/gentei:${{ github.sha }}
