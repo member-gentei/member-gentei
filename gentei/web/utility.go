@@ -181,12 +181,12 @@ func makeGuildResponse(dg *ent.Guild) guildResponse {
 	for _, id := range dg.AdminSnowflakes {
 		adminIDs = append(adminIDs, strconv.FormatUint(id, 10))
 	}
-
 	return guildResponse{
 		ID:        strconv.FormatUint(dg.ID, 10),
 		Name:      dg.Name,
 		Icon:      dg.IconHash,
 		TalentIDs: talentIDs,
 		AdminIDs:  adminIDs,
+		Settings:  dg.Settings,
 	}
 }

@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	entgo.io/ent v0.9.1
-	github.com/bwmarrin/discordgo v0.23.2
+	github.com/bwmarrin/discordgo v0.23.3-0.20211228023845-29269347e820
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/labstack/echo/v4 v4.6.1
 	github.com/lib/pq v1.10.2
