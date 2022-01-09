@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { LoadState } from "../../lib/lib";
 import { GuildContainer, useGuild } from "../../stores/GuildStore";
 import { useUser } from "../../stores/UserStore";
+import DiscordServerImg from "../DiscordServerImg";
 
 export default function AdminServers() {
   const [store, actions] = useUser();
@@ -84,12 +85,19 @@ function AdminServerSnippetInner({ guildID }: AdminServerSnippetProps) {
   const guild = store.guild!;
   let iconNode;
   if (guild.Icon.length > 0) {
-    iconNode = <img src={guild.Icon} alt="Discord server icon" />;
+    iconNode = (
+      <DiscordServerImg
+        guildID={guild.ID}
+        imgHash={guild.Icon}
+        size={128}
+        className="is-rounded"
+      />
+    );
   } else {
     iconNode = <SiDiscord size={128} />;
   }
   return (
-    <div className="box">
+    <div className="box m-1">
       <div className="media">
         <figure className="media-left">
           <p className="image is-128x128">{iconNode}</p>
