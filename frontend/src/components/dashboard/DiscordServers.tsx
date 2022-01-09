@@ -5,7 +5,7 @@ import { LoadState } from "../../lib/lib";
 import { GuildContainer, useGuild } from "../../stores/GuildStore";
 import { Talent, useTalents } from "../../stores/TalentStore";
 import { useUser } from "../../stores/UserStore";
-import styles from "./DiscordServers.module.css";
+import DiscordServerImg from "../DiscordServerImg";
 
 export default function DiscordServers() {
   const [userStore] = useUser();
@@ -72,49 +72,43 @@ function DiscordServerWithRolesInner({ id }: DiscordServerRoleProps) {
   }
   const guild = guildStore.guild!;
   const serverURL = `https://discord.com/channels/${id}`;
-  // const memberships = guildStore.guild?.Settings?.RoleMapping.map((m) => (
-  //   <RoleMembership key={`${id}-${m.RoleName}`} {...m} />
-  // ));
+  let membershipNode;
   let memberships = Object.entries(
     guildStore.guild?.Settings?.RoleMapping || {}
-  ).map(([k, v]) => (
-    <RoleMembership
-      key={`${k}-${v!.ID}`}
-      talent={talentStore.talentsByID[v!.ID]!}
-      roleName={v!.Name}
-      verifyTime={(userStore.user?.Roles || {})[v!.ID]}
-    />
-  ));
+  ).map(([k, v]) => {
+    const talentID = k;
+    return (
+      <RoleMembership
+        key={`${id}-${talentID}`}
+        talent={talentStore.talentsByID[talentID]}
+        roleName={v!.Name}
+        verifyTime={(userStore.user?.Roles || {})[v!.ID]}
+      />
+    );
+  });
   if (memberships.length === 0) {
-    memberships = [
-      <p>
+    membershipNode = (
+      <p className="content">
         This server has not configured memberships yet. Please be discreet until
         server moderation announces something!
-      </p>,
-    ];
+      </p>
+    );
+  } else {
+    membershipNode = (
+      <div className="content">
+        <span className="is-size-6 has-text-weight-bold">Discord roles</span>
+        <div className="is-flex is-flex-wrap-wrap">{memberships}</div>
+      </div>
+    );
   }
   let iconNode;
   if (guild.Icon.length > 0) {
-    const iconURL = `https://cdn.discordapp.com/icons/${id}/${guild.Icon}.webp?size=128`;
-    // bonus: make 'em gifs if applicable
-    let onHover: React.MouseEventHandler<HTMLImageElement> = () => {};
-    let offHover: React.MouseEventHandler<HTMLImageElement> = () => {};
-    if (guild.Icon.startsWith("a_")) {
-      const gifURL = iconURL.replace(".webp", ".gif");
-      onHover = (e) => {
-        e.currentTarget.setAttribute("src", gifURL);
-      };
-      offHover = (e) => {
-        e.currentTarget.setAttribute("src", iconURL);
-      };
-    }
     iconNode = (
-      <img
+      <DiscordServerImg
+        guildID={guild.ID}
+        imgHash={guild.Icon}
+        size={128}
         className="is-rounded"
-        src={iconURL}
-        alt="Discord server icon"
-        onMouseOver={onHover}
-        onMouseOut={offHover}
       />
     );
   } else {
@@ -126,18 +120,24 @@ function DiscordServerWithRolesInner({ id }: DiscordServerRoleProps) {
         <div className="media">
           <figure className="media-left">
             <p className="image is-64x64">
-              <a href={serverURL}>{iconNode}</a>
+              <a href={serverURL} title="Link to Discord server">
+                {iconNode}
+              </a>
             </p>
           </figure>
           <div className="media-content">
             <div className="content">
               <p>
-                <a href={serverURL} title="Link to Discord server">
-                  <strong>{guild.Name}</strong>
+                <a
+                  className="is-size-5 has-text-weight-bold"
+                  href={serverURL}
+                  title="Link to Discord server"
+                >
+                  {guild.Name}
                 </a>
               </p>
             </div>
-            {memberships}
+            {membershipNode}
           </div>
         </div>
       </div>
@@ -146,12 +146,21 @@ function DiscordServerWithRolesInner({ id }: DiscordServerRoleProps) {
 }
 
 interface RoleMembershipProps {
-  talent: Talent;
+  talent?: Talent;
   roleName: string;
   verifyTime?: number;
 }
 
 function RoleMembership({ talent, roleName, verifyTime }: RoleMembershipProps) {
+  if (talent === undefined) {
+    return (
+      <div className="card m-2">
+        <div className="card-content has-text-centered">
+          <span className="spinner mx-auto"></span>
+        </div>
+      </div>
+    );
+  }
   const channelURL = `https://youtube.com/channel/${talent.ID}`;
   let footerItem: ReactNode;
   if (!!verifyTime) {
@@ -166,7 +175,7 @@ function RoleMembership({ talent, roleName, verifyTime }: RoleMembershipProps) {
             className="icon has-tooltip-arrow has-text-success-dark"
             data-tooltip={tooltip}
           >
-            <RiCheckFill />
+            <RiCheckFill color="green" />
           </span>
         </span>
       </div>
@@ -175,16 +184,16 @@ function RoleMembership({ talent, roleName, verifyTime }: RoleMembershipProps) {
     footerItem = (
       <div className="card-footer-item">
         <span className="icon-text">
-          <span>@{roleName}</span>
+          <span className="discord-role">@{roleName}</span>
           <span className="icon">
-            <RiCloseFill />
+            <RiCloseFill color="red" />
           </span>
         </span>
       </div>
     );
   }
   return (
-    <div className={`card m-2 ${styles.verifyCard}`}>
+    <div className="card m-2">
       <div className="card-image">
         <a href={channelURL} title={`YouTube channel for ${talent.Name}`}>
           <figure className="image is-128x128">

@@ -35,7 +35,7 @@ function GuildAdminInner({ guildID }: GuildAdminInnerProps) {
   }
   const guild = store.guild!;
   const guildURL = `https://discord.com/channels/${guildID}`;
-  const membershipManagers = guild.TalentIDs.map((talentID) => (
+  const membershipManagers = (guild.TalentIDs || []).map((talentID) => (
     <GuildMembershipManager key={`manage-${talentID}`} talentID={talentID} />
   ));
   return (

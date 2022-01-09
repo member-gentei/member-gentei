@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { RiCloseCircleLine } from "react-icons/ri";
+import { RiCheckboxCircleFill, RiCloseCircleLine } from "react-icons/ri";
 import { useGuild } from "../stores/GuildStore";
 import styles from "./GuildMembershipManager.module.css";
 import TalentCard from "./TalentCard";
@@ -16,6 +16,7 @@ export default function GuildMembershipManager({
   const guild = state.guild!;
   const roleMapping = (guild.Settings?.RoleMapping || {})[talentID];
   let statusNode;
+  let roleNode;
   if (roleMapping === undefined) {
     statusNode = (
       <Fragment>
@@ -29,6 +30,24 @@ export default function GuildMembershipManager({
             <code>/gentei manage map UCAL_ZudIZXhCDrniD4ZQobQ @role</code>
           </span>
         </span>
+      </Fragment>
+    );
+    roleNode = <code>-</code>;
+  } else {
+    statusNode = (
+      <Fragment>
+        <span className="icon-text">
+          <span className="icon">
+            <RiCheckboxCircleFill color="green" size={24} />
+          </span>
+          <span>Role management in effect</span>
+        </span>
+      </Fragment>
+    );
+    roleNode = (
+      <Fragment>
+        <span className="discord-role">@{roleMapping.Name}</span> (
+        <code>{roleMapping.ID}</code>)
       </Fragment>
     );
   }
@@ -46,23 +65,22 @@ export default function GuildMembershipManager({
                 <td>{statusNode}</td>
               </tr>
               <tr>
-                <th>Discord Role ID</th>
+                <th>Discord Role</th>
                 <td>
-                  <code>{roleMapping || "-"}</code>
+                  {roleNode}
                   <span className="help">
-                    To see the role name, use <code>/gentei info</code>.
+                    To change, use{" "}
+                    <code>/gentei manage map {talentID} @newrole</code>.
                   </span>
                 </td>
               </tr>
               <tr>
                 <th>Membership count</th>
                 <td>
-                  {roleMapping ? (
-                    <span>{roleMapping} Members</span>
-                  ) : (
-                    <code>-</code>
-                  )}
-                  <span className="help">Refreshed daily</span>
+                  {roleMapping ? <span>? members</span> : <code>-</code>}
+                  <span className="help">
+                    Members in this server with the role. Count refreshed daily.
+                  </span>
                 </td>
               </tr>
             </tbody>
