@@ -5,7 +5,9 @@ _Gentei_ is a web and Discord application that monitors YouTube channel membersh
 ## Project layout
 
 - `/frontend` - React SPA @ https://gentei.tindabox.net and https://gentei.pages.dev
-- `/gentei` - Go application server @ https://api.gentei.tindabox.net
+- `/gentei`
+  - `/gentei/web` - API server @ https://gentei-api.tindabox.net
+  - `/gentei/bot` - Discord bot
 
 ## Additional credit
 
