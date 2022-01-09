@@ -17,11 +17,9 @@ export default function SelectTalents() {
     if (store.guildState <= LoadState.Started) {
       return;
     }
-    if (
-      search.getAll(talentGetParam).length === 0 &&
-      (store.guild?.TalentIDs || []).length > 0
-    ) {
-      store.guild!.TalentIDs.forEach((talentID) => {
+    const talentIDs = store.guild!.TalentIDs || [];
+    if (search.getAll(talentGetParam).length === 0 && talentIDs.length > 0) {
+      talentIDs.forEach((talentID) => {
         search.append(talentGetParam, talentID);
       });
       setSearch(search, { replace: true });
