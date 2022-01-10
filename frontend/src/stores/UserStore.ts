@@ -6,6 +6,7 @@ interface State {
     ID: string;
     FullName: string;
     AvatarHash: string;
+    LastRefreshed: number;
     YouTube: {
       ID: string;
       Valid: boolean;
@@ -21,6 +22,8 @@ interface State {
   userLoad: LoadState;
   discordLogin: LoadState;
   discordLoginError?: { [key: string]: any };
+  youtubeLogin: LoadState;
+  youtubeLoginError?: { [key: string]: any };
 }
 
 const initialState: State = {
@@ -29,6 +32,7 @@ const initialState: State = {
     sortedServers: [],
   },
   discordLogin: LoadState.NotStarted,
+  youtubeLogin: LoadState.NotStarted,
 };
 
 const actions = {
@@ -98,6 +102,38 @@ const actions = {
           discordLogin: LoadState.Succeeded,
         });
       }
+    },
+  loginYouTube:
+    (code: string, state: string): Action<State> =>
+    async ({ getState, setState }) => {
+      setState({ youtubeLogin: LoadState.Started });
+      const response = await authedFetchJSON(
+        `${API_BASE_URL}/login/youtube`,
+        "POST",
+        { code, state }
+      );
+      if (!response.ok) {
+        setState({
+          youtubeLogin: LoadState.Failed,
+          youtubeLoginError: await response.json(),
+        });
+        return;
+      }
+      const result: {
+        ChannelID: string;
+      } = await response.json();
+      const user = getState().user!;
+      setState({
+        youtubeLogin: LoadState.Succeeded,
+        user: {
+          ...user,
+          YouTube: {
+            ID: result.ChannelID,
+            Valid: true,
+          },
+        },
+      });
+      return;
     },
   logout:
     (): Action<State> =>

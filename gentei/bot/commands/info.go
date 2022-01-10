@@ -22,7 +22,7 @@ func GetGuildInfoEmbeds(dg *ent.Guild, adminView bool) []*discordgo.MessageEmbed
 		if dg.Settings != nil {
 			roleMapping, found := dg.Settings.RoleMapping[talent.ID]
 			if found {
-				membershipRoleValue = fmt.Sprintf("<@%s>", roleMapping.ID)
+				membershipRoleValue = fmt.Sprintf("<@&%s>", roleMapping.ID)
 			} else {
 				membershipRoleValue = "⛔ Not yet configured"
 			}

@@ -26,10 +26,16 @@ interface GuildSettings {
   };
 }
 
+interface patchGuildError {
+  message?: string;
+  talents?: { [key: string]: string };
+}
+
 interface State {
   guild?: Guild;
-  guildError?: string;
+  guildError?: patchGuildError;
   guildState: LoadState;
+  saveTalentsError?: patchGuildError;
   saveTalentsState: LoadState;
 }
 
@@ -54,17 +60,16 @@ const actions = {
         if (response.status === 404) {
           setState({
             guild: undefined,
-            guildError: `Discord server by ID ${id} not found`,
+            guildError: {
+              message: `Discord server by ID ${id} not found`,
+            },
             guildState: LoadState.Failed,
           });
           return;
         }
-        const data: {
-          error: string;
-          message: string;
-        } = await response.json();
+        const data: patchGuildError = await response.json();
         setState({
-          guildError: data.error || data.message,
+          guildError: data,
           guildState: LoadState.Failed,
         });
         return;
@@ -90,10 +95,14 @@ const actions = {
         }
       );
       if (!response.ok) {
-        console.error(await response.json());
+        const data: {
+          error: patchGuildError;
+        } = await response.json();
         setState({
+          saveTalentsError: data.error,
           saveTalentsState: LoadState.Failed,
         });
+        return;
       }
       setState({
         guild: await response.json(),

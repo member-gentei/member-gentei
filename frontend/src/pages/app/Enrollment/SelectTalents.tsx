@@ -70,23 +70,64 @@ function SelectTalentsInner() {
       setSelectedTalentIDs(talentParams);
     }
   }, [search, selectedTalentIDs]);
-  const talentCards = selectedTalentIDs.map((channelID) => (
-    <TalentCard
-      key={`tc-${channelID}`}
-      channelID={channelID}
-      onDelete={() => {
-        // recreate param
-        search.delete(talentGetParam);
-        selectedTalentIDs.forEach((v) => {
-          if (v !== channelID) {
-            search.append(talentGetParam, v);
-          }
-        });
-        setSearch(search);
-      }}
-    />
-  ));
-  const saveDisabled = selectedTalentIDs.length === 0;
+  const talentCards = selectedTalentIDs.map((channelID) => {
+    return (
+      <TalentCard
+        key={`tc-${channelID}`}
+        channelID={channelID}
+        error={!!store.guildError?.talents?.[channelID]}
+        onDelete={() => {
+          // recreate param
+          search.delete(talentGetParam);
+          selectedTalentIDs.forEach((v) => {
+            if (v !== channelID) {
+              search.append(talentGetParam, v);
+            }
+          });
+          setSearch(search);
+        }}
+      />
+    );
+  });
+  let saveDisabled =
+    selectedTalentIDs.length === 0 ||
+    store.saveTalentsState === LoadState.Failed;
+  let errorNode = null;
+  if (selectedTalentIDs.length === 0) {
+    errorNode = (
+      <p className="help">
+        Servers must be configured to track at least one membership.
+      </p>
+    );
+  }
+  if (store.saveTalentsState === LoadState.Failed) {
+    console.log(store.saveTalentsError);
+    if (store.saveTalentsError?.talents !== undefined) {
+      if (
+        errorTalentsRemoved(store.saveTalentsError.talents, selectedTalentIDs)
+      ) {
+        saveDisabled = false;
+      } else {
+        const lis = Object.entries(store.saveTalentsError.talents).map(
+          ([talentID, msg]) => (
+            <li key={`${talentID}-error`}>
+              <span className="has-text-weight-bold">{talentID}</span>: {msg}
+            </li>
+          )
+        );
+        errorNode = (
+          <div className="message is-danger">
+            <div className="message-body">
+              Error(s) adding talents. Remove them above before proceeding.
+              <ul>{lis}</ul>
+            </div>
+          </div>
+        );
+      }
+    } else {
+      errorNode = <p className="help">{store.saveTalentsError?.message}</p>;
+    }
+  }
   return (
     <Fragment>
       <h2 className="title is-4">Select Talent(s)</h2>
@@ -108,25 +149,39 @@ function SelectTalentsInner() {
       <div className="content is-flex is-flex-wrap-wrap is-justify-content-center">
         {talentCards}
       </div>
-      <div className="content has-text-centered">
-        <button
-          className={`button is-primary is-medium ${classNames({
-            "is-loading": store.saveTalentsState === LoadState.Started,
-          })}`}
-          disabled={saveDisabled}
-          onClick={(e) => {
-            e.preventDefault();
-            actions.saveTalentChannels(store.guild!.ID, selectedTalentIDs);
-          }}
-        >
-          Save YouTube Channels
-        </button>
-        {saveDisabled ? (
-          <p className="help">
-            Servers must be configured to track at least one membership.
-          </p>
-        ) : null}
+      <div className="content">
+        <div className="columns is-centered">
+          <div className="column is-half">{errorNode}</div>
+        </div>
+        <div className="has-text-centered">
+          <button
+            className={`button is-primary is-medium ${classNames({
+              "is-loading": store.saveTalentsState === LoadState.Started,
+            })}`}
+            disabled={saveDisabled}
+            onClick={(e) => {
+              e.preventDefault();
+              actions.saveTalentChannels(store.guild!.ID, selectedTalentIDs);
+            }}
+          >
+            Save YouTube Channels
+          </button>
+        </div>
       </div>
     </Fragment>
   );
+}
+
+function errorTalentsRemoved(
+  errors: {
+    [key: string]: string | undefined;
+  },
+  selectedTalentIDs: string[]
+): boolean {
+  for (const talentID of selectedTalentIDs) {
+    if (errors[talentID] !== undefined) {
+      return false;
+    }
+  }
+  return true;
 }

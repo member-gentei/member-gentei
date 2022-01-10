@@ -12,6 +12,8 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
+	"google.golang.org/api/option"
+	"google.golang.org/api/youtube/v3"
 )
 
 func getDiscordTokenMe(token *oauth2.Token) (*discordgo.User, error) {
@@ -111,20 +113,11 @@ func createOrAssociateTalentsToGuild(ctx context.Context, db *ent.Client, guildI
 	for _, talentID := range existingTalentIDs {
 		existingTalentsMap[talentID] = true
 	}
-	var creates []*ent.YouTubeTalentCreate
 	for _, talentID := range talentIDs {
 		if existingTalentsMap[talentID] {
 			continue
 		}
-		creates = append(creates,
-			db.YouTubeTalent.Create().
-				SetID(talentID).
-				SetChannelName("pending").
-				SetThumbnailURL(""),
-		)
-	}
-	if len(creates) > 0 {
-		err = db.YouTubeTalent.CreateBulk(creates...).Exec(ctx)
+		err = UpsertYouTubeChannelID(ctx, db, talentID)
 		if err != nil {
 			return err
 		}
@@ -189,4 +182,20 @@ func makeGuildResponse(dg *ent.Guild) guildResponse {
 		AdminIDs:  adminIDs,
 		Settings:  dg.Settings,
 	}
+}
+
+func getChannelIDForYouTubeToken(ctx context.Context, ts oauth2.TokenSource) (string, error) {
+	svc, err := youtube.NewService(ctx, option.WithTokenSource(ts))
+	if err != nil {
+		return "", err
+	}
+	clr, err := svc.Channels.List([]string{"id"}).Mine(true).Do()
+	if err != nil {
+		return "", err
+	}
+	if len(clr.Items) == 0 {
+		log.Err(err).Msg("new token cannot get own channel ID")
+		return "", err
+	}
+	return clr.Items[0].Id, nil
 }

@@ -1,15 +1,12 @@
 import { Fragment, ReactNode } from "react";
 import { SiDiscord } from "react-icons/si";
 import { useLocation } from "react-router-dom";
-import {
-  useDiscordBotURL,
-  useDiscordState,
-} from "../../../components/LoginURL";
+import { useDiscordBotURL, useOAuthState } from "../../../components/LoginURL";
 import { useEnroll } from "../../../stores/EnrollStore";
 
 export default function EnrollServer() {
   const botURL = useDiscordBotURL();
-  const discordState = useDiscordState();
+  const discordState = useOAuthState();
   const search = new URLSearchParams(useLocation().search);
   const [store, actions] = useEnroll();
   if (!botURL) {

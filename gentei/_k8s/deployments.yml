@@ -31,6 +31,8 @@ spec:
           env:
             - name: DISCORD_CLIENT_ID
               value: "768486576388177950"
+            - name: YOUTUBE_CLIENT_ID
+              value: "649732146530-s4cj4tqo2impojg7ljol2chsuj1us81s.apps.googleusercontent.com"
           envFrom:
             - secretRef:
                 name: gentei-db

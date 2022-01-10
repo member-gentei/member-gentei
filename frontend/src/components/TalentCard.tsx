@@ -5,6 +5,7 @@ import styles from "./TalentCard.module.css";
 
 interface TalentCardProps {
   channelID: string;
+  error?: boolean;
   onDelete?: () => void;
   cardClassNames?: string[];
 }
@@ -34,14 +35,14 @@ export default function TalentCard({
     );
   }
   const talent = store.talentsByID[channelID];
-  const cardClassName = `card m-1 ${(cardClassNames || []).join(" ")} ${
-    styles.talentCard
-  }`;
+  const cardClassName = `card mx-auto my-1 ${(cardClassNames || []).join(
+    " "
+  )} ${styles.talentCard}`;
   if (!talent) {
     return (
       <div className={cardClassName}>
         <div className="card-image">
-          <figure className="image is-128x128">
+          <figure className="image is-128x128 mx-auto">
             <IoPersonOutline size={128} />
           </figure>
         </div>
@@ -65,15 +66,23 @@ export default function TalentCard({
       </div>
     );
   }
+  let talentThumbnailNode;
+  if (talent.Thumbnail !== "") {
+    talentThumbnailNode = (
+      <img
+        className="is-rounded"
+        src={talent.Thumbnail}
+        alt="channel thumbnail"
+      />
+    );
+  } else {
+    talentThumbnailNode = <IoPersonOutline size={128} />;
+  }
   return (
     <div className={cardClassName}>
       <div className="card-image">
-        <figure className="image is-128x128">
-          <img
-            className="is-rounded"
-            src={talent.Thumbnail}
-            alt="channel thumbnail"
-          />
+        <figure className="image is-128x128 mx-auto">
+          {talentThumbnailNode}
         </figure>
       </div>
       <div className="card-content is-clipped">
