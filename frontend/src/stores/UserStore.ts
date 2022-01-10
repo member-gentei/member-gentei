@@ -117,6 +117,7 @@ const actions = {
           youtubeLogin: LoadState.Failed,
           youtubeLoginError: await response.json(),
         });
+        return;
       }
       const result: {
         ChannelID: string;

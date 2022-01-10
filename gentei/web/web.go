@@ -211,13 +211,14 @@ func loginYouTube(db *ent.Client, youtubeConfig *oauth2.Config) echo.HandlerFunc
 			logger.Err(err).Msg("error getting channel ID with new token")
 			return err
 		}
-		exists, err := db.User.Query().Where(
+		first, err := db.User.Query().Where(
 			user.YoutubeID(userChannelID),
-		).Exist(ctx)
-		if err != nil {
+		).First(ctx)
+		if ent.IsNotFound(err) {
+			// great
+		} else if err != nil {
 			return err
-		}
-		if exists {
+		} else if first.ID != userID {
 			return c.JSON(http.StatusForbidden, map[string]string{
 				"error": "YouTube channel belongs to a different user",
 			})
