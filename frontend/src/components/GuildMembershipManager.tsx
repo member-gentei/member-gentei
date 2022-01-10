@@ -40,7 +40,7 @@ export default function GuildMembershipManager({
           <span className="icon">
             <RiCheckboxCircleFill color="green" size={24} />
           </span>
-          <span>Role management in effect</span>
+          <span>Exclusive role management in effect</span>
         </span>
       </Fragment>
     );
@@ -52,8 +52,8 @@ export default function GuildMembershipManager({
     );
   }
   return (
-    <div className="columns is-gapless">
-      <div className="column is-narrow">
+    <div className="columns">
+      <div className="column is-one-fifth">
         <TalentCard cardClassNames={[styles.height200]} channelID={talentID} />
       </div>
       <div className="column">

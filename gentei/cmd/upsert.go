@@ -3,10 +3,8 @@ package cmd
 import (
 	"context"
 	"errors"
-	"time"
 
-	"github.com/member-gentei/member-gentei/gentei/apis"
-	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
+	"github.com/member-gentei/member-gentei/gentei/web"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -31,27 +29,7 @@ var upsertCmd = &cobra.Command{
 			db  = mustOpenDB(ctx)
 		)
 		if flagUpsertYouTubeChannelID != "" {
-			ogp, err := apis.GetYouTubeChannelOG(flagUpsertYouTubeChannelID)
-			if err != nil {
-				log.Fatal().Err(err).Msg("error getting OpenGraph data for YouTube channel")
-			}
-			log.Debug().Interface("ogp", ogp).Msg("OpenGraph data for channel")
-			var thumbnailURL string
-			for _, imageData := range ogp.Image {
-				if imageData.Height == 900 {
-					thumbnailURL = imageData.URL
-					break
-				}
-				thumbnailURL = imageData.URL
-			}
-			err = db.YouTubeTalent.Create().
-				SetID(flagUpsertYouTubeChannelID).
-				SetChannelName(ogp.Title).
-				SetThumbnailURL(thumbnailURL).
-				SetLastUpdated(time.Now()).
-				OnConflictColumns(youtubetalent.FieldID).
-				UpdateNewValues().
-				Exec(ctx)
+			err := web.UpsertYouTubeChannelID(ctx, db, flagUpsertYouTubeChannelID)
 			if err != nil {
 				log.Fatal().Err(err).Msg("error upserting YouTubeTalent")
 			}

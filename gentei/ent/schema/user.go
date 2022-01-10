@@ -30,7 +30,9 @@ func (User) Fields() []ent.Field {
 			Comment("Username + discriminator"),
 		field.String("avatar_hash"),
 		field.Time("last_check").
-			Default(time.Now).
+			Default(func() time.Time {
+				return time.Time{}
+			}).
 			Comment("Timestamp of last membership check"),
 		field.String("youtube_id").
 			Unique().Nillable().

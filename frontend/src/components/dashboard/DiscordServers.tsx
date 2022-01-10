@@ -1,7 +1,7 @@
 import React, { ReactNode } from "react";
 import { RiCheckFill, RiCloseFill } from "react-icons/ri";
 import { SiDiscord } from "react-icons/si";
-import { LoadState } from "../../lib/lib";
+import { LoadState, ZeroTime } from "../../lib/lib";
 import { GuildContainer, useGuild } from "../../stores/GuildStore";
 import { Talent, useTalents } from "../../stores/TalentStore";
 import { useUser } from "../../stores/UserStore";
@@ -10,6 +10,7 @@ import DiscordServerImg from "../DiscordServerImg";
 export default function DiscordServers() {
   const [userStore] = useUser();
   let serverColumns;
+  let uncheckedNotice = null;
   if (userStore.userLoad <= LoadState.Started) {
     serverColumns = (
       <div className="columns is-multiline">
@@ -29,23 +30,43 @@ export default function DiscordServers() {
       </div>
     );
   }
-  return (
-    <section className="section">
-      <div className="container">
-        <h1 className="title is-2">Servers and Roles</h1>
-        <p className="mb-4">
-          Servers that you've joined that have members-only role management are
-          listed below.
-        </p>
-        {serverColumns}
-        <p>
-          If a server you've joined is not shown above <strong>and</strong>{" "}
-          <code>/gentei</code> is a slash command on that server, please wait a
-          few minutes for the bot to refresh server memberships. Discord can
-          take a few minutes to make information available to integrations.
-        </p>
+  if (userStore.user?.LastRefreshed === ZeroTime) {
+    uncheckedNotice = (
+      <div className="columns is-centered">
+        <div className="column is-half">
+          <div className="message is-warning">
+            <div className="message-header">
+              <p>Membership check not finished</p>
+            </div>
+            <div className="message-body">
+              <p>
+                The role assignments below do not yet reflect your current
+                YouTube memberships. The job scheduled to check your memberships
+                has not finished - this message will disappear after it has.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
-    </section>
+    );
+  }
+  return (
+    <div className="container">
+      <h1 className="title is-2">Servers and Roles</h1>
+      <p className="mb-4">
+        Servers that you've joined that have members-only role management are
+        listed below.
+      </p>
+      {uncheckedNotice}
+      {serverColumns}
+      <p>
+        If a server you've joined is not shown above <strong>and</strong>{" "}
+        <code>/gentei</code> is a slash command on that server, please wait a
+        few minutes for the bot to refresh server memberships. Discord can take
+        a few minutes to make membership information available to integrations
+        like Gentei.
+      </p>
+    </div>
   );
 }
 

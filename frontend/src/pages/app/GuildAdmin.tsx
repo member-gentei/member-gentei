@@ -69,21 +69,20 @@ function GuildAdminInner({ guildID }: GuildAdminInnerProps) {
             <dd>{guild.Name}</dd>
             <dt>Discord IDs with admin access</dt>
             <dd>
-              {}
-              <span className="help">
-                Please run <code>/gentei info</code> to see names of roles and
-                users.
-              </span>
+              {guild.AdminIDs.map((snowflake) => (
+                <code key={snowflake}>{snowflake}</code>
+              ))}
             </dd>
           </dl>
           <p>
-            For other information, please run <code>/gentei info</code> in your
-            server.
+            For other information and nicely formatted{" "}
+            <span className="discord-role">@mentions</span>, please run{" "}
+            <code>/gentei info</code> in your server.
           </p>
         </div>
-        <div className="content">
+        <div>
           <h2 className="title is-4">Memberships</h2>
-          <p>
+          <p className="mb-1">
             Settings that are hard to configure using slash commands can be
             edited below.
           </p>

@@ -41,13 +41,16 @@ $primary: #2780e3 !default;
 
 .overlay {
   @include overlay(1.5rem);
-  background-color: $grey-darker;
+  background-color: rgba(51, 51, 51, 0.9);
   border-radius: 0.25em;
   color: white;
-  opacity: 0.9;
 }
 
 .discord-role {
   color: rgb(80, 92, 220);
   background: rgba(88, 101, 242, 0.15);
+}
+
+.card-image:first-child img.is-rounded {
+  border-radius: 9999px;
 }

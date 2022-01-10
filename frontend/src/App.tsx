@@ -6,7 +6,7 @@ import Enrollment from "./pages/app/Enrollment";
 import GuildAdmin from "./pages/app/GuildAdmin";
 import UserDashboard from "./pages/app/UserDashboard";
 import Home from "./pages/Home";
-import { LoginDiscord } from "./pages/Login";
+import { LoginDiscord, LoginYouTube } from "./pages/Login";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 function App() {
@@ -16,6 +16,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/login/discord" element={<LoginDiscord />} />
+        <Route path="/login/youtube" element={<LoginYouTube />} />
         <Route path="/app" element={<AppIndex />}>
           <Route index element={<UserDashboard />} />
           <Route path="enroll" element={<Enrollment />} />

@@ -22,7 +22,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func ServeAPI(db *ent.Client, discordConfig *oauth2.Config, jwtKey []byte, address string, debug bool) error {
+func ServeAPI(db *ent.Client, discordConfig *oauth2.Config, youTubeConfig *oauth2.Config, jwtKey []byte, address string, debug bool) error {
 	// create a copy of discordConfig that has the enroll endpoint
 	enrollDiscordConfig := *discordConfig
 	enrollDiscordConfig.RedirectURL = strings.Replace(discordConfig.RedirectURL, "login/discord", "app/enroll", 1)
@@ -50,7 +50,7 @@ func ServeAPI(db *ent.Client, discordConfig *oauth2.Config, jwtKey []byte, addre
 		SigningKey:  jwtKey,
 		Claims:      &jwt.StandardClaims{},
 	}))
-	loginRequired.POST("/login/youtube", loginYouTube(db))
+	loginRequired.POST("/login/youtube", loginYouTube(db, youTubeConfig))
 	loginRequired.POST("/logout", logout())
 	loginRequired.GET("/me", getMe(db))
 	loginRequired.POST("/enroll-guild", enrollGuild(db, &enrollDiscordConfig))
@@ -160,21 +160,95 @@ func logout() echo.HandlerFunc {
 	}
 }
 
-func loginYouTube(db *ent.Client) echo.HandlerFunc {
+type loginYouTubeData struct {
+	Code string `json:"code"`
+}
+
+type loginYouTubeResponse struct {
+	ChannelID string
+}
+
+func loginYouTube(db *ent.Client, youtubeConfig *oauth2.Config) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		// ctx := c.Request().Context()
-		return c.JSON(200, "uwu")
+		var (
+			ctx     = c.Request().Context()
+			jwtUser = c.Get("user").(*jwt.Token)
+			claims  = jwtUser.Claims.(*jwt.StandardClaims)
+			data    loginYouTubeData
+		)
+		err := c.Bind(&data)
+		if err != nil {
+			return err
+		}
+		userID, err := strconv.ParseUint(claims.Id, 10, 64)
+		if err != nil {
+			return err
+		}
+		logger := log.With().Uint64("userID", userID).Logger()
+		token, err := youtubeConfig.Exchange(ctx, data.Code)
+		var (
+			retErr *oauth2.RetrieveError
+		)
+		if errors.As(err, &retErr) {
+			logger.Err(err).Msg("oauth2.RetrieveError")
+			var body struct {
+				Error       string `json:"error"`
+				Description string `json:"error_description"`
+			}
+			err = json.Unmarshal(retErr.Body, &body)
+			if err != nil {
+				return fmt.Errorf("error decoding Discord OAuth login repsonse: %w", err)
+			}
+			return c.JSON(http.StatusBadRequest, body)
+		} else if err != nil {
+			logger.Err(err).Msgf("concrete type: %T", err)
+			return err
+		}
+		// check if this YouTube channel is already associated with a different user
+		ts := youtubeConfig.TokenSource(ctx, token)
+		userChannelID, err := getChannelIDForYouTubeToken(ctx, ts)
+		if err != nil {
+			logger.Err(err).Msg("error getting channel ID with new token")
+			return err
+		}
+		exists, err := db.User.Query().Where(
+			user.YoutubeID(userChannelID),
+		).Exist(ctx)
+		if err != nil {
+			return err
+		}
+		if exists {
+			return c.JSON(http.StatusForbidden, map[string]string{
+				"error": "YouTube channel belongs to a different user",
+			})
+		}
+		// save
+		token, err = ts.Token()
+		if err != nil {
+			return err
+		}
+		err = db.User.UpdateOneID(userID).
+			SetYoutubeID(userChannelID).
+			SetYoutubeToken(token).
+			Exec(ctx)
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, loginYouTubeResponse{
+			ChannelID: userChannelID,
+		})
 	}
 }
 
 type meResponse struct {
-	ID          string
-	FullName    string
-	AvatarHash  string
-	YouTube     meResponseYouTube
-	Memberships map[string]schema.MembershipMetadata `json:",omitempty"`
-	ServerAdmin []string                             `json:",omitempty"`
-	Servers     []string                             `json:",omitempty"`
+	ID            string
+	FullName      string
+	AvatarHash    string
+	YouTube       meResponseYouTube
+	LastRefreshed int64
+	Memberships   map[string]schema.MembershipMetadata `json:",omitempty"`
+	ServerAdmin   []string                             `json:",omitempty"`
+	Servers       []string                             `json:",omitempty"`
 }
 
 type meResponseYouTube struct {
@@ -204,13 +278,14 @@ func meResponseFromUser(user *ent.User) meResponse {
 		}
 	}
 	return meResponse{
-		ID:          strconv.FormatUint(user.ID, 10),
-		FullName:    user.FullName,
-		AvatarHash:  user.AvatarHash,
-		YouTube:     yt,
-		Memberships: user.MembershipMetadata,
-		ServerAdmin: serverAdmin,
-		Servers:     servers,
+		ID:            strconv.FormatUint(user.ID, 10),
+		FullName:      user.FullName,
+		AvatarHash:    user.AvatarHash,
+		LastRefreshed: user.LastCheck.Unix(),
+		YouTube:       yt,
+		Memberships:   user.MembershipMetadata,
+		ServerAdmin:   serverAdmin,
+		Servers:       servers,
 	}
 }
 
@@ -375,6 +450,15 @@ type patchGuildData struct {
 	Settings *schema.GuildSettings `json:"settings"`
 }
 
+type patchGuildErrorResponse struct {
+	Error patchGuildErrorResponseError `json:"error"`
+}
+
+type patchGuildErrorResponseError struct {
+	Message string            `json:"message,omitempty"`
+	Talents map[string]string `json:"talents,omitempty"`
+}
+
 const maxTalentCount = 16
 
 func patchGuild(db *ent.Client) echo.HandlerFunc {
@@ -411,12 +495,23 @@ func patchGuild(db *ent.Client) echo.HandlerFunc {
 		}
 		// check constraints
 		if len(data.Talents) > maxTalentCount {
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"error": "servers can track a maximum of 16 channels",
+			return c.JSON(http.StatusBadRequest, patchGuildErrorResponse{
+				Error: patchGuildErrorResponseError{
+					Message: "servers can track a maximum of 16 channels",
+				},
 			})
 		}
 		// perform patch
 		err = createOrAssociateTalentsToGuild(ctx, db, data.ID, data.Talents)
+		var nmpErr ErrNoMembershipPlaylist
+		if errors.As(err, &nmpErr) {
+			return c.JSON(http.StatusBadRequest, patchGuildErrorResponse{
+				Error: patchGuildErrorResponseError{
+					Talents: map[string]string{
+						nmpErr.ChannelID: "memberships not open"},
+				},
+			})
+		}
 		if err != nil {
 			return err
 		}
