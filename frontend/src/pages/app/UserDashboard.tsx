@@ -8,7 +8,7 @@ import { useUser } from "../../stores/UserStore";
 export default function UserDashboard() {
   const [store] = useUser();
   let loginRequiredOverlay = null;
-  if (store.user === undefined && store.userLoad > LoadState.NotStarted) {
+  if (store.user === undefined && store.userLoad > LoadState.Started) {
     loginRequiredOverlay = (
       <div className="overlay is-flex is-justify-content-center is-align-content-center is-align-items-center">
         <div className="message is-info">
