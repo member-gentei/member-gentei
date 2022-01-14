@@ -10,9 +10,11 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// MembershipMetadata holds info about a current or past membership.
 type MembershipMetadata struct {
 	LastVerified time.Time
-	Disabled     bool
+	// Whether this user was but is now no longer a member of this channel.
+	Past bool
 }
 
 // User holds the schema definition for the User entity.

@@ -23,6 +23,12 @@ type YouTubeTalent struct {
 	// ThumbnailURL holds the value of the "thumbnail_url" field.
 	// URL of the talent's YouTube thumbnail
 	ThumbnailURL string `json:"thumbnail_url,omitempty"`
+	// MembershipVideoID holds the value of the "membership_video_id" field.
+	// ID of a members-only video
+	MembershipVideoID string `json:"membership_video_id,omitempty"`
+	// LastMembershipVideoIDMiss holds the value of the "last_membership_video_id_miss" field.
+	// Last time membership_video_id returned no results
+	LastMembershipVideoIDMiss time.Time `json:"last_membership_video_id_miss,omitempty"`
 	// LastUpdated holds the value of the "last_updated" field.
 	// Last time data was fetched
 	LastUpdated time.Time `json:"last_updated,omitempty"`
@@ -55,9 +61,9 @@ func (*YouTubeTalent) scanValues(columns []string) ([]interface{}, error) {
 	values := make([]interface{}, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case youtubetalent.FieldID, youtubetalent.FieldChannelName, youtubetalent.FieldThumbnailURL:
+		case youtubetalent.FieldID, youtubetalent.FieldChannelName, youtubetalent.FieldThumbnailURL, youtubetalent.FieldMembershipVideoID:
 			values[i] = new(sql.NullString)
-		case youtubetalent.FieldLastUpdated:
+		case youtubetalent.FieldLastMembershipVideoIDMiss, youtubetalent.FieldLastUpdated:
 			values[i] = new(sql.NullTime)
 		case youtubetalent.ForeignKeys[0]: // user_youtube_memberships
 			values[i] = new(sql.NullInt64)
@@ -93,6 +99,18 @@ func (ytt *YouTubeTalent) assignValues(columns []string, values []interface{}) e
 				return fmt.Errorf("unexpected type %T for field thumbnail_url", values[i])
 			} else if value.Valid {
 				ytt.ThumbnailURL = value.String
+			}
+		case youtubetalent.FieldMembershipVideoID:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field membership_video_id", values[i])
+			} else if value.Valid {
+				ytt.MembershipVideoID = value.String
+			}
+		case youtubetalent.FieldLastMembershipVideoIDMiss:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field last_membership_video_id_miss", values[i])
+			} else if value.Valid {
+				ytt.LastMembershipVideoIDMiss = value.Time
 			}
 		case youtubetalent.FieldLastUpdated:
 			if value, ok := values[i].(*sql.NullTime); !ok {
@@ -144,6 +162,10 @@ func (ytt *YouTubeTalent) String() string {
 	builder.WriteString(ytt.ChannelName)
 	builder.WriteString(", thumbnail_url=")
 	builder.WriteString(ytt.ThumbnailURL)
+	builder.WriteString(", membership_video_id=")
+	builder.WriteString(ytt.MembershipVideoID)
+	builder.WriteString(", last_membership_video_id_miss=")
+	builder.WriteString(ytt.LastMembershipVideoIDMiss.Format(time.ANSIC))
 	builder.WriteString(", last_updated=")
 	builder.WriteString(ytt.LastUpdated.Format(time.ANSIC))
 	builder.WriteByte(')')

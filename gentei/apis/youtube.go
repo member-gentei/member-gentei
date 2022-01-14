@@ -2,9 +2,11 @@ package apis
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"net/http"
 	"strings"
 
@@ -12,6 +14,7 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
+	"google.golang.org/api/googleapi"
 	"google.golang.org/api/option"
 	"google.golang.org/api/youtube/v3"
 	"libs.altipla.consulting/tokensource"
@@ -19,6 +22,7 @@ import (
 
 var (
 	ErrNoYouTubeTokenForUser = errors.New("user does not have a YouTube token")
+	ErrNoMembersOnlyVideos   = errors.New("YouTube channel has membership enabled, but no members-only videos")
 )
 
 func GetYouTubeService(ctx context.Context, db *ent.Client, userID uint64, config *oauth2.Config) (*youtube.Service, error) {
@@ -84,4 +88,44 @@ func scavengeRetrieveError(err error) (*oauth2.RetrieveError, bool) {
 		}, true
 	}
 	return nil, false
+}
+
+// SelectRandomMembersOnlyVideoID chooses a random members-only video. Used to populate initial members-only video checks.
+func SelectRandomMembersOnlyVideoID(ctx context.Context, svc *youtube.Service, channelID string) (string, error) {
+	membersOnlyPlaylistID := fmt.Sprintf("UUMO%s", channelID[2:])
+	ilr, err := svc.PlaylistItems.List([]string{"snippet"}).
+		PlaylistId(membersOnlyPlaylistID).Do()
+	if err != nil {
+		var gErr *googleapi.Error
+		if errors.As(err, &gErr) && gErr.Code == 404 {
+			return "", ErrNoMembersOnlyVideos
+		}
+		return "", err
+	}
+	if len(ilr.Items) == 0 {
+		return "", ErrNoMembersOnlyVideos
+	}
+	return ilr.Items[mustRandInt(len(ilr.Items))].Snippet.ResourceId.VideoId, nil
+}
+
+func mustRandInt(max int) int {
+	i, err := randInt(max)
+	if err != nil {
+		panic(err)
+	}
+	return i
+}
+
+func randInt(max int) (int, error) {
+	if max == 0 {
+		return -1, errors.New("max must be > 0")
+	}
+	if max == 1 {
+		return 0, nil
+	}
+	bigInt, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
+	if err != nil {
+		return 0, err
+	}
+	return int(bigInt.Int64()), nil
 }

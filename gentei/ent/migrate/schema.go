@@ -67,6 +67,8 @@ var (
 		{Name: "id", Type: field.TypeString, Unique: true},
 		{Name: "channel_name", Type: field.TypeString},
 		{Name: "thumbnail_url", Type: field.TypeString},
+		{Name: "membership_video_id", Type: field.TypeString, Nullable: true},
+		{Name: "last_membership_video_id_miss", Type: field.TypeTime, Nullable: true},
 		{Name: "last_updated", Type: field.TypeTime},
 		{Name: "user_youtube_memberships", Type: field.TypeUint64, Nullable: true},
 	}
@@ -78,7 +80,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "you_tube_talents_users_youtube_memberships",
-				Columns:    []*schema.Column{YouTubeTalentsColumns[4]},
+				Columns:    []*schema.Column{YouTubeTalentsColumns[6]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},

@@ -40,6 +40,46 @@ func (yttu *YouTubeTalentUpdate) SetThumbnailURL(s string) *YouTubeTalentUpdate 
 	return yttu
 }
 
+// SetMembershipVideoID sets the "membership_video_id" field.
+func (yttu *YouTubeTalentUpdate) SetMembershipVideoID(s string) *YouTubeTalentUpdate {
+	yttu.mutation.SetMembershipVideoID(s)
+	return yttu
+}
+
+// SetNillableMembershipVideoID sets the "membership_video_id" field if the given value is not nil.
+func (yttu *YouTubeTalentUpdate) SetNillableMembershipVideoID(s *string) *YouTubeTalentUpdate {
+	if s != nil {
+		yttu.SetMembershipVideoID(*s)
+	}
+	return yttu
+}
+
+// ClearMembershipVideoID clears the value of the "membership_video_id" field.
+func (yttu *YouTubeTalentUpdate) ClearMembershipVideoID() *YouTubeTalentUpdate {
+	yttu.mutation.ClearMembershipVideoID()
+	return yttu
+}
+
+// SetLastMembershipVideoIDMiss sets the "last_membership_video_id_miss" field.
+func (yttu *YouTubeTalentUpdate) SetLastMembershipVideoIDMiss(t time.Time) *YouTubeTalentUpdate {
+	yttu.mutation.SetLastMembershipVideoIDMiss(t)
+	return yttu
+}
+
+// SetNillableLastMembershipVideoIDMiss sets the "last_membership_video_id_miss" field if the given value is not nil.
+func (yttu *YouTubeTalentUpdate) SetNillableLastMembershipVideoIDMiss(t *time.Time) *YouTubeTalentUpdate {
+	if t != nil {
+		yttu.SetLastMembershipVideoIDMiss(*t)
+	}
+	return yttu
+}
+
+// ClearLastMembershipVideoIDMiss clears the value of the "last_membership_video_id_miss" field.
+func (yttu *YouTubeTalentUpdate) ClearLastMembershipVideoIDMiss() *YouTubeTalentUpdate {
+	yttu.mutation.ClearLastMembershipVideoIDMiss()
+	return yttu
+}
+
 // SetLastUpdated sets the "last_updated" field.
 func (yttu *YouTubeTalentUpdate) SetLastUpdated(t time.Time) *YouTubeTalentUpdate {
 	yttu.mutation.SetLastUpdated(t)
@@ -181,6 +221,32 @@ func (yttu *YouTubeTalentUpdate) sqlSave(ctx context.Context) (n int, err error)
 			Column: youtubetalent.FieldThumbnailURL,
 		})
 	}
+	if value, ok := yttu.mutation.MembershipVideoID(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: youtubetalent.FieldMembershipVideoID,
+		})
+	}
+	if yttu.mutation.MembershipVideoIDCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Column: youtubetalent.FieldMembershipVideoID,
+		})
+	}
+	if value, ok := yttu.mutation.LastMembershipVideoIDMiss(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: youtubetalent.FieldLastMembershipVideoIDMiss,
+		})
+	}
+	if yttu.mutation.LastMembershipVideoIDMissCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Column: youtubetalent.FieldLastMembershipVideoIDMiss,
+		})
+	}
 	if value, ok := yttu.mutation.LastUpdated(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeTime,
@@ -270,6 +336,46 @@ func (yttuo *YouTubeTalentUpdateOne) SetChannelName(s string) *YouTubeTalentUpda
 // SetThumbnailURL sets the "thumbnail_url" field.
 func (yttuo *YouTubeTalentUpdateOne) SetThumbnailURL(s string) *YouTubeTalentUpdateOne {
 	yttuo.mutation.SetThumbnailURL(s)
+	return yttuo
+}
+
+// SetMembershipVideoID sets the "membership_video_id" field.
+func (yttuo *YouTubeTalentUpdateOne) SetMembershipVideoID(s string) *YouTubeTalentUpdateOne {
+	yttuo.mutation.SetMembershipVideoID(s)
+	return yttuo
+}
+
+// SetNillableMembershipVideoID sets the "membership_video_id" field if the given value is not nil.
+func (yttuo *YouTubeTalentUpdateOne) SetNillableMembershipVideoID(s *string) *YouTubeTalentUpdateOne {
+	if s != nil {
+		yttuo.SetMembershipVideoID(*s)
+	}
+	return yttuo
+}
+
+// ClearMembershipVideoID clears the value of the "membership_video_id" field.
+func (yttuo *YouTubeTalentUpdateOne) ClearMembershipVideoID() *YouTubeTalentUpdateOne {
+	yttuo.mutation.ClearMembershipVideoID()
+	return yttuo
+}
+
+// SetLastMembershipVideoIDMiss sets the "last_membership_video_id_miss" field.
+func (yttuo *YouTubeTalentUpdateOne) SetLastMembershipVideoIDMiss(t time.Time) *YouTubeTalentUpdateOne {
+	yttuo.mutation.SetLastMembershipVideoIDMiss(t)
+	return yttuo
+}
+
+// SetNillableLastMembershipVideoIDMiss sets the "last_membership_video_id_miss" field if the given value is not nil.
+func (yttuo *YouTubeTalentUpdateOne) SetNillableLastMembershipVideoIDMiss(t *time.Time) *YouTubeTalentUpdateOne {
+	if t != nil {
+		yttuo.SetLastMembershipVideoIDMiss(*t)
+	}
+	return yttuo
+}
+
+// ClearLastMembershipVideoIDMiss clears the value of the "last_membership_video_id_miss" field.
+func (yttuo *YouTubeTalentUpdateOne) ClearLastMembershipVideoIDMiss() *YouTubeTalentUpdateOne {
+	yttuo.mutation.ClearLastMembershipVideoIDMiss()
 	return yttuo
 }
 
@@ -436,6 +542,32 @@ func (yttuo *YouTubeTalentUpdateOne) sqlSave(ctx context.Context) (_node *YouTub
 			Type:   field.TypeString,
 			Value:  value,
 			Column: youtubetalent.FieldThumbnailURL,
+		})
+	}
+	if value, ok := yttuo.mutation.MembershipVideoID(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: youtubetalent.FieldMembershipVideoID,
+		})
+	}
+	if yttuo.mutation.MembershipVideoIDCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Column: youtubetalent.FieldMembershipVideoID,
+		})
+	}
+	if value, ok := yttuo.mutation.LastMembershipVideoIDMiss(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: youtubetalent.FieldLastMembershipVideoIDMiss,
+		})
+	}
+	if yttuo.mutation.LastMembershipVideoIDMissCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Column: youtubetalent.FieldLastMembershipVideoIDMiss,
 		})
 	}
 	if value, ok := yttuo.mutation.LastUpdated(); ok {

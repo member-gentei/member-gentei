@@ -6,7 +6,7 @@ RUN go get -d -v ./...
 RUN go vet -v
 RUN go test -v ./...
 
-RUN go build -o /go/bin/app
+RUN go build --tags "json1" -o /go/bin/app
 
 FROM gcr.io/distroless/base
 COPY --from=build /go/bin/app /
