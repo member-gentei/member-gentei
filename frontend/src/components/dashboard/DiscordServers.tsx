@@ -30,7 +30,10 @@ export default function DiscordServers() {
       </div>
     );
   }
-  if (userStore.user?.LastRefreshed === ZeroTime) {
+  if (
+    userStore.user?.LastRefreshed === ZeroTime &&
+    !!userStore.user?.YouTube.ID
+  ) {
     uncheckedNotice = (
       <div className="columns is-centered">
         <div className="column is-half">
@@ -54,8 +57,8 @@ export default function DiscordServers() {
     <div className="container">
       <h1 className="title is-2">Servers and Roles</h1>
       <p className="mb-4">
-        Servers that you've joined that have members-only role management are
-        listed below.
+        Servers that you've joined that participate in Gentei's members-only
+        role management are listed below.
       </p>
       {uncheckedNotice}
       {serverColumns}
@@ -63,8 +66,8 @@ export default function DiscordServers() {
         If a server you've joined is not shown above <strong>and</strong>{" "}
         <code>/gentei</code> is a slash command on that server, please wait a
         few minutes for the bot to refresh server memberships. Discord can take
-        a few minutes to make membership information available to integrations
-        like Gentei.
+        a few minutes to make server information available to integrations like
+        Gentei.
       </p>
     </div>
   );
@@ -98,12 +101,13 @@ function DiscordServerWithRolesInner({ id }: DiscordServerRoleProps) {
     guildStore.guild?.Settings?.RoleMapping || {}
   ).map(([k, v]) => {
     const talentID = k;
+    const meta = (userStore.user?.Memberships || {})[k];
     return (
       <RoleMembership
         key={`${id}-${talentID}`}
         talent={talentStore.talentsByID[talentID]}
         roleName={v!.Name}
-        verifyTime={(userStore.user?.Roles || {})[v!.ID]}
+        verifyTime={meta?.LastVerified}
       />
     );
   });
@@ -191,7 +195,7 @@ function RoleMembership({ talent, roleName, verifyTime }: RoleMembershipProps) {
     footerItem = (
       <div className="card-footer-item has-background-success-light">
         <span className="icon-text">
-          <span>@{roleName}</span>
+          <span className="discord-role">@{roleName}</span>
           <span
             className="icon has-tooltip-arrow has-text-success-dark"
             data-tooltip={tooltip}

@@ -9,22 +9,16 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
 )
 
 const (
-	envNameServeJWTKey              = "JWT_KEY"
-	envNameServeYouTubeClientID     = "YOUTUBE_CLIENT_ID"
-	envNameServeYouTubeClientSecret = "YOUTUBE_CLIENT_SECRET"
+	envNameServeJWTKey = "JWT_KEY"
 )
 
 var (
-	serveJWTKey                  []byte
-	flagServeAddress             string
-	flagServeDiscordRedirectURL  string
-	flagServeYouTubeClientID     string
-	flagServeYouTubeClientSecret string
-	flagServeYouTubeRedirectURL  string
+	serveJWTKey                 []byte
+	flagServeAddress            string
+	flagServeDiscordRedirectURL string
 )
 
 // serveCmd represents the serve command
@@ -33,8 +27,6 @@ var serveCmd = &cobra.Command{
 	Short: "Starts the API server.",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		serveJWTKey = []byte(os.Getenv(envNameServeJWTKey))
-		flagServeYouTubeClientID = os.Getenv(envNameServeYouTubeClientID)
-		flagServeYouTubeClientSecret = os.Getenv(envNameServeYouTubeClientSecret)
 		if len(serveJWTKey) == 0 {
 			log.Fatal().Msgf("env var %s must not be empty", envNameServeJWTKey)
 		}
@@ -44,11 +36,11 @@ var serveCmd = &cobra.Command{
 		if flagDiscordClientSecret == "" {
 			log.Fatal().Msgf("env var %s must not be empty", envNameDiscordClientSecret)
 		}
-		if flagServeYouTubeClientID == "" {
-			log.Fatal().Msgf("env var %s must not be empty", envNameServeYouTubeClientID)
+		if flagYouTubeClientID == "" {
+			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientID)
 		}
-		if flagServeYouTubeClientSecret == "" {
-			log.Fatal().Msgf("env var %s must not be empty", envNameServeYouTubeClientSecret)
+		if flagYouTubeClientSecret == "" {
+			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientSecret)
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -61,12 +53,7 @@ var serveCmd = &cobra.Command{
 				Endpoint:     discordoauth.Endpoint,
 				RedirectURL:  flagServeDiscordRedirectURL,
 			}
-			youTubeConfig = &oauth2.Config{
-				ClientID:     flagServeYouTubeClientID,
-				ClientSecret: flagServeYouTubeClientSecret,
-				Endpoint:     google.Endpoint,
-				RedirectURL:  flagServeYouTubeRedirectURL,
-			}
+			youTubeConfig = getYouTubeConfig()
 		)
 		err := web.ServeAPI(db, discordConfig, youTubeConfig, serveJWTKey, flagServeAddress, flagVerbose)
 		if err != nil {
@@ -80,5 +67,4 @@ func init() {
 	flags := serveCmd.Flags()
 	flags.StringVar(&flagServeAddress, "address", "localhost:5000", "API listening address")
 	flags.StringVar(&flagServeDiscordRedirectURL, "discord-redirect-url", "http://localhost:3000/login/discord", "")
-	flags.StringVar(&flagServeYouTubeRedirectURL, "youtube-redirect-url", "http://localhost:3000/login/youtube", "")
 }

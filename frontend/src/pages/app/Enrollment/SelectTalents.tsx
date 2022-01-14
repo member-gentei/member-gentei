@@ -146,7 +146,7 @@ function SelectTalentsInner() {
           }}
         />
       </div>
-      <div className="content is-flex is-flex-wrap-wrap is-justify-content-center">
+      <div className="content is-flex is-flex-wrap-wrap is-justify-content-center is-align-items-center">
         {talentCards}
       </div>
       <div className="content">

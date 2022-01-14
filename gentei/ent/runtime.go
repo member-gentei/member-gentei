@@ -36,7 +36,7 @@ func init() {
 	youtubetalentFields := schema.YouTubeTalent{}.Fields()
 	_ = youtubetalentFields
 	// youtubetalentDescLastUpdated is the schema descriptor for last_updated field.
-	youtubetalentDescLastUpdated := youtubetalentFields[3].Descriptor()
+	youtubetalentDescLastUpdated := youtubetalentFields[5].Descriptor()
 	// youtubetalent.DefaultLastUpdated holds the default value on creation for the last_updated field.
 	youtubetalent.DefaultLastUpdated = youtubetalentDescLastUpdated.Default.(func() time.Time)
 }

@@ -11,10 +11,16 @@ interface State {
       ID: string;
       Valid: boolean;
     };
-    Memberships?: {};
+    Memberships?: {
+      [talentID: string]:
+        | {
+            LastVerified: number;
+            Past: boolean;
+          }
+        | undefined;
+    };
     ServerAdmin?: string[];
     Servers?: string[];
-    Roles?: { [roleID: string]: number };
   };
   derived: {
     sortedServers: string[];
@@ -24,6 +30,10 @@ interface State {
   discordLoginError?: { [key: string]: any };
   youtubeLogin: LoadState;
   youtubeLoginError?: { [key: string]: any };
+  disconnect: LoadState;
+  disconnectError?: string;
+  remove: LoadState;
+  removeError?: string;
 }
 
 const initialState: State = {
@@ -33,6 +43,8 @@ const initialState: State = {
   },
   discordLogin: LoadState.NotStarted,
   youtubeLogin: LoadState.NotStarted,
+  disconnect: LoadState.NotStarted,
+  remove: LoadState.NotStarted,
 };
 
 const actions = {
@@ -143,6 +155,50 @@ const actions = {
       }
       setState({ user: undefined });
       await authedFetchJSON(`${API_BASE_URL}/logout`, "POST");
+    },
+  disconnectYouTube:
+    (): Action<State> =>
+    async ({ getState, setState }) => {
+      if (getState().disconnect > LoadState.NotStarted) {
+        return;
+      }
+      setState({ disconnect: LoadState.Started });
+      const response = await authedFetchJSON(
+        `${API_BASE_URL}/me/youtube`,
+        "DELETE"
+      );
+      if (!response.ok) {
+        setState({
+          disconnect: LoadState.Failed,
+          disconnectError: await response.json(),
+        });
+        return;
+      }
+      setState({
+        disconnect: LoadState.NotStarted,
+        user: await response.json(),
+      });
+    },
+  remove:
+    (): Action<State> =>
+    async ({ getState, setState }) => {
+      if (getState().remove > LoadState.NotStarted) {
+        return;
+      }
+      setState({ remove: LoadState.Started });
+      const response = await authedFetchJSON(`${API_BASE_URL}/me`, "DELETE");
+      if (!response.ok) {
+        setState({
+          remove: LoadState.Failed,
+          removeError: await response.json(),
+        });
+        return;
+      }
+      setState({
+        remove: LoadState.NotStarted,
+        userLoad: LoadState.Succeeded,
+        user: undefined,
+      });
     },
 };
 

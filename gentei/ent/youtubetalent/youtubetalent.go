@@ -15,6 +15,10 @@ const (
 	FieldChannelName = "channel_name"
 	// FieldThumbnailURL holds the string denoting the thumbnail_url field in the database.
 	FieldThumbnailURL = "thumbnail_url"
+	// FieldMembershipVideoID holds the string denoting the membership_video_id field in the database.
+	FieldMembershipVideoID = "membership_video_id"
+	// FieldLastMembershipVideoIDMiss holds the string denoting the last_membership_video_id_miss field in the database.
+	FieldLastMembershipVideoIDMiss = "last_membership_video_id_miss"
 	// FieldLastUpdated holds the string denoting the last_updated field in the database.
 	FieldLastUpdated = "last_updated"
 	// EdgeGuilds holds the string denoting the guilds edge name in mutations.
@@ -33,6 +37,8 @@ var Columns = []string{
 	FieldID,
 	FieldChannelName,
 	FieldThumbnailURL,
+	FieldMembershipVideoID,
+	FieldLastMembershipVideoIDMiss,
 	FieldLastUpdated,
 }
 

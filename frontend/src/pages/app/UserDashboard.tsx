@@ -1,7 +1,8 @@
 import { Fragment } from "react";
 import AdminServers from "../../components/dashboard/AdminServers";
 import DiscordServers from "../../components/dashboard/DiscordServers";
-import YouTubeLogin from "../../components/dashboard/YouTubeLogin";
+import SelfManage from "../../components/dashboard/SelfManage";
+import { YouTubeLoginOverlay } from "../../components/dashboard/YouTubeLogin";
 import { LoadState } from "../../lib/lib";
 import { useUser } from "../../stores/UserStore";
 
@@ -26,17 +27,17 @@ export default function UserDashboard() {
     );
   }
   let serversOrLoginNode;
-  if (store.user === undefined || store.user.YouTube.Valid) {
+  if (store.user === undefined || !store.user.YouTube.Valid) {
     serversOrLoginNode = (
       <section className="section">
         <DiscordServers />
+        <YouTubeLoginOverlay />
       </section>
     );
   } else {
     serversOrLoginNode = (
       <section className="section" style={{ position: "relative" }}>
         <DiscordServers />
-        <YouTubeLogin />
       </section>
     );
   }
@@ -44,9 +45,10 @@ export default function UserDashboard() {
     <Fragment>
       <div style={{ position: "relative" }}>
         {serversOrLoginNode}
-        <AdminServers />
         {loginRequiredOverlay}
       </div>
+      <SelfManage />
+      <AdminServers />
     </Fragment>
   );
 }

@@ -107,6 +107,20 @@ func ThumbnailURL(v string) predicate.YouTubeTalent {
 	})
 }
 
+// MembershipVideoID applies equality check predicate on the "membership_video_id" field. It's identical to MembershipVideoIDEQ.
+func MembershipVideoID(v string) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldMembershipVideoID), v))
+	})
+}
+
+// LastMembershipVideoIDMiss applies equality check predicate on the "last_membership_video_id_miss" field. It's identical to LastMembershipVideoIDMissEQ.
+func LastMembershipVideoIDMiss(v time.Time) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldLastMembershipVideoIDMiss), v))
+	})
+}
+
 // LastUpdated applies equality check predicate on the "last_updated" field. It's identical to LastUpdatedEQ.
 func LastUpdated(v time.Time) predicate.YouTubeTalent {
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
@@ -333,6 +347,221 @@ func ThumbnailURLEqualFold(v string) predicate.YouTubeTalent {
 func ThumbnailURLContainsFold(v string) predicate.YouTubeTalent {
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
 		s.Where(sql.ContainsFold(s.C(FieldThumbnailURL), v))
+	})
+}
+
+// MembershipVideoIDEQ applies the EQ predicate on the "membership_video_id" field.
+func MembershipVideoIDEQ(v string) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldMembershipVideoID), v))
+	})
+}
+
+// MembershipVideoIDNEQ applies the NEQ predicate on the "membership_video_id" field.
+func MembershipVideoIDNEQ(v string) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldMembershipVideoID), v))
+	})
+}
+
+// MembershipVideoIDIn applies the In predicate on the "membership_video_id" field.
+func MembershipVideoIDIn(vs ...string) predicate.YouTubeTalent {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldMembershipVideoID), v...))
+	})
+}
+
+// MembershipVideoIDNotIn applies the NotIn predicate on the "membership_video_id" field.
+func MembershipVideoIDNotIn(vs ...string) predicate.YouTubeTalent {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldMembershipVideoID), v...))
+	})
+}
+
+// MembershipVideoIDGT applies the GT predicate on the "membership_video_id" field.
+func MembershipVideoIDGT(v string) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldMembershipVideoID), v))
+	})
+}
+
+// MembershipVideoIDGTE applies the GTE predicate on the "membership_video_id" field.
+func MembershipVideoIDGTE(v string) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldMembershipVideoID), v))
+	})
+}
+
+// MembershipVideoIDLT applies the LT predicate on the "membership_video_id" field.
+func MembershipVideoIDLT(v string) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldMembershipVideoID), v))
+	})
+}
+
+// MembershipVideoIDLTE applies the LTE predicate on the "membership_video_id" field.
+func MembershipVideoIDLTE(v string) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldMembershipVideoID), v))
+	})
+}
+
+// MembershipVideoIDContains applies the Contains predicate on the "membership_video_id" field.
+func MembershipVideoIDContains(v string) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.Contains(s.C(FieldMembershipVideoID), v))
+	})
+}
+
+// MembershipVideoIDHasPrefix applies the HasPrefix predicate on the "membership_video_id" field.
+func MembershipVideoIDHasPrefix(v string) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.HasPrefix(s.C(FieldMembershipVideoID), v))
+	})
+}
+
+// MembershipVideoIDHasSuffix applies the HasSuffix predicate on the "membership_video_id" field.
+func MembershipVideoIDHasSuffix(v string) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.HasSuffix(s.C(FieldMembershipVideoID), v))
+	})
+}
+
+// MembershipVideoIDIsNil applies the IsNil predicate on the "membership_video_id" field.
+func MembershipVideoIDIsNil() predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldMembershipVideoID)))
+	})
+}
+
+// MembershipVideoIDNotNil applies the NotNil predicate on the "membership_video_id" field.
+func MembershipVideoIDNotNil() predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldMembershipVideoID)))
+	})
+}
+
+// MembershipVideoIDEqualFold applies the EqualFold predicate on the "membership_video_id" field.
+func MembershipVideoIDEqualFold(v string) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.EqualFold(s.C(FieldMembershipVideoID), v))
+	})
+}
+
+// MembershipVideoIDContainsFold applies the ContainsFold predicate on the "membership_video_id" field.
+func MembershipVideoIDContainsFold(v string) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.ContainsFold(s.C(FieldMembershipVideoID), v))
+	})
+}
+
+// LastMembershipVideoIDMissEQ applies the EQ predicate on the "last_membership_video_id_miss" field.
+func LastMembershipVideoIDMissEQ(v time.Time) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldLastMembershipVideoIDMiss), v))
+	})
+}
+
+// LastMembershipVideoIDMissNEQ applies the NEQ predicate on the "last_membership_video_id_miss" field.
+func LastMembershipVideoIDMissNEQ(v time.Time) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldLastMembershipVideoIDMiss), v))
+	})
+}
+
+// LastMembershipVideoIDMissIn applies the In predicate on the "last_membership_video_id_miss" field.
+func LastMembershipVideoIDMissIn(vs ...time.Time) predicate.YouTubeTalent {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldLastMembershipVideoIDMiss), v...))
+	})
+}
+
+// LastMembershipVideoIDMissNotIn applies the NotIn predicate on the "last_membership_video_id_miss" field.
+func LastMembershipVideoIDMissNotIn(vs ...time.Time) predicate.YouTubeTalent {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldLastMembershipVideoIDMiss), v...))
+	})
+}
+
+// LastMembershipVideoIDMissGT applies the GT predicate on the "last_membership_video_id_miss" field.
+func LastMembershipVideoIDMissGT(v time.Time) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldLastMembershipVideoIDMiss), v))
+	})
+}
+
+// LastMembershipVideoIDMissGTE applies the GTE predicate on the "last_membership_video_id_miss" field.
+func LastMembershipVideoIDMissGTE(v time.Time) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldLastMembershipVideoIDMiss), v))
+	})
+}
+
+// LastMembershipVideoIDMissLT applies the LT predicate on the "last_membership_video_id_miss" field.
+func LastMembershipVideoIDMissLT(v time.Time) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldLastMembershipVideoIDMiss), v))
+	})
+}
+
+// LastMembershipVideoIDMissLTE applies the LTE predicate on the "last_membership_video_id_miss" field.
+func LastMembershipVideoIDMissLTE(v time.Time) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldLastMembershipVideoIDMiss), v))
+	})
+}
+
+// LastMembershipVideoIDMissIsNil applies the IsNil predicate on the "last_membership_video_id_miss" field.
+func LastMembershipVideoIDMissIsNil() predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldLastMembershipVideoIDMiss)))
+	})
+}
+
+// LastMembershipVideoIDMissNotNil applies the NotNil predicate on the "last_membership_video_id_miss" field.
+func LastMembershipVideoIDMissNotNil() predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldLastMembershipVideoIDMiss)))
 	})
 }
 

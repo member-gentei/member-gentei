@@ -10,6 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqljson"
+	"github.com/bwmarrin/discordgo"
 	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -53,6 +56,8 @@ func ServeAPI(db *ent.Client, discordConfig *oauth2.Config, youTubeConfig *oauth
 	loginRequired.POST("/login/youtube", loginYouTube(db, youTubeConfig))
 	loginRequired.POST("/logout", logout())
 	loginRequired.GET("/me", getMe(db))
+	loginRequired.DELETE("/me/youtube", deleteYouTube(db))
+	loginRequired.DELETE("/me", deleteMe(db))
 	loginRequired.POST("/enroll-guild", enrollGuild(db, &enrollDiscordConfig))
 	loginRequired.GET("/guild/:id", getGuild(db))
 	loginRequired.PATCH("/guild/:id", patchGuild(db))
@@ -100,7 +105,11 @@ func loginDiscord(
 			log.Err(err).Msgf("concrete type: %T", err)
 			return err
 		}
-		discordUser, err := getDiscordTokenMe(oauthToken)
+		svc, err := discordgo.New(fmt.Sprintf("Bearer %s", oauthToken.AccessToken))
+		if err != nil {
+			return err
+		}
+		discordUser, err := svc.User("@me")
 		if err != nil {
 			return err
 		}
@@ -124,6 +133,11 @@ func loginDiscord(
 		if err != nil {
 			return err
 		}
+		// on create, we check all enrolled servers for privs and presence
+		isUpdate, err := db.User.Query().Where(user.ID(userID)).Exist(ctx)
+		if err != nil {
+			return err
+		}
 		userDBID, err := db.User.Create().
 			SetID(userID).
 			SetFullName(fmt.Sprintf("%s#%s", discordUser.Username, discordUser.Discriminator)).
@@ -133,6 +147,45 @@ func loginDiscord(
 			ID(ctx)
 		if err != nil {
 			return err
+		}
+		if !isUpdate {
+			userGuilds, err := svc.UserGuilds(0, "", "")
+			if err != nil {
+				return err
+			}
+			var userGuildIDs = make([]uint64, len(userGuilds))
+			for i, ug := range userGuilds {
+				guildID, err := strconv.ParseUint(ug.ID, 10, 64)
+				if err != nil {
+					return err
+				}
+				userGuildIDs[i] = guildID
+			}
+			// link guild members
+			guildIDs, err := db.Guild.Query().Where(
+				guild.IDIn(userGuildIDs...),
+			).IDs(ctx)
+			if err != nil {
+				return err
+			}
+			log.Debug().
+				Uints64("guildIDs", userGuildIDs).
+				Uints64("ourGuildIDs", guildIDs).
+				Msg("user guilds")
+			// link admins
+			adminIDs, err := db.Guild.Query().Where(func(s *sql.Selector) {
+				s.Where(sqljson.ValueContains(guild.FieldAdminSnowflakes, userID))
+			}).IDs(ctx)
+			if err != nil {
+				return err
+			}
+			err = db.User.UpdateOneID(userDBID).
+				AddGuildIDs(guildIDs...).
+				AddGuildsAdminIDs(adminIDs...).
+				Exec(ctx)
+			if err != nil {
+				return err
+			}
 		}
 		c.SetCookie(&http.Cookie{
 			Name:     "token",
@@ -247,9 +300,14 @@ type meResponse struct {
 	AvatarHash    string
 	YouTube       meResponseYouTube
 	LastRefreshed int64
-	Memberships   map[string]schema.MembershipMetadata `json:",omitempty"`
-	ServerAdmin   []string                             `json:",omitempty"`
-	Servers       []string                             `json:",omitempty"`
+	Memberships   map[string]meResponseMembership `json:",omitempty"`
+	ServerAdmin   []string                        `json:",omitempty"`
+	Servers       []string                        `json:",omitempty"`
+}
+
+type meResponseMembership struct {
+	LastVerified int64
+	Past         bool
 }
 
 type meResponseYouTube struct {
@@ -259,7 +317,7 @@ type meResponseYouTube struct {
 
 func meResponseFromUser(user *ent.User) meResponse {
 	yt := meResponseYouTube{
-		Valid: user.YoutubeToken.Valid(),
+		Valid: user.YoutubeToken != nil,
 	}
 	if user.YoutubeID != nil {
 		yt.ID = *user.YoutubeID
@@ -278,13 +336,20 @@ func meResponseFromUser(user *ent.User) meResponse {
 			servers = append(servers, strconv.FormatUint(dg.ID, 10))
 		}
 	}
+	var memberships = make(map[string]meResponseMembership, len(user.MembershipMetadata))
+	for k, v := range user.MembershipMetadata {
+		memberships[k] = meResponseMembership{
+			LastVerified: v.LastVerified.Unix(),
+			Past:         v.Past,
+		}
+	}
 	return meResponse{
 		ID:            strconv.FormatUint(user.ID, 10),
 		FullName:      user.FullName,
 		AvatarHash:    user.AvatarHash,
 		LastRefreshed: user.LastCheck.Unix(),
 		YouTube:       yt,
-		Memberships:   user.MembershipMetadata,
+		Memberships:   memberships,
 		ServerAdmin:   serverAdmin,
 		Servers:       servers,
 	}
@@ -311,6 +376,47 @@ func getMe(db *ent.Client) echo.HandlerFunc {
 		}
 		// TODO: cache management on this response
 		return c.JSON(http.StatusOK, meResponseFromUser(u))
+	}
+}
+
+func deleteYouTube(db *ent.Client) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var (
+			ctx     = c.Request().Context()
+			jwtUser = c.Get("user").(*jwt.Token)
+			claims  = jwtUser.Claims.(*jwt.StandardClaims)
+		)
+		userID, err := strconv.ParseUint(claims.Id, 10, 64)
+		if err != nil {
+			return err
+		}
+		u, err := db.User.UpdateOneID(userID).
+			ClearYoutubeID().
+			ClearYoutubeMemberships().
+			Save(ctx)
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusOK, meResponseFromUser(u))
+	}
+}
+
+func deleteMe(db *ent.Client) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var (
+			ctx     = c.Request().Context()
+			jwtUser = c.Get("user").(*jwt.Token)
+			claims  = jwtUser.Claims.(*jwt.StandardClaims)
+		)
+		userID, err := strconv.ParseUint(claims.Id, 10, 64)
+		if err != nil {
+			return err
+		}
+		err = db.User.DeleteOneID(userID).Exec(ctx)
+		if err != nil {
+			return err
+		}
+		return logout()(c)
 	}
 }
 
@@ -509,7 +615,8 @@ func patchGuild(db *ent.Client) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, patchGuildErrorResponse{
 				Error: patchGuildErrorResponseError{
 					Talents: map[string]string{
-						nmpErr.ChannelID: "memberships not open"},
+						nmpErr.ChannelID: "memberships not open",
+					},
 				},
 			})
 		}

@@ -2591,19 +2591,21 @@ func (m *UserMutation) ResetEdge(name string) error {
 // YouTubeTalentMutation represents an operation that mutates the YouTubeTalent nodes in the graph.
 type YouTubeTalentMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *string
-	channel_name  *string
-	thumbnail_url *string
-	last_updated  *time.Time
-	clearedFields map[string]struct{}
-	guilds        map[uint64]struct{}
-	removedguilds map[uint64]struct{}
-	clearedguilds bool
-	done          bool
-	oldValue      func(context.Context) (*YouTubeTalent, error)
-	predicates    []predicate.YouTubeTalent
+	op                            Op
+	typ                           string
+	id                            *string
+	channel_name                  *string
+	thumbnail_url                 *string
+	membership_video_id           *string
+	last_membership_video_id_miss *time.Time
+	last_updated                  *time.Time
+	clearedFields                 map[string]struct{}
+	guilds                        map[uint64]struct{}
+	removedguilds                 map[uint64]struct{}
+	clearedguilds                 bool
+	done                          bool
+	oldValue                      func(context.Context) (*YouTubeTalent, error)
+	predicates                    []predicate.YouTubeTalent
 }
 
 var _ ent.Mutation = (*YouTubeTalentMutation)(nil)
@@ -2763,6 +2765,104 @@ func (m *YouTubeTalentMutation) ResetThumbnailURL() {
 	m.thumbnail_url = nil
 }
 
+// SetMembershipVideoID sets the "membership_video_id" field.
+func (m *YouTubeTalentMutation) SetMembershipVideoID(s string) {
+	m.membership_video_id = &s
+}
+
+// MembershipVideoID returns the value of the "membership_video_id" field in the mutation.
+func (m *YouTubeTalentMutation) MembershipVideoID() (r string, exists bool) {
+	v := m.membership_video_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMembershipVideoID returns the old "membership_video_id" field's value of the YouTubeTalent entity.
+// If the YouTubeTalent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *YouTubeTalentMutation) OldMembershipVideoID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldMembershipVideoID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldMembershipVideoID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMembershipVideoID: %w", err)
+	}
+	return oldValue.MembershipVideoID, nil
+}
+
+// ClearMembershipVideoID clears the value of the "membership_video_id" field.
+func (m *YouTubeTalentMutation) ClearMembershipVideoID() {
+	m.membership_video_id = nil
+	m.clearedFields[youtubetalent.FieldMembershipVideoID] = struct{}{}
+}
+
+// MembershipVideoIDCleared returns if the "membership_video_id" field was cleared in this mutation.
+func (m *YouTubeTalentMutation) MembershipVideoIDCleared() bool {
+	_, ok := m.clearedFields[youtubetalent.FieldMembershipVideoID]
+	return ok
+}
+
+// ResetMembershipVideoID resets all changes to the "membership_video_id" field.
+func (m *YouTubeTalentMutation) ResetMembershipVideoID() {
+	m.membership_video_id = nil
+	delete(m.clearedFields, youtubetalent.FieldMembershipVideoID)
+}
+
+// SetLastMembershipVideoIDMiss sets the "last_membership_video_id_miss" field.
+func (m *YouTubeTalentMutation) SetLastMembershipVideoIDMiss(t time.Time) {
+	m.last_membership_video_id_miss = &t
+}
+
+// LastMembershipVideoIDMiss returns the value of the "last_membership_video_id_miss" field in the mutation.
+func (m *YouTubeTalentMutation) LastMembershipVideoIDMiss() (r time.Time, exists bool) {
+	v := m.last_membership_video_id_miss
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastMembershipVideoIDMiss returns the old "last_membership_video_id_miss" field's value of the YouTubeTalent entity.
+// If the YouTubeTalent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *YouTubeTalentMutation) OldLastMembershipVideoIDMiss(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldLastMembershipVideoIDMiss is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldLastMembershipVideoIDMiss requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastMembershipVideoIDMiss: %w", err)
+	}
+	return oldValue.LastMembershipVideoIDMiss, nil
+}
+
+// ClearLastMembershipVideoIDMiss clears the value of the "last_membership_video_id_miss" field.
+func (m *YouTubeTalentMutation) ClearLastMembershipVideoIDMiss() {
+	m.last_membership_video_id_miss = nil
+	m.clearedFields[youtubetalent.FieldLastMembershipVideoIDMiss] = struct{}{}
+}
+
+// LastMembershipVideoIDMissCleared returns if the "last_membership_video_id_miss" field was cleared in this mutation.
+func (m *YouTubeTalentMutation) LastMembershipVideoIDMissCleared() bool {
+	_, ok := m.clearedFields[youtubetalent.FieldLastMembershipVideoIDMiss]
+	return ok
+}
+
+// ResetLastMembershipVideoIDMiss resets all changes to the "last_membership_video_id_miss" field.
+func (m *YouTubeTalentMutation) ResetLastMembershipVideoIDMiss() {
+	m.last_membership_video_id_miss = nil
+	delete(m.clearedFields, youtubetalent.FieldLastMembershipVideoIDMiss)
+}
+
 // SetLastUpdated sets the "last_updated" field.
 func (m *YouTubeTalentMutation) SetLastUpdated(t time.Time) {
 	m.last_updated = &t
@@ -2872,12 +2972,18 @@ func (m *YouTubeTalentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *YouTubeTalentMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 5)
 	if m.channel_name != nil {
 		fields = append(fields, youtubetalent.FieldChannelName)
 	}
 	if m.thumbnail_url != nil {
 		fields = append(fields, youtubetalent.FieldThumbnailURL)
+	}
+	if m.membership_video_id != nil {
+		fields = append(fields, youtubetalent.FieldMembershipVideoID)
+	}
+	if m.last_membership_video_id_miss != nil {
+		fields = append(fields, youtubetalent.FieldLastMembershipVideoIDMiss)
 	}
 	if m.last_updated != nil {
 		fields = append(fields, youtubetalent.FieldLastUpdated)
@@ -2894,6 +3000,10 @@ func (m *YouTubeTalentMutation) Field(name string) (ent.Value, bool) {
 		return m.ChannelName()
 	case youtubetalent.FieldThumbnailURL:
 		return m.ThumbnailURL()
+	case youtubetalent.FieldMembershipVideoID:
+		return m.MembershipVideoID()
+	case youtubetalent.FieldLastMembershipVideoIDMiss:
+		return m.LastMembershipVideoIDMiss()
 	case youtubetalent.FieldLastUpdated:
 		return m.LastUpdated()
 	}
@@ -2909,6 +3019,10 @@ func (m *YouTubeTalentMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldChannelName(ctx)
 	case youtubetalent.FieldThumbnailURL:
 		return m.OldThumbnailURL(ctx)
+	case youtubetalent.FieldMembershipVideoID:
+		return m.OldMembershipVideoID(ctx)
+	case youtubetalent.FieldLastMembershipVideoIDMiss:
+		return m.OldLastMembershipVideoIDMiss(ctx)
 	case youtubetalent.FieldLastUpdated:
 		return m.OldLastUpdated(ctx)
 	}
@@ -2933,6 +3047,20 @@ func (m *YouTubeTalentMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetThumbnailURL(v)
+		return nil
+	case youtubetalent.FieldMembershipVideoID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMembershipVideoID(v)
+		return nil
+	case youtubetalent.FieldLastMembershipVideoIDMiss:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastMembershipVideoIDMiss(v)
 		return nil
 	case youtubetalent.FieldLastUpdated:
 		v, ok := value.(time.Time)
@@ -2970,7 +3098,14 @@ func (m *YouTubeTalentMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *YouTubeTalentMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(youtubetalent.FieldMembershipVideoID) {
+		fields = append(fields, youtubetalent.FieldMembershipVideoID)
+	}
+	if m.FieldCleared(youtubetalent.FieldLastMembershipVideoIDMiss) {
+		fields = append(fields, youtubetalent.FieldLastMembershipVideoIDMiss)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -2983,6 +3118,14 @@ func (m *YouTubeTalentMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *YouTubeTalentMutation) ClearField(name string) error {
+	switch name {
+	case youtubetalent.FieldMembershipVideoID:
+		m.ClearMembershipVideoID()
+		return nil
+	case youtubetalent.FieldLastMembershipVideoIDMiss:
+		m.ClearLastMembershipVideoIDMiss()
+		return nil
+	}
 	return fmt.Errorf("unknown YouTubeTalent nullable field %s", name)
 }
 
@@ -2995,6 +3138,12 @@ func (m *YouTubeTalentMutation) ResetField(name string) error {
 		return nil
 	case youtubetalent.FieldThumbnailURL:
 		m.ResetThumbnailURL()
+		return nil
+	case youtubetalent.FieldMembershipVideoID:
+		m.ResetMembershipVideoID()
+		return nil
+	case youtubetalent.FieldLastMembershipVideoIDMiss:
+		m.ResetLastMembershipVideoIDMiss()
 		return nil
 	case youtubetalent.FieldLastUpdated:
 		m.ResetLastUpdated()

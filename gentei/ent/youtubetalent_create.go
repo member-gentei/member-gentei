@@ -36,6 +36,34 @@ func (yttc *YouTubeTalentCreate) SetThumbnailURL(s string) *YouTubeTalentCreate 
 	return yttc
 }
 
+// SetMembershipVideoID sets the "membership_video_id" field.
+func (yttc *YouTubeTalentCreate) SetMembershipVideoID(s string) *YouTubeTalentCreate {
+	yttc.mutation.SetMembershipVideoID(s)
+	return yttc
+}
+
+// SetNillableMembershipVideoID sets the "membership_video_id" field if the given value is not nil.
+func (yttc *YouTubeTalentCreate) SetNillableMembershipVideoID(s *string) *YouTubeTalentCreate {
+	if s != nil {
+		yttc.SetMembershipVideoID(*s)
+	}
+	return yttc
+}
+
+// SetLastMembershipVideoIDMiss sets the "last_membership_video_id_miss" field.
+func (yttc *YouTubeTalentCreate) SetLastMembershipVideoIDMiss(t time.Time) *YouTubeTalentCreate {
+	yttc.mutation.SetLastMembershipVideoIDMiss(t)
+	return yttc
+}
+
+// SetNillableLastMembershipVideoIDMiss sets the "last_membership_video_id_miss" field if the given value is not nil.
+func (yttc *YouTubeTalentCreate) SetNillableLastMembershipVideoIDMiss(t *time.Time) *YouTubeTalentCreate {
+	if t != nil {
+		yttc.SetLastMembershipVideoIDMiss(*t)
+	}
+	return yttc
+}
+
 // SetLastUpdated sets the "last_updated" field.
 func (yttc *YouTubeTalentCreate) SetLastUpdated(t time.Time) *YouTubeTalentCreate {
 	yttc.mutation.SetLastUpdated(t)
@@ -208,6 +236,22 @@ func (yttc *YouTubeTalentCreate) createSpec() (*YouTubeTalent, *sqlgraph.CreateS
 		})
 		_node.ThumbnailURL = value
 	}
+	if value, ok := yttc.mutation.MembershipVideoID(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: youtubetalent.FieldMembershipVideoID,
+		})
+		_node.MembershipVideoID = value
+	}
+	if value, ok := yttc.mutation.LastMembershipVideoIDMiss(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: youtubetalent.FieldLastMembershipVideoIDMiss,
+		})
+		_node.LastMembershipVideoIDMiss = value
+	}
 	if value, ok := yttc.mutation.LastUpdated(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
 			Type:   field.TypeTime,
@@ -313,6 +357,42 @@ func (u *YouTubeTalentUpsert) UpdateThumbnailURL() *YouTubeTalentUpsert {
 	return u
 }
 
+// SetMembershipVideoID sets the "membership_video_id" field.
+func (u *YouTubeTalentUpsert) SetMembershipVideoID(v string) *YouTubeTalentUpsert {
+	u.Set(youtubetalent.FieldMembershipVideoID, v)
+	return u
+}
+
+// UpdateMembershipVideoID sets the "membership_video_id" field to the value that was provided on create.
+func (u *YouTubeTalentUpsert) UpdateMembershipVideoID() *YouTubeTalentUpsert {
+	u.SetExcluded(youtubetalent.FieldMembershipVideoID)
+	return u
+}
+
+// ClearMembershipVideoID clears the value of the "membership_video_id" field.
+func (u *YouTubeTalentUpsert) ClearMembershipVideoID() *YouTubeTalentUpsert {
+	u.SetNull(youtubetalent.FieldMembershipVideoID)
+	return u
+}
+
+// SetLastMembershipVideoIDMiss sets the "last_membership_video_id_miss" field.
+func (u *YouTubeTalentUpsert) SetLastMembershipVideoIDMiss(v time.Time) *YouTubeTalentUpsert {
+	u.Set(youtubetalent.FieldLastMembershipVideoIDMiss, v)
+	return u
+}
+
+// UpdateLastMembershipVideoIDMiss sets the "last_membership_video_id_miss" field to the value that was provided on create.
+func (u *YouTubeTalentUpsert) UpdateLastMembershipVideoIDMiss() *YouTubeTalentUpsert {
+	u.SetExcluded(youtubetalent.FieldLastMembershipVideoIDMiss)
+	return u
+}
+
+// ClearLastMembershipVideoIDMiss clears the value of the "last_membership_video_id_miss" field.
+func (u *YouTubeTalentUpsert) ClearLastMembershipVideoIDMiss() *YouTubeTalentUpsert {
+	u.SetNull(youtubetalent.FieldLastMembershipVideoIDMiss)
+	return u
+}
+
 // SetLastUpdated sets the "last_updated" field.
 func (u *YouTubeTalentUpsert) SetLastUpdated(v time.Time) *YouTubeTalentUpsert {
 	u.Set(youtubetalent.FieldLastUpdated, v)
@@ -400,6 +480,48 @@ func (u *YouTubeTalentUpsertOne) SetThumbnailURL(v string) *YouTubeTalentUpsertO
 func (u *YouTubeTalentUpsertOne) UpdateThumbnailURL() *YouTubeTalentUpsertOne {
 	return u.Update(func(s *YouTubeTalentUpsert) {
 		s.UpdateThumbnailURL()
+	})
+}
+
+// SetMembershipVideoID sets the "membership_video_id" field.
+func (u *YouTubeTalentUpsertOne) SetMembershipVideoID(v string) *YouTubeTalentUpsertOne {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.SetMembershipVideoID(v)
+	})
+}
+
+// UpdateMembershipVideoID sets the "membership_video_id" field to the value that was provided on create.
+func (u *YouTubeTalentUpsertOne) UpdateMembershipVideoID() *YouTubeTalentUpsertOne {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.UpdateMembershipVideoID()
+	})
+}
+
+// ClearMembershipVideoID clears the value of the "membership_video_id" field.
+func (u *YouTubeTalentUpsertOne) ClearMembershipVideoID() *YouTubeTalentUpsertOne {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.ClearMembershipVideoID()
+	})
+}
+
+// SetLastMembershipVideoIDMiss sets the "last_membership_video_id_miss" field.
+func (u *YouTubeTalentUpsertOne) SetLastMembershipVideoIDMiss(v time.Time) *YouTubeTalentUpsertOne {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.SetLastMembershipVideoIDMiss(v)
+	})
+}
+
+// UpdateLastMembershipVideoIDMiss sets the "last_membership_video_id_miss" field to the value that was provided on create.
+func (u *YouTubeTalentUpsertOne) UpdateLastMembershipVideoIDMiss() *YouTubeTalentUpsertOne {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.UpdateLastMembershipVideoIDMiss()
+	})
+}
+
+// ClearLastMembershipVideoIDMiss clears the value of the "last_membership_video_id_miss" field.
+func (u *YouTubeTalentUpsertOne) ClearLastMembershipVideoIDMiss() *YouTubeTalentUpsertOne {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.ClearLastMembershipVideoIDMiss()
 	})
 }
 
@@ -658,6 +780,48 @@ func (u *YouTubeTalentUpsertBulk) SetThumbnailURL(v string) *YouTubeTalentUpsert
 func (u *YouTubeTalentUpsertBulk) UpdateThumbnailURL() *YouTubeTalentUpsertBulk {
 	return u.Update(func(s *YouTubeTalentUpsert) {
 		s.UpdateThumbnailURL()
+	})
+}
+
+// SetMembershipVideoID sets the "membership_video_id" field.
+func (u *YouTubeTalentUpsertBulk) SetMembershipVideoID(v string) *YouTubeTalentUpsertBulk {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.SetMembershipVideoID(v)
+	})
+}
+
+// UpdateMembershipVideoID sets the "membership_video_id" field to the value that was provided on create.
+func (u *YouTubeTalentUpsertBulk) UpdateMembershipVideoID() *YouTubeTalentUpsertBulk {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.UpdateMembershipVideoID()
+	})
+}
+
+// ClearMembershipVideoID clears the value of the "membership_video_id" field.
+func (u *YouTubeTalentUpsertBulk) ClearMembershipVideoID() *YouTubeTalentUpsertBulk {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.ClearMembershipVideoID()
+	})
+}
+
+// SetLastMembershipVideoIDMiss sets the "last_membership_video_id_miss" field.
+func (u *YouTubeTalentUpsertBulk) SetLastMembershipVideoIDMiss(v time.Time) *YouTubeTalentUpsertBulk {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.SetLastMembershipVideoIDMiss(v)
+	})
+}
+
+// UpdateLastMembershipVideoIDMiss sets the "last_membership_video_id_miss" field to the value that was provided on create.
+func (u *YouTubeTalentUpsertBulk) UpdateLastMembershipVideoIDMiss() *YouTubeTalentUpsertBulk {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.UpdateLastMembershipVideoIDMiss()
+	})
+}
+
+// ClearLastMembershipVideoIDMiss clears the value of the "last_membership_video_id_miss" field.
+func (u *YouTubeTalentUpsertBulk) ClearLastMembershipVideoIDMiss() *YouTubeTalentUpsertBulk {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.ClearLastMembershipVideoIDMiss()
 	})
 }
 

@@ -88,7 +88,7 @@ function GuildAdminInner({ guildID }: GuildAdminInnerProps) {
           </p>
           {membershipManagers}
         </div>
-        <div className="content">
+        <div className="mt-4">
           <div className="control has-text-centered">
             <Link
               className="button is-primary is-medium"
