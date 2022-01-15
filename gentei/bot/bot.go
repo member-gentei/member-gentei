@@ -2,10 +2,12 @@ package bot
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/member-gentei/member-gentei/gentei/bot/roles"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/rs/zerolog/log"
 )
@@ -13,6 +15,7 @@ import (
 type DiscordBot struct {
 	session *discordgo.Session
 	db      *ent.Client
+	rut     *roles.RoleUpdateTracker
 }
 
 func New(db *ent.Client, token string) (*DiscordBot, error) {
@@ -20,9 +23,11 @@ func New(db *ent.Client, token string) (*DiscordBot, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error creating discordgo session: %w", err)
 	}
+	rut := roles.NewRoleUpdateTracker(session)
 	return &DiscordBot{
 		session: session,
 		db:      db,
+		rut:     rut,
 	}, nil
 }
 
@@ -67,6 +72,44 @@ func (b *DiscordBot) Start(prod, upsertCommands bool) (err error) {
 
 func (b *DiscordBot) Close() error {
 	return b.session.Close()
+}
+
+func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint64, add bool) error {
+	var (
+		applyCtx, cancelApplyCtx = context.WithCancel(ctx)
+		guildIDStr               = strconv.FormatUint(guildID, 10)
+		roleIDStr                = strconv.FormatUint(roleID, 10)
+		userIDStr                = strconv.FormatUint(userID, 10)
+	)
+	b.rut.TrackHook(guildIDStr, userIDStr, func(gmu *discordgo.GuildMemberUpdate) (remove bool) {
+		if add {
+			for _, roleID := range gmu.Roles {
+				if roleID == roleIDStr {
+					cancelApplyCtx()
+					return true
+				}
+			}
+		} else {
+			for _, roleID := range gmu.Roles {
+				if roleID == roleIDStr {
+					return false
+				}
+			}
+			cancelApplyCtx()
+			return true
+		}
+		return
+	})
+	result := <-roles.ApplyRole(applyCtx, b.session, guildID, userID, roleID, add)
+	err := result.Error
+	if errors.Is(err, context.Canceled) {
+		err = nil
+	}
+	log.Err(err).
+		Uint64("guildID", guildID).Uint64("userID", userID).Uint64("roleID", roleID).
+		Int("attempts", result.Attempts).
+		Msg("role apply attempt finished")
+	return err
 }
 
 func getMessageAttributionIDs(i *discordgo.InteractionCreate) (guildID, userID uint64, err error) {

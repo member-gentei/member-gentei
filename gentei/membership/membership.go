@@ -70,7 +70,7 @@ func CheckForUser(
 	for _, talent := range talents {
 		logger := log.With().Str("channelID", talent.ID).Logger()
 		logger.Debug().Msg("checking membership for channel")
-		// if we don't have a membership video ID for this talent, try to get one using this user every ~24 hours
+		// if we don't have a membership video ID for this talent, try to get one using a possibly eligible user every ~24 hours
 		if talent.MembershipVideoID == "" {
 			if time.Since(talent.LastMembershipVideoIDMiss).Hours() < 24 {
 				continue
