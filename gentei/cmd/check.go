@@ -36,16 +36,22 @@ var checkCmd = &cobra.Command{
 			db       = mustOpenDB(ctx)
 			ytConfig = getYouTubeConfig()
 		)
-		lost, gained, retained, err := membership.CheckForUser(ctx, db, ytConfig, flagCheckUserID, nil)
-		if err != nil {
-			log.Fatal().Err(err).Msg("error checking memberships for user")
+		// check single user ID
+		if flagCheckUserID != 0 {
+			lost, gained, retained, err := membership.CheckForUser(ctx, db, ytConfig, flagCheckUserID, nil)
+			if err != nil {
+				log.Fatal().Err(err).Msg("error checking memberships for user")
+			}
+			log.Info().
+				Strs("lost", lost).
+				Strs("gained", gained).
+				Strs("retained", retained).
+				Uint64("userID", flagCheckUserID).
+				Msg("check results")
+			return
 		}
-		log.Info().
-			Strs("lost", lost).
-			Strs("gained", gained).
-			Strs("retained", retained).
-			Uint64("userID", flagCheckUserID).
-			Msg("check results")
+		// otherwise, check all stale
+		membership.CheckStale(ctx, db, ytConfig, nil)
 	},
 }
 

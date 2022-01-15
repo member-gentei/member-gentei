@@ -49,6 +49,7 @@ func youTubeAPIRetryPolicy(ctx context.Context, r *http.Response, err error) (bo
 			case
 				"Token has been expired or revoked.",
 				"Bad Request":
+				r.Body.Close()
 				return false, err
 			}
 		}

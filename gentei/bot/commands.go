@@ -27,6 +27,7 @@ var (
 	// TODO: maybe not hardcode this
 	earlyAccessGuilds = []string{
 		"929085334430556240",
+		"497603499190779914",
 	}
 	earlyAccessCommand = &discordgo.ApplicationCommand{
 		Name:        eaCommandName,
@@ -44,7 +45,7 @@ var (
 				Options: []*discordgo.ApplicationCommandOption{
 					{
 						Name:        "map",
-						Description: "Change role mapping of a channel -> Discord role",
+						Description: "Change role mapping of a channel -> Discord role.",
 						Type:        discordgo.ApplicationCommandOptionSubCommand,
 						Options: []*discordgo.ApplicationCommandOption{
 							{
@@ -55,9 +56,26 @@ var (
 							},
 							{
 								Name:        "role",
-								Description: "The role for members of this channel",
+								Description: "The Discord role for members of this YouTube channel",
 								Type:        discordgo.ApplicationCommandOptionRole,
 								Required:    true,
+							},
+						},
+					},
+					{
+						Name:        "unmap",
+						Description: "Remove role mapping by referencing either the YouTube channel or Discord role.",
+						Type:        discordgo.ApplicationCommandOptionSubCommand,
+						Options: []*discordgo.ApplicationCommandOption{
+							{
+								Name:        "youtube-channel-id",
+								Description: "The YouTube channel ID whose memberships we should stop monitoring. (e.g. UCAL_ZudIZXhCDrniD4ZQobQ)",
+								Type:        discordgo.ApplicationCommandOptionString,
+							},
+							{
+								Name:        "role",
+								Description: "The Discord role for members of a YouTube channel",
+								Type:        discordgo.ApplicationCommandOptionRole,
 							},
 						},
 					},
@@ -124,6 +142,8 @@ func (b *DiscordBot) handleManage(ctx context.Context, i *discordgo.InteractionC
 			switch subcommand.Name {
 			case "map":
 				return b.handleManageMap(ctx, logger, i, subcommand)
+			case "unmap":
+				return b.handleManageUnmap(ctx, logger, i, subcommand)
 			default:
 				return &discordgo.WebhookEdit{
 					Content: "You've somehow sent an unknown `/gentei manage` command. Discord is not supposed to allow this to happen so... try reloading this browser window or your Discord client? :thinking:",
