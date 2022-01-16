@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { Link, useParams } from "react-router-dom";
 import GuildMembershipManager from "../../components/GuildMembershipManager";
 import { LoadState } from "../../lib/lib";
@@ -70,7 +71,9 @@ function GuildAdminInner({ guildID }: GuildAdminInnerProps) {
             <dt>Discord IDs with admin access</dt>
             <dd>
               {guild.AdminIDs.map((snowflake) => (
-                <code key={snowflake}>{snowflake}</code>
+                <Fragment key={snowflake}>
+                  <code>{snowflake}</code>{" "}
+                </Fragment>
               ))}
             </dd>
           </dl>
