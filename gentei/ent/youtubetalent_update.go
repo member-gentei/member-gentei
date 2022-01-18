@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
 	"github.com/member-gentei/member-gentei/gentei/ent/predicate"
+	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 )
 
@@ -109,6 +110,21 @@ func (yttu *YouTubeTalentUpdate) AddGuilds(g ...*Guild) *YouTubeTalentUpdate {
 	return yttu.AddGuildIDs(ids...)
 }
 
+// AddMemberIDs adds the "members" edge to the User entity by IDs.
+func (yttu *YouTubeTalentUpdate) AddMemberIDs(ids ...uint64) *YouTubeTalentUpdate {
+	yttu.mutation.AddMemberIDs(ids...)
+	return yttu
+}
+
+// AddMembers adds the "members" edges to the User entity.
+func (yttu *YouTubeTalentUpdate) AddMembers(u ...*User) *YouTubeTalentUpdate {
+	ids := make([]uint64, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return yttu.AddMemberIDs(ids...)
+}
+
 // Mutation returns the YouTubeTalentMutation object of the builder.
 func (yttu *YouTubeTalentUpdate) Mutation() *YouTubeTalentMutation {
 	return yttu.mutation
@@ -133,6 +149,27 @@ func (yttu *YouTubeTalentUpdate) RemoveGuilds(g ...*Guild) *YouTubeTalentUpdate 
 		ids[i] = g[i].ID
 	}
 	return yttu.RemoveGuildIDs(ids...)
+}
+
+// ClearMembers clears all "members" edges to the User entity.
+func (yttu *YouTubeTalentUpdate) ClearMembers() *YouTubeTalentUpdate {
+	yttu.mutation.ClearMembers()
+	return yttu
+}
+
+// RemoveMemberIDs removes the "members" edge to User entities by IDs.
+func (yttu *YouTubeTalentUpdate) RemoveMemberIDs(ids ...uint64) *YouTubeTalentUpdate {
+	yttu.mutation.RemoveMemberIDs(ids...)
+	return yttu
+}
+
+// RemoveMembers removes "members" edges to User entities.
+func (yttu *YouTubeTalentUpdate) RemoveMembers(u ...*User) *YouTubeTalentUpdate {
+	ids := make([]uint64, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return yttu.RemoveMemberIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -308,6 +345,60 @@ func (yttu *YouTubeTalentUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if yttu.mutation.MembersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   youtubetalent.MembersTable,
+			Columns: youtubetalent.MembersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUint64,
+					Column: user.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := yttu.mutation.RemovedMembersIDs(); len(nodes) > 0 && !yttu.mutation.MembersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   youtubetalent.MembersTable,
+			Columns: youtubetalent.MembersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUint64,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := yttu.mutation.MembersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   youtubetalent.MembersTable,
+			Columns: youtubetalent.MembersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUint64,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, yttu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{youtubetalent.Label}
@@ -408,6 +499,21 @@ func (yttuo *YouTubeTalentUpdateOne) AddGuilds(g ...*Guild) *YouTubeTalentUpdate
 	return yttuo.AddGuildIDs(ids...)
 }
 
+// AddMemberIDs adds the "members" edge to the User entity by IDs.
+func (yttuo *YouTubeTalentUpdateOne) AddMemberIDs(ids ...uint64) *YouTubeTalentUpdateOne {
+	yttuo.mutation.AddMemberIDs(ids...)
+	return yttuo
+}
+
+// AddMembers adds the "members" edges to the User entity.
+func (yttuo *YouTubeTalentUpdateOne) AddMembers(u ...*User) *YouTubeTalentUpdateOne {
+	ids := make([]uint64, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return yttuo.AddMemberIDs(ids...)
+}
+
 // Mutation returns the YouTubeTalentMutation object of the builder.
 func (yttuo *YouTubeTalentUpdateOne) Mutation() *YouTubeTalentMutation {
 	return yttuo.mutation
@@ -432,6 +538,27 @@ func (yttuo *YouTubeTalentUpdateOne) RemoveGuilds(g ...*Guild) *YouTubeTalentUpd
 		ids[i] = g[i].ID
 	}
 	return yttuo.RemoveGuildIDs(ids...)
+}
+
+// ClearMembers clears all "members" edges to the User entity.
+func (yttuo *YouTubeTalentUpdateOne) ClearMembers() *YouTubeTalentUpdateOne {
+	yttuo.mutation.ClearMembers()
+	return yttuo
+}
+
+// RemoveMemberIDs removes the "members" edge to User entities by IDs.
+func (yttuo *YouTubeTalentUpdateOne) RemoveMemberIDs(ids ...uint64) *YouTubeTalentUpdateOne {
+	yttuo.mutation.RemoveMemberIDs(ids...)
+	return yttuo
+}
+
+// RemoveMembers removes "members" edges to User entities.
+func (yttuo *YouTubeTalentUpdateOne) RemoveMembers(u ...*User) *YouTubeTalentUpdateOne {
+	ids := make([]uint64, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return yttuo.RemoveMemberIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -623,6 +750,60 @@ func (yttuo *YouTubeTalentUpdateOne) sqlSave(ctx context.Context) (_node *YouTub
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeUint64,
 					Column: guild.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if yttuo.mutation.MembersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   youtubetalent.MembersTable,
+			Columns: youtubetalent.MembersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUint64,
+					Column: user.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := yttuo.mutation.RemovedMembersIDs(); len(nodes) > 0 && !yttuo.mutation.MembersCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   youtubetalent.MembersTable,
+			Columns: youtubetalent.MembersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUint64,
+					Column: user.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := yttuo.mutation.MembersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   youtubetalent.MembersTable,
+			Columns: youtubetalent.MembersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUint64,
+					Column: user.FieldID,
 				},
 			},
 		}

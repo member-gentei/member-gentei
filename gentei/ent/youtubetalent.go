@@ -34,17 +34,18 @@ type YouTubeTalent struct {
 	LastUpdated time.Time `json:"last_updated,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the YouTubeTalentQuery when eager-loading is set.
-	Edges                    YouTubeTalentEdges `json:"edges"`
-	user_youtube_memberships *uint64
+	Edges YouTubeTalentEdges `json:"edges"`
 }
 
 // YouTubeTalentEdges holds the relations/edges for other nodes in the graph.
 type YouTubeTalentEdges struct {
 	// Guilds holds the value of the guilds edge.
 	Guilds []*Guild `json:"guilds,omitempty"`
+	// Members holds the value of the members edge.
+	Members []*User `json:"members,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // GuildsOrErr returns the Guilds value or an error if the edge
@@ -56,6 +57,15 @@ func (e YouTubeTalentEdges) GuildsOrErr() ([]*Guild, error) {
 	return nil, &NotLoadedError{edge: "guilds"}
 }
 
+// MembersOrErr returns the Members value or an error if the edge
+// was not loaded in eager-loading.
+func (e YouTubeTalentEdges) MembersOrErr() ([]*User, error) {
+	if e.loadedTypes[1] {
+		return e.Members, nil
+	}
+	return nil, &NotLoadedError{edge: "members"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*YouTubeTalent) scanValues(columns []string) ([]interface{}, error) {
 	values := make([]interface{}, len(columns))
@@ -65,8 +75,6 @@ func (*YouTubeTalent) scanValues(columns []string) ([]interface{}, error) {
 			values[i] = new(sql.NullString)
 		case youtubetalent.FieldLastMembershipVideoIDMiss, youtubetalent.FieldLastUpdated:
 			values[i] = new(sql.NullTime)
-		case youtubetalent.ForeignKeys[0]: // user_youtube_memberships
-			values[i] = new(sql.NullInt64)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type YouTubeTalent", columns[i])
 		}
@@ -118,13 +126,6 @@ func (ytt *YouTubeTalent) assignValues(columns []string, values []interface{}) e
 			} else if value.Valid {
 				ytt.LastUpdated = value.Time
 			}
-		case youtubetalent.ForeignKeys[0]:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for edge-field user_youtube_memberships", value)
-			} else if value.Valid {
-				ytt.user_youtube_memberships = new(uint64)
-				*ytt.user_youtube_memberships = uint64(value.Int64)
-			}
 		}
 	}
 	return nil
@@ -133,6 +134,11 @@ func (ytt *YouTubeTalent) assignValues(columns []string, values []interface{}) e
 // QueryGuilds queries the "guilds" edge of the YouTubeTalent entity.
 func (ytt *YouTubeTalent) QueryGuilds() *GuildQuery {
 	return (&YouTubeTalentClient{config: ytt.config}).QueryGuilds(ytt)
+}
+
+// QueryMembers queries the "members" edge of the YouTubeTalent entity.
+func (ytt *YouTubeTalent) QueryMembers() *UserQuery {
+	return (&YouTubeTalentClient{config: ytt.config}).QueryMembers(ytt)
 }
 
 // Update returns a builder for updating this YouTubeTalent.

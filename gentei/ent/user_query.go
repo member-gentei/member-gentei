@@ -151,7 +151,7 @@ func (uq *UserQuery) QueryYoutubeMemberships() *YouTubeTalentQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, selector),
 			sqlgraph.To(youtubetalent.Table, youtubetalent.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, user.YoutubeMembershipsTable, user.YoutubeMembershipsColumn),
+			sqlgraph.Edge(sqlgraph.M2M, false, user.YoutubeMembershipsTable, user.YoutubeMembershipsPrimaryKey...),
 		)
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil
@@ -686,30 +686,66 @@ func (uq *UserQuery) sqlAll(ctx context.Context) ([]*User, error) {
 
 	if query := uq.withYoutubeMemberships; query != nil {
 		fks := make([]driver.Value, 0, len(nodes))
-		nodeids := make(map[uint64]*User)
-		for i := range nodes {
-			fks = append(fks, nodes[i].ID)
-			nodeids[nodes[i].ID] = nodes[i]
-			nodes[i].Edges.YoutubeMemberships = []*YouTubeTalent{}
+		ids := make(map[uint64]*User, len(nodes))
+		for _, node := range nodes {
+			ids[node.ID] = node
+			fks = append(fks, node.ID)
+			node.Edges.YoutubeMemberships = []*YouTubeTalent{}
 		}
-		query.withFKs = true
-		query.Where(predicate.YouTubeTalent(func(s *sql.Selector) {
-			s.Where(sql.InValues(user.YoutubeMembershipsColumn, fks...))
-		}))
+		var (
+			edgeids []string
+			edges   = make(map[string][]*User)
+		)
+		_spec := &sqlgraph.EdgeQuerySpec{
+			Edge: &sqlgraph.EdgeSpec{
+				Inverse: false,
+				Table:   user.YoutubeMembershipsTable,
+				Columns: user.YoutubeMembershipsPrimaryKey,
+			},
+			Predicate: func(s *sql.Selector) {
+				s.Where(sql.InValues(user.YoutubeMembershipsPrimaryKey[0], fks...))
+			},
+			ScanValues: func() [2]interface{} {
+				return [2]interface{}{new(sql.NullInt64), new(sql.NullString)}
+			},
+			Assign: func(out, in interface{}) error {
+				eout, ok := out.(*sql.NullInt64)
+				if !ok || eout == nil {
+					return fmt.Errorf("unexpected id value for edge-out")
+				}
+				ein, ok := in.(*sql.NullString)
+				if !ok || ein == nil {
+					return fmt.Errorf("unexpected id value for edge-in")
+				}
+				outValue := uint64(eout.Int64)
+				inValue := ein.String
+				node, ok := ids[outValue]
+				if !ok {
+					return fmt.Errorf("unexpected node id in edges: %v", outValue)
+				}
+				if _, ok := edges[inValue]; !ok {
+					edgeids = append(edgeids, inValue)
+				}
+				edges[inValue] = append(edges[inValue], node)
+				return nil
+			},
+		}
+		if err := sqlgraph.QueryEdges(ctx, uq.driver, _spec); err != nil {
+			return nil, fmt.Errorf(`query edges "youtube_memberships": %w`, err)
+		}
+		query.Where(youtubetalent.IDIn(edgeids...))
 		neighbors, err := query.All(ctx)
 		if err != nil {
 			return nil, err
 		}
 		for _, n := range neighbors {
-			fk := n.user_youtube_memberships
-			if fk == nil {
-				return nil, fmt.Errorf(`foreign-key "user_youtube_memberships" is nil for node %v`, n.ID)
-			}
-			node, ok := nodeids[*fk]
+			nodes, ok := edges[n.ID]
 			if !ok {
-				return nil, fmt.Errorf(`unexpected foreign-key "user_youtube_memberships" returned %v for node %v`, *fk, n.ID)
+				return nil, fmt.Errorf(`unexpected "youtube_memberships" node returned %v`, n.ID)
 			}
-			node.Edges.YoutubeMemberships = append(node.Edges.YoutubeMemberships, n)
+			for i := range nodes {
+				nodes[i].Edges.YoutubeMemberships = append(nodes[i].Edges.YoutubeMemberships, n)
+			}
 		}
 	}
 

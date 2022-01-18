@@ -8,10 +8,11 @@ export function YouTubeLoginOverlay() {
   return (
     <div className="overlay is-flex is-justify-content-center is-align-content-center is-align-items-center">
       <div className="card">
-        <div className="card-content">
+        <div className="card-content content has-text-centered">
           <p>
             Please connect your YouTube account below to verify memberships.
           </p>
+          <p>(it's the "Sign in with Google" button)</p>
         </div>
       </div>
     </div>

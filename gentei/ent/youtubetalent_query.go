@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
 	"github.com/member-gentei/member-gentei/gentei/ent/predicate"
+	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 )
 
@@ -28,9 +29,9 @@ type YouTubeTalentQuery struct {
 	fields     []string
 	predicates []predicate.YouTubeTalent
 	// eager-loading edges.
-	withGuilds *GuildQuery
-	withFKs    bool
-	modifiers  []func(s *sql.Selector)
+	withGuilds  *GuildQuery
+	withMembers *UserQuery
+	modifiers   []func(s *sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -82,6 +83,28 @@ func (yttq *YouTubeTalentQuery) QueryGuilds() *GuildQuery {
 			sqlgraph.From(youtubetalent.Table, youtubetalent.FieldID, selector),
 			sqlgraph.To(guild.Table, guild.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, false, youtubetalent.GuildsTable, youtubetalent.GuildsPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(yttq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryMembers chains the current query on the "members" edge.
+func (yttq *YouTubeTalentQuery) QueryMembers() *UserQuery {
+	query := &UserQuery{config: yttq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := yttq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := yttq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(youtubetalent.Table, youtubetalent.FieldID, selector),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, youtubetalent.MembersTable, youtubetalent.MembersPrimaryKey...),
 		)
 		fromU = sqlgraph.SetNeighbors(yttq.driver.Dialect(), step)
 		return fromU, nil
@@ -265,12 +288,13 @@ func (yttq *YouTubeTalentQuery) Clone() *YouTubeTalentQuery {
 		return nil
 	}
 	return &YouTubeTalentQuery{
-		config:     yttq.config,
-		limit:      yttq.limit,
-		offset:     yttq.offset,
-		order:      append([]OrderFunc{}, yttq.order...),
-		predicates: append([]predicate.YouTubeTalent{}, yttq.predicates...),
-		withGuilds: yttq.withGuilds.Clone(),
+		config:      yttq.config,
+		limit:       yttq.limit,
+		offset:      yttq.offset,
+		order:       append([]OrderFunc{}, yttq.order...),
+		predicates:  append([]predicate.YouTubeTalent{}, yttq.predicates...),
+		withGuilds:  yttq.withGuilds.Clone(),
+		withMembers: yttq.withMembers.Clone(),
 		// clone intermediate query.
 		sql:  yttq.sql.Clone(),
 		path: yttq.path,
@@ -285,6 +309,17 @@ func (yttq *YouTubeTalentQuery) WithGuilds(opts ...func(*GuildQuery)) *YouTubeTa
 		opt(query)
 	}
 	yttq.withGuilds = query
+	return yttq
+}
+
+// WithMembers tells the query-builder to eager-load the nodes that are connected to
+// the "members" edge. The optional arguments are used to configure the query builder of the edge.
+func (yttq *YouTubeTalentQuery) WithMembers(opts ...func(*UserQuery)) *YouTubeTalentQuery {
+	query := &UserQuery{config: yttq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	yttq.withMembers = query
 	return yttq
 }
 
@@ -352,15 +387,12 @@ func (yttq *YouTubeTalentQuery) prepareQuery(ctx context.Context) error {
 func (yttq *YouTubeTalentQuery) sqlAll(ctx context.Context) ([]*YouTubeTalent, error) {
 	var (
 		nodes       = []*YouTubeTalent{}
-		withFKs     = yttq.withFKs
 		_spec       = yttq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			yttq.withGuilds != nil,
+			yttq.withMembers != nil,
 		}
 	)
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, youtubetalent.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
 		node := &YouTubeTalent{config: yttq.config}
 		nodes = append(nodes, node)
@@ -445,6 +477,71 @@ func (yttq *YouTubeTalentQuery) sqlAll(ctx context.Context) ([]*YouTubeTalent, e
 			}
 			for i := range nodes {
 				nodes[i].Edges.Guilds = append(nodes[i].Edges.Guilds, n)
+			}
+		}
+	}
+
+	if query := yttq.withMembers; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		ids := make(map[string]*YouTubeTalent, len(nodes))
+		for _, node := range nodes {
+			ids[node.ID] = node
+			fks = append(fks, node.ID)
+			node.Edges.Members = []*User{}
+		}
+		var (
+			edgeids []uint64
+			edges   = make(map[uint64][]*YouTubeTalent)
+		)
+		_spec := &sqlgraph.EdgeQuerySpec{
+			Edge: &sqlgraph.EdgeSpec{
+				Inverse: true,
+				Table:   youtubetalent.MembersTable,
+				Columns: youtubetalent.MembersPrimaryKey,
+			},
+			Predicate: func(s *sql.Selector) {
+				s.Where(sql.InValues(youtubetalent.MembersPrimaryKey[1], fks...))
+			},
+			ScanValues: func() [2]interface{} {
+				return [2]interface{}{new(sql.NullString), new(sql.NullInt64)}
+			},
+			Assign: func(out, in interface{}) error {
+				eout, ok := out.(*sql.NullString)
+				if !ok || eout == nil {
+					return fmt.Errorf("unexpected id value for edge-out")
+				}
+				ein, ok := in.(*sql.NullInt64)
+				if !ok || ein == nil {
+					return fmt.Errorf("unexpected id value for edge-in")
+				}
+				outValue := eout.String
+				inValue := uint64(ein.Int64)
+				node, ok := ids[outValue]
+				if !ok {
+					return fmt.Errorf("unexpected node id in edges: %v", outValue)
+				}
+				if _, ok := edges[inValue]; !ok {
+					edgeids = append(edgeids, inValue)
+				}
+				edges[inValue] = append(edges[inValue], node)
+				return nil
+			},
+		}
+		if err := sqlgraph.QueryEdges(ctx, yttq.driver, _spec); err != nil {
+			return nil, fmt.Errorf(`query edges "members": %w`, err)
+		}
+		query.Where(user.IDIn(edgeids...))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			nodes, ok := edges[n.ID]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected "members" node returned %v`, n.ID)
+			}
+			for i := range nodes {
+				nodes[i].Edges.Members = append(nodes[i].Edges.Members, n)
 			}
 		}
 	}

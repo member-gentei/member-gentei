@@ -560,7 +560,7 @@ func (c *UserClient) QueryYoutubeMemberships(u *User) *YouTubeTalentQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, id),
 			sqlgraph.To(youtubetalent.Table, youtubetalent.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, user.YoutubeMembershipsTable, user.YoutubeMembershipsColumn),
+			sqlgraph.Edge(sqlgraph.M2M, false, user.YoutubeMembershipsTable, user.YoutubeMembershipsPrimaryKey...),
 		)
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil
@@ -667,6 +667,22 @@ func (c *YouTubeTalentClient) QueryGuilds(ytt *YouTubeTalent) *GuildQuery {
 			sqlgraph.From(youtubetalent.Table, youtubetalent.FieldID, id),
 			sqlgraph.To(guild.Table, guild.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, false, youtubetalent.GuildsTable, youtubetalent.GuildsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(ytt.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryMembers queries the members edge of a YouTubeTalent.
+func (c *YouTubeTalentClient) QueryMembers(ytt *YouTubeTalent) *UserQuery {
+	query := &UserQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := ytt.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(youtubetalent.Table, youtubetalent.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, youtubetalent.MembersTable, youtubetalent.MembersPrimaryKey...),
 		)
 		fromV = sqlgraph.Neighbors(ytt.driver.Dialect(), step)
 		return fromV, nil

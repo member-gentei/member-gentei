@@ -558,6 +558,20 @@ func YoutubeTokenNotNil() predicate.User {
 	})
 }
 
+// DiscordTokenIsNil applies the IsNil predicate on the "discord_token" field.
+func DiscordTokenIsNil() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldDiscordToken)))
+	})
+}
+
+// DiscordTokenNotNil applies the NotNil predicate on the "discord_token" field.
+func DiscordTokenNotNil() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldDiscordToken)))
+	})
+}
+
 // MembershipMetadataIsNil applies the IsNil predicate on the "membership_metadata" field.
 func MembershipMetadataIsNil() predicate.User {
 	return predicate.User(func(s *sql.Selector) {
@@ -662,7 +676,7 @@ func HasYoutubeMemberships() predicate.User {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.To(YoutubeMembershipsTable, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, YoutubeMembershipsTable, YoutubeMembershipsColumn),
+			sqlgraph.Edge(sqlgraph.M2M, false, YoutubeMembershipsTable, YoutubeMembershipsPrimaryKey...),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -674,7 +688,7 @@ func HasYoutubeMembershipsWith(preds ...predicate.YouTubeTalent) predicate.User 
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
 			sqlgraph.To(YoutubeMembershipsInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, YoutubeMembershipsTable, YoutubeMembershipsColumn),
+			sqlgraph.Edge(sqlgraph.M2M, false, YoutubeMembershipsTable, YoutubeMembershipsPrimaryKey...),
 		)
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {

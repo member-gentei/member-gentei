@@ -142,8 +142,10 @@ func loginDiscord(
 			SetID(userID).
 			SetFullName(fmt.Sprintf("%s#%s", discordUser.Username, discordUser.Discriminator)).
 			SetAvatarHash(discordUser.Avatar).
+			SetDiscordToken(oauthToken).
 			OnConflictColumns(user.FieldID).
 			UpdateFullName().UpdateAvatarHash().
+			UpdateDiscordToken().
 			ID(ctx)
 		if err != nil {
 			return err
@@ -196,7 +198,13 @@ func loginDiscord(
 			Expires:  expiry,
 			HttpOnly: true,
 		})
-		return c.JSON(http.StatusAccepted, meResponseFromUser(db.User.GetX(ctx, userDBID)))
+		return c.JSON(http.StatusAccepted, meResponseFromUser(
+			db.User.Query().
+				Where(user.ID(userDBID)).
+				WithGuilds().
+				WithGuildsAdmin().
+				OnlyX(ctx),
+		))
 	}
 }
 
@@ -368,6 +376,7 @@ func getMe(db *ent.Client) echo.HandlerFunc {
 		}
 		// get user by ID
 		u, err := db.User.Query().
+			WithGuilds().
 			WithGuildsAdmin().
 			Where(user.ID(userID)).
 			First(ctx)
@@ -390,14 +399,20 @@ func deleteYouTube(db *ent.Client) echo.HandlerFunc {
 		if err != nil {
 			return err
 		}
-		u, err := db.User.UpdateOneID(userID).
+		err = db.User.UpdateOneID(userID).
 			ClearYoutubeID().
 			ClearYoutubeMemberships().
-			Save(ctx)
+			Exec(ctx)
 		if err != nil {
 			return err
 		}
-		return c.JSON(http.StatusOK, meResponseFromUser(u))
+		return c.JSON(http.StatusOK, meResponseFromUser(
+			db.User.Query().
+				Where(user.ID(userID)).
+				WithGuilds().
+				WithGuildsAdmin().
+				OnlyX(ctx),
+		))
 	}
 }
 
@@ -411,6 +426,25 @@ func deleteMe(db *ent.Client) echo.HandlerFunc {
 		userID, err := strconv.ParseUint(claims.Id, 10, 64)
 		if err != nil {
 			return err
+		}
+		// revoke tokens
+		u, err := db.User.Get(ctx, userID)
+		if err != nil {
+			return err
+		}
+		if u.DiscordToken != nil {
+			err = revokeDiscordToken(ctx, u.DiscordToken)
+			if err != nil {
+				log.Err(err).Uint64("userID", userID).Msg("error revoking Discord token, proceeding to delete")
+			}
+			err = nil
+		}
+		if u.YoutubeToken != nil {
+			err = revokeYouTubeToken(ctx, u.YoutubeToken)
+			if err != nil {
+				log.Err(err).Uint64("userID", userID).Msg("error revoking YouTube token, proceeding to delete")
+			}
+			err = nil
 		}
 		err = db.User.DeleteOneID(userID).Exec(ctx)
 		if err != nil {
@@ -629,6 +663,28 @@ func patchGuild(db *ent.Client) echo.HandlerFunc {
 			First(ctx)
 		if err != nil {
 			return err
+		}
+		// remove role mappings for removed talents
+		if dg.Settings != nil && dg.Settings.RoleMapping != nil {
+			var specifiedTalentMap = make(map[string]bool, len(data.Talents))
+			for _, talentID := range data.Talents {
+				specifiedTalentMap[talentID] = true
+			}
+			roleMapping := dg.Settings.RoleMapping
+			for key := range dg.Settings.RoleMapping {
+				if !specifiedTalentMap[key] {
+					delete(roleMapping, key)
+				}
+			}
+			if len(roleMapping) != len(dg.Settings.RoleMapping) {
+				dg.Settings.RoleMapping = roleMapping
+				err = db.Guild.UpdateOneID(data.ID).
+					SetSettings(dg.Settings).
+					Exec(ctx)
+				if err != nil {
+					return err
+				}
+			}
 		}
 		return c.JSON(http.StatusOK, makeGuildResponse(dg))
 	}

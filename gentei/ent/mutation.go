@@ -1629,6 +1629,7 @@ type UserMutation struct {
 	last_check                 *time.Time
 	youtube_id                 *string
 	youtube_token              **oauth2.Token
+	discord_token              **oauth2.Token
 	membership_metadata        *map[string]schema.MembershipMetadata
 	clearedFields              map[string]struct{}
 	guilds                     map[uint64]struct{}
@@ -1939,6 +1940,55 @@ func (m *UserMutation) ResetYoutubeToken() {
 	delete(m.clearedFields, user.FieldYoutubeToken)
 }
 
+// SetDiscordToken sets the "discord_token" field.
+func (m *UserMutation) SetDiscordToken(o *oauth2.Token) {
+	m.discord_token = &o
+}
+
+// DiscordToken returns the value of the "discord_token" field in the mutation.
+func (m *UserMutation) DiscordToken() (r *oauth2.Token, exists bool) {
+	v := m.discord_token
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDiscordToken returns the old "discord_token" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldDiscordToken(ctx context.Context) (v *oauth2.Token, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, fmt.Errorf("OldDiscordToken is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, fmt.Errorf("OldDiscordToken requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDiscordToken: %w", err)
+	}
+	return oldValue.DiscordToken, nil
+}
+
+// ClearDiscordToken clears the value of the "discord_token" field.
+func (m *UserMutation) ClearDiscordToken() {
+	m.discord_token = nil
+	m.clearedFields[user.FieldDiscordToken] = struct{}{}
+}
+
+// DiscordTokenCleared returns if the "discord_token" field was cleared in this mutation.
+func (m *UserMutation) DiscordTokenCleared() bool {
+	_, ok := m.clearedFields[user.FieldDiscordToken]
+	return ok
+}
+
+// ResetDiscordToken resets all changes to the "discord_token" field.
+func (m *UserMutation) ResetDiscordToken() {
+	m.discord_token = nil
+	delete(m.clearedFields, user.FieldDiscordToken)
+}
+
 // SetMembershipMetadata sets the "membership_metadata" field.
 func (m *UserMutation) SetMembershipMetadata(mm map[string]schema.MembershipMetadata) {
 	m.membership_metadata = &mm
@@ -2223,7 +2273,7 @@ func (m *UserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
 	if m.full_name != nil {
 		fields = append(fields, user.FieldFullName)
 	}
@@ -2238,6 +2288,9 @@ func (m *UserMutation) Fields() []string {
 	}
 	if m.youtube_token != nil {
 		fields = append(fields, user.FieldYoutubeToken)
+	}
+	if m.discord_token != nil {
+		fields = append(fields, user.FieldDiscordToken)
 	}
 	if m.membership_metadata != nil {
 		fields = append(fields, user.FieldMembershipMetadata)
@@ -2260,6 +2313,8 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.YoutubeID()
 	case user.FieldYoutubeToken:
 		return m.YoutubeToken()
+	case user.FieldDiscordToken:
+		return m.DiscordToken()
 	case user.FieldMembershipMetadata:
 		return m.MembershipMetadata()
 	}
@@ -2281,6 +2336,8 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldYoutubeID(ctx)
 	case user.FieldYoutubeToken:
 		return m.OldYoutubeToken(ctx)
+	case user.FieldDiscordToken:
+		return m.OldDiscordToken(ctx)
 	case user.FieldMembershipMetadata:
 		return m.OldMembershipMetadata(ctx)
 	}
@@ -2327,6 +2384,13 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetYoutubeToken(v)
 		return nil
+	case user.FieldDiscordToken:
+		v, ok := value.(*oauth2.Token)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDiscordToken(v)
+		return nil
 	case user.FieldMembershipMetadata:
 		v, ok := value.(map[string]schema.MembershipMetadata)
 		if !ok {
@@ -2370,6 +2434,9 @@ func (m *UserMutation) ClearedFields() []string {
 	if m.FieldCleared(user.FieldYoutubeToken) {
 		fields = append(fields, user.FieldYoutubeToken)
 	}
+	if m.FieldCleared(user.FieldDiscordToken) {
+		fields = append(fields, user.FieldDiscordToken)
+	}
 	if m.FieldCleared(user.FieldMembershipMetadata) {
 		fields = append(fields, user.FieldMembershipMetadata)
 	}
@@ -2392,6 +2459,9 @@ func (m *UserMutation) ClearField(name string) error {
 		return nil
 	case user.FieldYoutubeToken:
 		m.ClearYoutubeToken()
+		return nil
+	case user.FieldDiscordToken:
+		m.ClearDiscordToken()
 		return nil
 	case user.FieldMembershipMetadata:
 		m.ClearMembershipMetadata()
@@ -2418,6 +2488,9 @@ func (m *UserMutation) ResetField(name string) error {
 		return nil
 	case user.FieldYoutubeToken:
 		m.ResetYoutubeToken()
+		return nil
+	case user.FieldDiscordToken:
+		m.ResetDiscordToken()
 		return nil
 	case user.FieldMembershipMetadata:
 		m.ResetMembershipMetadata()
@@ -2603,6 +2676,9 @@ type YouTubeTalentMutation struct {
 	guilds                        map[uint64]struct{}
 	removedguilds                 map[uint64]struct{}
 	clearedguilds                 bool
+	members                       map[uint64]struct{}
+	removedmembers                map[uint64]struct{}
+	clearedmembers                bool
 	done                          bool
 	oldValue                      func(context.Context) (*YouTubeTalent, error)
 	predicates                    []predicate.YouTubeTalent
@@ -2953,6 +3029,60 @@ func (m *YouTubeTalentMutation) ResetGuilds() {
 	m.removedguilds = nil
 }
 
+// AddMemberIDs adds the "members" edge to the User entity by ids.
+func (m *YouTubeTalentMutation) AddMemberIDs(ids ...uint64) {
+	if m.members == nil {
+		m.members = make(map[uint64]struct{})
+	}
+	for i := range ids {
+		m.members[ids[i]] = struct{}{}
+	}
+}
+
+// ClearMembers clears the "members" edge to the User entity.
+func (m *YouTubeTalentMutation) ClearMembers() {
+	m.clearedmembers = true
+}
+
+// MembersCleared reports if the "members" edge to the User entity was cleared.
+func (m *YouTubeTalentMutation) MembersCleared() bool {
+	return m.clearedmembers
+}
+
+// RemoveMemberIDs removes the "members" edge to the User entity by IDs.
+func (m *YouTubeTalentMutation) RemoveMemberIDs(ids ...uint64) {
+	if m.removedmembers == nil {
+		m.removedmembers = make(map[uint64]struct{})
+	}
+	for i := range ids {
+		delete(m.members, ids[i])
+		m.removedmembers[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedMembers returns the removed IDs of the "members" edge to the User entity.
+func (m *YouTubeTalentMutation) RemovedMembersIDs() (ids []uint64) {
+	for id := range m.removedmembers {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// MembersIDs returns the "members" edge IDs in the mutation.
+func (m *YouTubeTalentMutation) MembersIDs() (ids []uint64) {
+	for id := range m.members {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetMembers resets all changes to the "members" edge.
+func (m *YouTubeTalentMutation) ResetMembers() {
+	m.members = nil
+	m.clearedmembers = false
+	m.removedmembers = nil
+}
+
 // Where appends a list predicates to the YouTubeTalentMutation builder.
 func (m *YouTubeTalentMutation) Where(ps ...predicate.YouTubeTalent) {
 	m.predicates = append(m.predicates, ps...)
@@ -3154,9 +3284,12 @@ func (m *YouTubeTalentMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *YouTubeTalentMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.guilds != nil {
 		edges = append(edges, youtubetalent.EdgeGuilds)
+	}
+	if m.members != nil {
+		edges = append(edges, youtubetalent.EdgeMembers)
 	}
 	return edges
 }
@@ -3171,15 +3304,24 @@ func (m *YouTubeTalentMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case youtubetalent.EdgeMembers:
+		ids := make([]ent.Value, 0, len(m.members))
+		for id := range m.members {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *YouTubeTalentMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removedguilds != nil {
 		edges = append(edges, youtubetalent.EdgeGuilds)
+	}
+	if m.removedmembers != nil {
+		edges = append(edges, youtubetalent.EdgeMembers)
 	}
 	return edges
 }
@@ -3194,15 +3336,24 @@ func (m *YouTubeTalentMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case youtubetalent.EdgeMembers:
+		ids := make([]ent.Value, 0, len(m.removedmembers))
+		for id := range m.removedmembers {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *YouTubeTalentMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedguilds {
 		edges = append(edges, youtubetalent.EdgeGuilds)
+	}
+	if m.clearedmembers {
+		edges = append(edges, youtubetalent.EdgeMembers)
 	}
 	return edges
 }
@@ -3213,6 +3364,8 @@ func (m *YouTubeTalentMutation) EdgeCleared(name string) bool {
 	switch name {
 	case youtubetalent.EdgeGuilds:
 		return m.clearedguilds
+	case youtubetalent.EdgeMembers:
+		return m.clearedmembers
 	}
 	return false
 }
@@ -3231,6 +3384,9 @@ func (m *YouTubeTalentMutation) ResetEdge(name string) error {
 	switch name {
 	case youtubetalent.EdgeGuilds:
 		m.ResetGuilds()
+		return nil
+	case youtubetalent.EdgeMembers:
+		m.ResetMembers()
 		return nil
 	}
 	return fmt.Errorf("unknown YouTubeTalent edge %s", name)

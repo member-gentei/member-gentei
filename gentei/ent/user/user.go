@@ -21,6 +21,8 @@ const (
 	FieldYoutubeID = "youtube_id"
 	// FieldYoutubeToken holds the string denoting the youtube_token field in the database.
 	FieldYoutubeToken = "youtube_token"
+	// FieldDiscordToken holds the string denoting the discord_token field in the database.
+	FieldDiscordToken = "discord_token"
 	// FieldMembershipMetadata holds the string denoting the membership_metadata field in the database.
 	FieldMembershipMetadata = "membership_metadata"
 	// EdgeGuilds holds the string denoting the guilds edge name in mutations.
@@ -48,13 +50,11 @@ const (
 	// RolesInverseTable is the table name for the GuildRole entity.
 	// It exists in this package in order to avoid circular dependency with the "guildrole" package.
 	RolesInverseTable = "guild_roles"
-	// YoutubeMembershipsTable is the table that holds the youtube_memberships relation/edge.
-	YoutubeMembershipsTable = "you_tube_talents"
+	// YoutubeMembershipsTable is the table that holds the youtube_memberships relation/edge. The primary key declared below.
+	YoutubeMembershipsTable = "user_youtube_memberships"
 	// YoutubeMembershipsInverseTable is the table name for the YouTubeTalent entity.
 	// It exists in this package in order to avoid circular dependency with the "youtubetalent" package.
 	YoutubeMembershipsInverseTable = "you_tube_talents"
-	// YoutubeMembershipsColumn is the table column denoting the youtube_memberships relation/edge.
-	YoutubeMembershipsColumn = "user_youtube_memberships"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -65,6 +65,7 @@ var Columns = []string{
 	FieldLastCheck,
 	FieldYoutubeID,
 	FieldYoutubeToken,
+	FieldDiscordToken,
 	FieldMembershipMetadata,
 }
 
@@ -78,6 +79,9 @@ var (
 	// RolesPrimaryKey and RolesColumn2 are the table columns denoting the
 	// primary key for the roles relation (M2M).
 	RolesPrimaryKey = []string{"user_id", "guild_role_id"}
+	// YoutubeMembershipsPrimaryKey and YoutubeMembershipsColumn2 are the table columns denoting the
+	// primary key for the youtube_memberships relation (M2M).
+	YoutubeMembershipsPrimaryKey = []string{"user_id", "you_tube_talent_id"}
 )
 
 // ValidColumn reports if the column name is valid (part of the table columns).
