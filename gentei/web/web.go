@@ -47,6 +47,9 @@ func ServeAPI(db *ent.Client, discordConfig *oauth2.Config, youTubeConfig *oauth
 		"/login/discord",
 		loginDiscord(db, discordConfig, jwtKey, !strings.Contains(address, "localhost:")),
 	)
+	e.GET("/healthz", func(c echo.Context) error {
+		return c.NoContent(http.StatusOK)
+	})
 	loginRequired := e.Group("")
 	loginRequired.Use(middleware.JWTWithConfig(middleware.JWTConfig{
 		TokenLookup: "cookie:token",

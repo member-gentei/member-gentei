@@ -52,6 +52,18 @@ spec:
               cpu: "500m"
           ports:
             - containerPort: 5000
+          readinessProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            httpGet:
+              path: /healthz
+              port: 5000
+          livenessProbe:
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            httpGet:
+              path: /healthz
+              port: 5000
       volumes:
         - name: google-sa
           secret:
