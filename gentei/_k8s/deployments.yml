@@ -9,7 +9,7 @@ spec:
   strategy:
     rollingUpdate:
       maxUnavailable: 50%
-      maxSurge: 100%
+      maxSurge: 1
   replicas: 2
   template:
     metadata:
