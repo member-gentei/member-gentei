@@ -23,6 +23,8 @@ const (
 	FieldLastUpdated = "last_updated"
 	// EdgeGuilds holds the string denoting the guilds edge name in mutations.
 	EdgeGuilds = "guilds"
+	// EdgeMembers holds the string denoting the members edge name in mutations.
+	EdgeMembers = "members"
 	// Table holds the table name of the youtubetalent in the database.
 	Table = "you_tube_talents"
 	// GuildsTable is the table that holds the guilds relation/edge. The primary key declared below.
@@ -30,6 +32,11 @@ const (
 	// GuildsInverseTable is the table name for the Guild entity.
 	// It exists in this package in order to avoid circular dependency with the "guild" package.
 	GuildsInverseTable = "guilds"
+	// MembersTable is the table that holds the members relation/edge. The primary key declared below.
+	MembersTable = "user_youtube_memberships"
+	// MembersInverseTable is the table name for the User entity.
+	// It exists in this package in order to avoid circular dependency with the "user" package.
+	MembersInverseTable = "users"
 )
 
 // Columns holds all SQL columns for youtubetalent fields.
@@ -42,27 +49,19 @@ var Columns = []string{
 	FieldLastUpdated,
 }
 
-// ForeignKeys holds the SQL foreign-keys that are owned by the "you_tube_talents"
-// table and are not defined as standalone fields in the schema.
-var ForeignKeys = []string{
-	"user_youtube_memberships",
-}
-
 var (
 	// GuildsPrimaryKey and GuildsColumn2 are the table columns denoting the
 	// primary key for the guilds relation (M2M).
 	GuildsPrimaryKey = []string{"you_tube_talent_id", "guild_id"}
+	// MembersPrimaryKey and MembersColumn2 are the table columns denoting the
+	// primary key for the members relation (M2M).
+	MembersPrimaryKey = []string{"user_id", "you_tube_talent_id"}
 )
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
-			return true
-		}
-	}
-	for i := range ForeignKeys {
-		if column == ForeignKeys[i] {
 			return true
 		}
 	}

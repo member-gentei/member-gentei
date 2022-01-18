@@ -73,6 +73,12 @@ func (uc *UserCreate) SetYoutubeToken(o *oauth2.Token) *UserCreate {
 	return uc
 }
 
+// SetDiscordToken sets the "discord_token" field.
+func (uc *UserCreate) SetDiscordToken(o *oauth2.Token) *UserCreate {
+	uc.mutation.SetDiscordToken(o)
+	return uc
+}
+
 // SetMembershipMetadata sets the "membership_metadata" field.
 func (uc *UserCreate) SetMembershipMetadata(mm map[string]schema.MembershipMetadata) *UserCreate {
 	uc.mutation.SetMembershipMetadata(mm)
@@ -312,6 +318,14 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		})
 		_node.YoutubeToken = value
 	}
+	if value, ok := uc.mutation.DiscordToken(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeJSON,
+			Value:  value,
+			Column: user.FieldDiscordToken,
+		})
+		_node.DiscordToken = value
+	}
 	if value, ok := uc.mutation.MembershipMetadata(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
 			Type:   field.TypeJSON,
@@ -379,10 +393,10 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	}
 	if nodes := uc.mutation.YoutubeMembershipsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   user.YoutubeMembershipsTable,
-			Columns: []string{user.YoutubeMembershipsColumn},
+			Columns: user.YoutubeMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -519,6 +533,24 @@ func (u *UserUpsert) UpdateYoutubeToken() *UserUpsert {
 // ClearYoutubeToken clears the value of the "youtube_token" field.
 func (u *UserUpsert) ClearYoutubeToken() *UserUpsert {
 	u.SetNull(user.FieldYoutubeToken)
+	return u
+}
+
+// SetDiscordToken sets the "discord_token" field.
+func (u *UserUpsert) SetDiscordToken(v *oauth2.Token) *UserUpsert {
+	u.Set(user.FieldDiscordToken, v)
+	return u
+}
+
+// UpdateDiscordToken sets the "discord_token" field to the value that was provided on create.
+func (u *UserUpsert) UpdateDiscordToken() *UserUpsert {
+	u.SetExcluded(user.FieldDiscordToken)
+	return u
+}
+
+// ClearDiscordToken clears the value of the "discord_token" field.
+func (u *UserUpsert) ClearDiscordToken() *UserUpsert {
+	u.SetNull(user.FieldDiscordToken)
 	return u
 }
 
@@ -671,6 +703,27 @@ func (u *UserUpsertOne) UpdateYoutubeToken() *UserUpsertOne {
 func (u *UserUpsertOne) ClearYoutubeToken() *UserUpsertOne {
 	return u.Update(func(s *UserUpsert) {
 		s.ClearYoutubeToken()
+	})
+}
+
+// SetDiscordToken sets the "discord_token" field.
+func (u *UserUpsertOne) SetDiscordToken(v *oauth2.Token) *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.SetDiscordToken(v)
+	})
+}
+
+// UpdateDiscordToken sets the "discord_token" field to the value that was provided on create.
+func (u *UserUpsertOne) UpdateDiscordToken() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateDiscordToken()
+	})
+}
+
+// ClearDiscordToken clears the value of the "discord_token" field.
+func (u *UserUpsertOne) ClearDiscordToken() *UserUpsertOne {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearDiscordToken()
 	})
 }
 
@@ -991,6 +1044,27 @@ func (u *UserUpsertBulk) UpdateYoutubeToken() *UserUpsertBulk {
 func (u *UserUpsertBulk) ClearYoutubeToken() *UserUpsertBulk {
 	return u.Update(func(s *UserUpsert) {
 		s.ClearYoutubeToken()
+	})
+}
+
+// SetDiscordToken sets the "discord_token" field.
+func (u *UserUpsertBulk) SetDiscordToken(v *oauth2.Token) *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.SetDiscordToken(v)
+	})
+}
+
+// UpdateDiscordToken sets the "discord_token" field to the value that was provided on create.
+func (u *UserUpsertBulk) UpdateDiscordToken() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.UpdateDiscordToken()
+	})
+}
+
+// ClearDiscordToken clears the value of the "discord_token" field.
+func (u *UserUpsertBulk) ClearDiscordToken() *UserUpsertBulk {
+	return u.Update(func(s *UserUpsert) {
+		s.ClearDiscordToken()
 	})
 }
 

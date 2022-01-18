@@ -42,6 +42,8 @@ func (User) Fields() []ent.Field {
 			Comment("user's YouTube channel ID"),
 		field.JSON("youtube_token", &oauth2.Token{}).
 			Optional(),
+		field.JSON("discord_token", &oauth2.Token{}).
+			Optional(), // TODO: remove Optional() on next PR
 		field.JSON("membership_metadata", map[string]MembershipMetadata{}).
 			Optional().
 			Comment("Info about current and past memberships, keyed by channel ID."),

@@ -27,7 +27,9 @@ export default function GuildMembershipManager({
           <span>
             Not yet configured <br />
             Please run{" "}
-            <code>/gentei manage map UCAL_ZudIZXhCDrniD4ZQobQ @role</code>
+            <code>
+              /gentei manage map youtube-channel-id:{talentID} role:@role
+            </code>
           </span>
         </span>
       </Fragment>
@@ -70,7 +72,11 @@ export default function GuildMembershipManager({
                   {roleNode}
                   <span className="help">
                     To change, use{" "}
-                    <code>/gentei manage map {talentID} @newrole</code>.
+                    <code>
+                      /gentei manage map youtube-channel-id:{talentID}{" "}
+                      role:@role
+                    </code>
+                    .
                   </span>
                 </td>
               </tr>

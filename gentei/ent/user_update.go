@@ -90,6 +90,18 @@ func (uu *UserUpdate) ClearYoutubeToken() *UserUpdate {
 	return uu
 }
 
+// SetDiscordToken sets the "discord_token" field.
+func (uu *UserUpdate) SetDiscordToken(o *oauth2.Token) *UserUpdate {
+	uu.mutation.SetDiscordToken(o)
+	return uu
+}
+
+// ClearDiscordToken clears the value of the "discord_token" field.
+func (uu *UserUpdate) ClearDiscordToken() *UserUpdate {
+	uu.mutation.ClearDiscordToken()
+	return uu
+}
+
 // SetMembershipMetadata sets the "membership_metadata" field.
 func (uu *UserUpdate) SetMembershipMetadata(mm map[string]schema.MembershipMetadata) *UserUpdate {
 	uu.mutation.SetMembershipMetadata(mm)
@@ -386,6 +398,19 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: user.FieldYoutubeToken,
 		})
 	}
+	if value, ok := uu.mutation.DiscordToken(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeJSON,
+			Value:  value,
+			Column: user.FieldDiscordToken,
+		})
+	}
+	if uu.mutation.DiscordTokenCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeJSON,
+			Column: user.FieldDiscordToken,
+		})
+	}
 	if value, ok := uu.mutation.MembershipMetadata(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeJSON,
@@ -563,10 +588,10 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if uu.mutation.YoutubeMembershipsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   user.YoutubeMembershipsTable,
-			Columns: []string{user.YoutubeMembershipsColumn},
+			Columns: user.YoutubeMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -579,10 +604,10 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if nodes := uu.mutation.RemovedYoutubeMembershipsIDs(); len(nodes) > 0 && !uu.mutation.YoutubeMembershipsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   user.YoutubeMembershipsTable,
-			Columns: []string{user.YoutubeMembershipsColumn},
+			Columns: user.YoutubeMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -598,10 +623,10 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if nodes := uu.mutation.YoutubeMembershipsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   user.YoutubeMembershipsTable,
-			Columns: []string{user.YoutubeMembershipsColumn},
+			Columns: user.YoutubeMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -689,6 +714,18 @@ func (uuo *UserUpdateOne) SetYoutubeToken(o *oauth2.Token) *UserUpdateOne {
 // ClearYoutubeToken clears the value of the "youtube_token" field.
 func (uuo *UserUpdateOne) ClearYoutubeToken() *UserUpdateOne {
 	uuo.mutation.ClearYoutubeToken()
+	return uuo
+}
+
+// SetDiscordToken sets the "discord_token" field.
+func (uuo *UserUpdateOne) SetDiscordToken(o *oauth2.Token) *UserUpdateOne {
+	uuo.mutation.SetDiscordToken(o)
+	return uuo
+}
+
+// ClearDiscordToken clears the value of the "discord_token" field.
+func (uuo *UserUpdateOne) ClearDiscordToken() *UserUpdateOne {
+	uuo.mutation.ClearDiscordToken()
 	return uuo
 }
 
@@ -1012,6 +1049,19 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Column: user.FieldYoutubeToken,
 		})
 	}
+	if value, ok := uuo.mutation.DiscordToken(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeJSON,
+			Value:  value,
+			Column: user.FieldDiscordToken,
+		})
+	}
+	if uuo.mutation.DiscordTokenCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeJSON,
+			Column: user.FieldDiscordToken,
+		})
+	}
 	if value, ok := uuo.mutation.MembershipMetadata(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeJSON,
@@ -1189,10 +1239,10 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	}
 	if uuo.mutation.YoutubeMembershipsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   user.YoutubeMembershipsTable,
-			Columns: []string{user.YoutubeMembershipsColumn},
+			Columns: user.YoutubeMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -1205,10 +1255,10 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	}
 	if nodes := uuo.mutation.RemovedYoutubeMembershipsIDs(); len(nodes) > 0 && !uuo.mutation.YoutubeMembershipsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   user.YoutubeMembershipsTable,
-			Columns: []string{user.YoutubeMembershipsColumn},
+			Columns: user.YoutubeMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
@@ -1224,10 +1274,10 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	}
 	if nodes := uuo.mutation.YoutubeMembershipsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   user.YoutubeMembershipsTable,
-			Columns: []string{user.YoutubeMembershipsColumn},
+			Columns: user.YoutubeMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{

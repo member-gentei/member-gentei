@@ -2,8 +2,13 @@ package web
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/member-gentei/member-gentei/gentei/ent"
@@ -198,4 +203,69 @@ func getChannelIDForYouTubeToken(ctx context.Context, ts oauth2.TokenSource) (st
 		return "", err
 	}
 	return clr.Items[0].Id, nil
+}
+
+func revokeYouTubeToken(ctx context.Context, token *oauth2.Token) error {
+	var toRevoke string
+	if time.Since(token.Expiry) > 0 {
+		toRevoke = token.RefreshToken
+	} else {
+		toRevoke = token.AccessToken
+	}
+	// why does google just decide to put this in params instead of the body
+	// https://developers.google.com/identity/protocols/oauth2/web-server#tokenrevoke
+	r, err := http.Post(
+		fmt.Sprintf("https://oauth2.googleapis.com/revoke?token=%s", toRevoke),
+		"application/x-www-form-urlencoded",
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+	// 400 error happens if the token was already revoked by a user
+	if r.StatusCode >= 400 {
+		body, _ := ioutil.ReadAll(r.Body)
+		defer r.Body.Close()
+		var jbody struct {
+			Error       string `json:"error"`
+			Description string `json:"error_description"`
+		}
+		json.Unmarshal(body, &jbody)
+		if jbody.Description == "Token expired or revoked" {
+			return nil
+		}
+		log.Error().
+			Int("status", r.StatusCode).
+			Str("body", string(body)).
+			Msg(">=400 status code revoking YouTube token")
+	}
+	return nil
+}
+
+func revokeDiscordToken(ctx context.Context, token *oauth2.Token) error {
+	var (
+		toRevoke string
+		values   = url.Values{}
+	)
+	if time.Since(token.Expiry) > 0 {
+		toRevoke = token.AccessToken
+	} else {
+		toRevoke = token.RefreshToken
+	}
+	values.Add("token", toRevoke)
+	r, err := http.PostForm("https://discord.com/api/oauth2/token/revoke", values)
+	if err != nil {
+		return err
+	}
+	// 400 error happens if the token was already revoked by a user.
+	// TODO: actually code in the check after someone does this
+	if r.StatusCode >= 400 {
+		body, _ := ioutil.ReadAll(r.Body)
+		defer r.Body.Close()
+		log.Error().
+			Int("status", r.StatusCode).
+			Str("body", string(body)).
+			Msg(">=400 status code revoking Discord token")
+	}
+	return nil
 }

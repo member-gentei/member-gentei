@@ -38,5 +38,7 @@ func (YouTubeTalent) Fields() []ent.Field {
 func (YouTubeTalent) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("guilds", Guild.Type),
+		edge.From("members", User.Type).
+			Ref("youtube_memberships"),
 	}
 }

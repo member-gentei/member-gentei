@@ -33,6 +33,8 @@ type User struct {
 	YoutubeID *string `json:"youtube_id,omitempty"`
 	// YoutubeToken holds the value of the "youtube_token" field.
 	YoutubeToken *oauth2.Token `json:"youtube_token,omitempty"`
+	// DiscordToken holds the value of the "discord_token" field.
+	DiscordToken *oauth2.Token `json:"discord_token,omitempty"`
 	// MembershipMetadata holds the value of the "membership_metadata" field.
 	// Info about current and past memberships, keyed by channel ID.
 	MembershipMetadata map[string]schema.MembershipMetadata `json:"membership_metadata,omitempty"`
@@ -97,7 +99,7 @@ func (*User) scanValues(columns []string) ([]interface{}, error) {
 	values := make([]interface{}, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case user.FieldYoutubeToken, user.FieldMembershipMetadata:
+		case user.FieldYoutubeToken, user.FieldDiscordToken, user.FieldMembershipMetadata:
 			values[i] = new([]byte)
 		case user.FieldID:
 			values[i] = new(sql.NullInt64)
@@ -157,6 +159,14 @@ func (u *User) assignValues(columns []string, values []interface{}) error {
 			} else if value != nil && len(*value) > 0 {
 				if err := json.Unmarshal(*value, &u.YoutubeToken); err != nil {
 					return fmt.Errorf("unmarshal field youtube_token: %w", err)
+				}
+			}
+		case user.FieldDiscordToken:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field discord_token", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &u.DiscordToken); err != nil {
+					return fmt.Errorf("unmarshal field discord_token: %w", err)
 				}
 			}
 		case user.FieldMembershipMetadata:
@@ -227,6 +237,8 @@ func (u *User) String() string {
 	}
 	builder.WriteString(", youtube_token=")
 	builder.WriteString(fmt.Sprintf("%v", u.YoutubeToken))
+	builder.WriteString(", discord_token=")
+	builder.WriteString(fmt.Sprintf("%v", u.DiscordToken))
 	builder.WriteString(", membership_metadata=")
 	builder.WriteString(fmt.Sprintf("%v", u.MembershipMetadata))
 	builder.WriteByte(')')

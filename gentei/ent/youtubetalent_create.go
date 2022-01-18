@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
+	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 )
 
@@ -97,6 +98,21 @@ func (yttc *YouTubeTalentCreate) AddGuilds(g ...*Guild) *YouTubeTalentCreate {
 		ids[i] = g[i].ID
 	}
 	return yttc.AddGuildIDs(ids...)
+}
+
+// AddMemberIDs adds the "members" edge to the User entity by IDs.
+func (yttc *YouTubeTalentCreate) AddMemberIDs(ids ...uint64) *YouTubeTalentCreate {
+	yttc.mutation.AddMemberIDs(ids...)
+	return yttc
+}
+
+// AddMembers adds the "members" edges to the User entity.
+func (yttc *YouTubeTalentCreate) AddMembers(u ...*User) *YouTubeTalentCreate {
+	ids := make([]uint64, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
+	}
+	return yttc.AddMemberIDs(ids...)
 }
 
 // Mutation returns the YouTubeTalentMutation object of the builder.
@@ -271,6 +287,25 @@ func (yttc *YouTubeTalentCreate) createSpec() (*YouTubeTalent, *sqlgraph.CreateS
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeUint64,
 					Column: guild.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := yttc.mutation.MembersIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   youtubetalent.MembersTable,
+			Columns: youtubetalent.MembersPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeUint64,
+					Column: user.FieldID,
 				},
 			},
 		}
