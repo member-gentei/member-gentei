@@ -22,6 +22,7 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 	"github.com/rs/zerolog/log"
+	"github.com/ziflex/lecho/v3"
 	"golang.org/x/oauth2"
 )
 
@@ -31,6 +32,15 @@ func ServeAPI(db *ent.Client, discordConfig *oauth2.Config, youTubeConfig *oauth
 	enrollDiscordConfig.RedirectURL = strings.Replace(discordConfig.RedirectURL, "login/discord", "app/enroll", 1)
 	e := echo.New()
 	e.Debug = debug
+	xffExtract := echo.ExtractIPFromXFFHeader()
+	e.IPExtractor = func(r *http.Request) string {
+		cfcip := r.Header.Get("CF-Connecting-IP")
+		if cfcip != "" {
+			return cfcip
+		}
+		// fall back to x-forwarded-for, which is what the ingress writes
+		return xffExtract(r)
+	}
 	// configure CORS
 	corsConfig := middleware.CORSConfig{
 		AllowOrigins:     []string{"https://gentei.tindabox.net", "https://member-gentei.tindabox.net"},
@@ -41,13 +51,20 @@ func ServeAPI(db *ent.Client, discordConfig *oauth2.Config, youTubeConfig *oauth
 		corsConfig.AllowOrigins = append(corsConfig.AllowOrigins, "http://localhost:3000")
 		log.Debug().Interface("allowOrigins", corsConfig.AllowOrigins).Msg("CORS modified for local use")
 	}
-	e.Use(middleware.Logger())
-	e.Use(middleware.CORSWithConfig(corsConfig))
-	e.POST(
+	// don't log healthz requests
+	e.GET("/healthz", func(c echo.Context) error {
+		return c.NoContent(http.StatusOK)
+	})
+	g := e.Group("")
+	g.Use(lecho.Middleware(
+		lecho.Config{Logger: lecho.From(log.Logger, lecho.WithLevel(2))},
+	))
+	g.Use(middleware.CORSWithConfig(corsConfig))
+	g.POST(
 		"/login/discord",
 		loginDiscord(db, discordConfig, jwtKey, !strings.Contains(address, "localhost:")),
 	)
-	loginRequired := e.Group("")
+	loginRequired := g.Group("")
 	loginRequired.Use(middleware.JWTWithConfig(middleware.JWTConfig{
 		TokenLookup: "cookie:token",
 		SigningKey:  jwtKey,
