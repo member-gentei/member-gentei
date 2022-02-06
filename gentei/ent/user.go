@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/member-gentei/member-gentei/gentei/ent/schema"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"golang.org/x/oauth2"
 )
@@ -35,9 +34,6 @@ type User struct {
 	YoutubeToken *oauth2.Token `json:"youtube_token,omitempty"`
 	// DiscordToken holds the value of the "discord_token" field.
 	DiscordToken *oauth2.Token `json:"discord_token,omitempty"`
-	// MembershipMetadata holds the value of the "membership_metadata" field.
-	// Info about current and past memberships, keyed by channel ID.
-	MembershipMetadata map[string]schema.MembershipMetadata `json:"membership_metadata,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the UserQuery when eager-loading is set.
 	Edges UserEdges `json:"edges"`
@@ -49,13 +45,11 @@ type UserEdges struct {
 	Guilds []*Guild `json:"guilds,omitempty"`
 	// GuildsAdmin holds the value of the guilds_admin edge.
 	GuildsAdmin []*Guild `json:"guilds_admin,omitempty"`
-	// Roles holds the value of the roles edge.
-	Roles []*GuildRole `json:"roles,omitempty"`
-	// YoutubeMemberships holds the value of the youtube_memberships edge.
-	YoutubeMemberships []*YouTubeTalent `json:"youtube_memberships,omitempty"`
+	// Memberships holds the value of the memberships edge.
+	Memberships []*UserMembership `json:"memberships,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [3]bool
 }
 
 // GuildsOrErr returns the Guilds value or an error if the edge
@@ -76,22 +70,13 @@ func (e UserEdges) GuildsAdminOrErr() ([]*Guild, error) {
 	return nil, &NotLoadedError{edge: "guilds_admin"}
 }
 
-// RolesOrErr returns the Roles value or an error if the edge
+// MembershipsOrErr returns the Memberships value or an error if the edge
 // was not loaded in eager-loading.
-func (e UserEdges) RolesOrErr() ([]*GuildRole, error) {
+func (e UserEdges) MembershipsOrErr() ([]*UserMembership, error) {
 	if e.loadedTypes[2] {
-		return e.Roles, nil
+		return e.Memberships, nil
 	}
-	return nil, &NotLoadedError{edge: "roles"}
-}
-
-// YoutubeMembershipsOrErr returns the YoutubeMemberships value or an error if the edge
-// was not loaded in eager-loading.
-func (e UserEdges) YoutubeMembershipsOrErr() ([]*YouTubeTalent, error) {
-	if e.loadedTypes[3] {
-		return e.YoutubeMemberships, nil
-	}
-	return nil, &NotLoadedError{edge: "youtube_memberships"}
+	return nil, &NotLoadedError{edge: "memberships"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -99,7 +84,7 @@ func (*User) scanValues(columns []string) ([]interface{}, error) {
 	values := make([]interface{}, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case user.FieldYoutubeToken, user.FieldDiscordToken, user.FieldMembershipMetadata:
+		case user.FieldYoutubeToken, user.FieldDiscordToken:
 			values[i] = new([]byte)
 		case user.FieldID:
 			values[i] = new(sql.NullInt64)
@@ -169,14 +154,6 @@ func (u *User) assignValues(columns []string, values []interface{}) error {
 					return fmt.Errorf("unmarshal field discord_token: %w", err)
 				}
 			}
-		case user.FieldMembershipMetadata:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field membership_metadata", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &u.MembershipMetadata); err != nil {
-					return fmt.Errorf("unmarshal field membership_metadata: %w", err)
-				}
-			}
 		}
 	}
 	return nil
@@ -192,14 +169,9 @@ func (u *User) QueryGuildsAdmin() *GuildQuery {
 	return (&UserClient{config: u.config}).QueryGuildsAdmin(u)
 }
 
-// QueryRoles queries the "roles" edge of the User entity.
-func (u *User) QueryRoles() *GuildRoleQuery {
-	return (&UserClient{config: u.config}).QueryRoles(u)
-}
-
-// QueryYoutubeMemberships queries the "youtube_memberships" edge of the User entity.
-func (u *User) QueryYoutubeMemberships() *YouTubeTalentQuery {
-	return (&UserClient{config: u.config}).QueryYoutubeMemberships(u)
+// QueryMemberships queries the "memberships" edge of the User entity.
+func (u *User) QueryMemberships() *UserMembershipQuery {
+	return (&UserClient{config: u.config}).QueryMemberships(u)
 }
 
 // Update returns a builder for updating this User.
@@ -239,8 +211,6 @@ func (u *User) String() string {
 	builder.WriteString(fmt.Sprintf("%v", u.YoutubeToken))
 	builder.WriteString(", discord_token=")
 	builder.WriteString(fmt.Sprintf("%v", u.DiscordToken))
-	builder.WriteString(", membership_metadata=")
-	builder.WriteString(fmt.Sprintf("%v", u.MembershipMetadata))
 	builder.WriteByte(')')
 	return builder.String()
 }

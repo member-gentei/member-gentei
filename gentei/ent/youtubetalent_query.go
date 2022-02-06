@@ -14,8 +14,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
+	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
 	"github.com/member-gentei/member-gentei/gentei/ent/predicate"
-	"github.com/member-gentei/member-gentei/gentei/ent/user"
+	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 )
 
@@ -29,9 +30,10 @@ type YouTubeTalentQuery struct {
 	fields     []string
 	predicates []predicate.YouTubeTalent
 	// eager-loading edges.
-	withGuilds  *GuildQuery
-	withMembers *UserQuery
-	modifiers   []func(s *sql.Selector)
+	withGuilds      *GuildQuery
+	withRoles       *GuildRoleQuery
+	withMemberships *UserMembershipQuery
+	modifiers       []func(s *sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -90,9 +92,9 @@ func (yttq *YouTubeTalentQuery) QueryGuilds() *GuildQuery {
 	return query
 }
 
-// QueryMembers chains the current query on the "members" edge.
-func (yttq *YouTubeTalentQuery) QueryMembers() *UserQuery {
-	query := &UserQuery{config: yttq.config}
+// QueryRoles chains the current query on the "roles" edge.
+func (yttq *YouTubeTalentQuery) QueryRoles() *GuildRoleQuery {
+	query := &GuildRoleQuery{config: yttq.config}
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := yttq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -103,8 +105,30 @@ func (yttq *YouTubeTalentQuery) QueryMembers() *UserQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(youtubetalent.Table, youtubetalent.FieldID, selector),
-			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, youtubetalent.MembersTable, youtubetalent.MembersPrimaryKey...),
+			sqlgraph.To(guildrole.Table, guildrole.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, youtubetalent.RolesTable, youtubetalent.RolesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(yttq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryMemberships chains the current query on the "memberships" edge.
+func (yttq *YouTubeTalentQuery) QueryMemberships() *UserMembershipQuery {
+	query := &UserMembershipQuery{config: yttq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := yttq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := yttq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(youtubetalent.Table, youtubetalent.FieldID, selector),
+			sqlgraph.To(usermembership.Table, usermembership.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, youtubetalent.MembershipsTable, youtubetalent.MembershipsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(yttq.driver.Dialect(), step)
 		return fromU, nil
@@ -288,13 +312,14 @@ func (yttq *YouTubeTalentQuery) Clone() *YouTubeTalentQuery {
 		return nil
 	}
 	return &YouTubeTalentQuery{
-		config:      yttq.config,
-		limit:       yttq.limit,
-		offset:      yttq.offset,
-		order:       append([]OrderFunc{}, yttq.order...),
-		predicates:  append([]predicate.YouTubeTalent{}, yttq.predicates...),
-		withGuilds:  yttq.withGuilds.Clone(),
-		withMembers: yttq.withMembers.Clone(),
+		config:          yttq.config,
+		limit:           yttq.limit,
+		offset:          yttq.offset,
+		order:           append([]OrderFunc{}, yttq.order...),
+		predicates:      append([]predicate.YouTubeTalent{}, yttq.predicates...),
+		withGuilds:      yttq.withGuilds.Clone(),
+		withRoles:       yttq.withRoles.Clone(),
+		withMemberships: yttq.withMemberships.Clone(),
 		// clone intermediate query.
 		sql:  yttq.sql.Clone(),
 		path: yttq.path,
@@ -312,14 +337,25 @@ func (yttq *YouTubeTalentQuery) WithGuilds(opts ...func(*GuildQuery)) *YouTubeTa
 	return yttq
 }
 
-// WithMembers tells the query-builder to eager-load the nodes that are connected to
-// the "members" edge. The optional arguments are used to configure the query builder of the edge.
-func (yttq *YouTubeTalentQuery) WithMembers(opts ...func(*UserQuery)) *YouTubeTalentQuery {
-	query := &UserQuery{config: yttq.config}
+// WithRoles tells the query-builder to eager-load the nodes that are connected to
+// the "roles" edge. The optional arguments are used to configure the query builder of the edge.
+func (yttq *YouTubeTalentQuery) WithRoles(opts ...func(*GuildRoleQuery)) *YouTubeTalentQuery {
+	query := &GuildRoleQuery{config: yttq.config}
 	for _, opt := range opts {
 		opt(query)
 	}
-	yttq.withMembers = query
+	yttq.withRoles = query
+	return yttq
+}
+
+// WithMemberships tells the query-builder to eager-load the nodes that are connected to
+// the "memberships" edge. The optional arguments are used to configure the query builder of the edge.
+func (yttq *YouTubeTalentQuery) WithMemberships(opts ...func(*UserMembershipQuery)) *YouTubeTalentQuery {
+	query := &UserMembershipQuery{config: yttq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	yttq.withMemberships = query
 	return yttq
 }
 
@@ -388,9 +424,10 @@ func (yttq *YouTubeTalentQuery) sqlAll(ctx context.Context) ([]*YouTubeTalent, e
 	var (
 		nodes       = []*YouTubeTalent{}
 		_spec       = yttq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			yttq.withGuilds != nil,
-			yttq.withMembers != nil,
+			yttq.withRoles != nil,
+			yttq.withMemberships != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
@@ -481,68 +518,61 @@ func (yttq *YouTubeTalentQuery) sqlAll(ctx context.Context) ([]*YouTubeTalent, e
 		}
 	}
 
-	if query := yttq.withMembers; query != nil {
+	if query := yttq.withRoles; query != nil {
 		fks := make([]driver.Value, 0, len(nodes))
-		ids := make(map[string]*YouTubeTalent, len(nodes))
-		for _, node := range nodes {
-			ids[node.ID] = node
-			fks = append(fks, node.ID)
-			node.Edges.Members = []*User{}
+		nodeids := make(map[string]*YouTubeTalent)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Roles = []*GuildRole{}
 		}
-		var (
-			edgeids []uint64
-			edges   = make(map[uint64][]*YouTubeTalent)
-		)
-		_spec := &sqlgraph.EdgeQuerySpec{
-			Edge: &sqlgraph.EdgeSpec{
-				Inverse: true,
-				Table:   youtubetalent.MembersTable,
-				Columns: youtubetalent.MembersPrimaryKey,
-			},
-			Predicate: func(s *sql.Selector) {
-				s.Where(sql.InValues(youtubetalent.MembersPrimaryKey[1], fks...))
-			},
-			ScanValues: func() [2]interface{} {
-				return [2]interface{}{new(sql.NullString), new(sql.NullInt64)}
-			},
-			Assign: func(out, in interface{}) error {
-				eout, ok := out.(*sql.NullString)
-				if !ok || eout == nil {
-					return fmt.Errorf("unexpected id value for edge-out")
-				}
-				ein, ok := in.(*sql.NullInt64)
-				if !ok || ein == nil {
-					return fmt.Errorf("unexpected id value for edge-in")
-				}
-				outValue := eout.String
-				inValue := uint64(ein.Int64)
-				node, ok := ids[outValue]
-				if !ok {
-					return fmt.Errorf("unexpected node id in edges: %v", outValue)
-				}
-				if _, ok := edges[inValue]; !ok {
-					edgeids = append(edgeids, inValue)
-				}
-				edges[inValue] = append(edges[inValue], node)
-				return nil
-			},
-		}
-		if err := sqlgraph.QueryEdges(ctx, yttq.driver, _spec); err != nil {
-			return nil, fmt.Errorf(`query edges "members": %w`, err)
-		}
-		query.Where(user.IDIn(edgeids...))
+		query.withFKs = true
+		query.Where(predicate.GuildRole(func(s *sql.Selector) {
+			s.Where(sql.InValues(youtubetalent.RolesColumn, fks...))
+		}))
 		neighbors, err := query.All(ctx)
 		if err != nil {
 			return nil, err
 		}
 		for _, n := range neighbors {
-			nodes, ok := edges[n.ID]
+			fk := n.you_tube_talent_roles
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "you_tube_talent_roles" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
 			if !ok {
-				return nil, fmt.Errorf(`unexpected "members" node returned %v`, n.ID)
+				return nil, fmt.Errorf(`unexpected foreign-key "you_tube_talent_roles" returned %v for node %v`, *fk, n.ID)
 			}
-			for i := range nodes {
-				nodes[i].Edges.Members = append(nodes[i].Edges.Members, n)
+			node.Edges.Roles = append(node.Edges.Roles, n)
+		}
+	}
+
+	if query := yttq.withMemberships; query != nil {
+		fks := make([]driver.Value, 0, len(nodes))
+		nodeids := make(map[string]*YouTubeTalent)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Memberships = []*UserMembership{}
+		}
+		query.withFKs = true
+		query.Where(predicate.UserMembership(func(s *sql.Selector) {
+			s.Where(sql.InValues(youtubetalent.MembershipsColumn, fks...))
+		}))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			fk := n.user_membership_youtube_talent
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "user_membership_youtube_talent" is nil for node %v`, n.ID)
 			}
+			node, ok := nodeids[*fk]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "user_membership_youtube_talent" returned %v for node %v`, *fk, n.ID)
+			}
+			node.Edges.Memberships = append(node.Edges.Memberships, n)
 		}
 	}
 
@@ -553,6 +583,10 @@ func (yttq *YouTubeTalentQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := yttq.querySpec()
 	if len(yttq.modifiers) > 0 {
 		_spec.Modifiers = yttq.modifiers
+	}
+	_spec.Node.Columns = yttq.fields
+	if len(yttq.fields) > 0 {
+		_spec.Unique = yttq.unique != nil && *yttq.unique
 	}
 	return sqlgraph.CountNodes(ctx, yttq.driver, _spec)
 }
@@ -624,6 +658,9 @@ func (yttq *YouTubeTalentQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if yttq.sql != nil {
 		selector = yttq.sql
 		selector.Select(selector.Columns(columns...)...)
+	}
+	if yttq.unique != nil && *yttq.unique {
+		selector.Distinct()
 	}
 	for _, m := range yttq.modifiers {
 		m(selector)
@@ -932,9 +969,7 @@ func (yttgb *YouTubeTalentGroupBy) sqlQuery() *sql.Selector {
 		for _, f := range yttgb.fields {
 			columns = append(columns, selector.C(f))
 		}
-		for _, c := range aggregation {
-			columns = append(columns, c)
-		}
+		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
 	return selector.GroupBy(selector.Columns(yttgb.fields...)...)

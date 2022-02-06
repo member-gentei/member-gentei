@@ -572,20 +572,6 @@ func DiscordTokenNotNil() predicate.User {
 	})
 }
 
-// MembershipMetadataIsNil applies the IsNil predicate on the "membership_metadata" field.
-func MembershipMetadataIsNil() predicate.User {
-	return predicate.User(func(s *sql.Selector) {
-		s.Where(sql.IsNull(s.C(FieldMembershipMetadata)))
-	})
-}
-
-// MembershipMetadataNotNil applies the NotNil predicate on the "membership_metadata" field.
-func MembershipMetadataNotNil() predicate.User {
-	return predicate.User(func(s *sql.Selector) {
-		s.Where(sql.NotNull(s.C(FieldMembershipMetadata)))
-	})
-}
-
 // HasGuilds applies the HasEdge predicate on the "guilds" edge.
 func HasGuilds() predicate.User {
 	return predicate.User(func(s *sql.Selector) {
@@ -642,53 +628,25 @@ func HasGuildsAdminWith(preds ...predicate.Guild) predicate.User {
 	})
 }
 
-// HasRoles applies the HasEdge predicate on the "roles" edge.
-func HasRoles() predicate.User {
+// HasMemberships applies the HasEdge predicate on the "memberships" edge.
+func HasMemberships() predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(RolesTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, RolesTable, RolesPrimaryKey...),
+			sqlgraph.To(MembershipsTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, MembershipsTable, MembershipsColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasRolesWith applies the HasEdge predicate on the "roles" edge with a given conditions (other predicates).
-func HasRolesWith(preds ...predicate.GuildRole) predicate.User {
+// HasMembershipsWith applies the HasEdge predicate on the "memberships" edge with a given conditions (other predicates).
+func HasMembershipsWith(preds ...predicate.UserMembership) predicate.User {
 	return predicate.User(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(RolesInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, RolesTable, RolesPrimaryKey...),
-		)
-		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
-			for _, p := range preds {
-				p(s)
-			}
-		})
-	})
-}
-
-// HasYoutubeMemberships applies the HasEdge predicate on the "youtube_memberships" edge.
-func HasYoutubeMemberships() predicate.User {
-	return predicate.User(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(YoutubeMembershipsTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, YoutubeMembershipsTable, YoutubeMembershipsPrimaryKey...),
-		)
-		sqlgraph.HasNeighbors(s, step)
-	})
-}
-
-// HasYoutubeMembershipsWith applies the HasEdge predicate on the "youtube_memberships" edge with a given conditions (other predicates).
-func HasYoutubeMembershipsWith(preds ...predicate.YouTubeTalent) predicate.User {
-	return predicate.User(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(YoutubeMembershipsInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, YoutubeMembershipsTable, YoutubeMembershipsPrimaryKey...),
+			sqlgraph.To(MembershipsInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, MembershipsTable, MembershipsColumn),
 		)
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {

@@ -8,6 +8,7 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
 	"github.com/member-gentei/member-gentei/gentei/ent/schema"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
+	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 )
 
@@ -33,6 +34,12 @@ func init() {
 	userDescLastCheck := userFields[3].Descriptor()
 	// user.DefaultLastCheck holds the default value on creation for the last_check field.
 	user.DefaultLastCheck = userDescLastCheck.Default.(func() time.Time)
+	usermembershipFields := schema.UserMembership{}.Fields()
+	_ = usermembershipFields
+	// usermembershipDescFailCount is the schema descriptor for fail_count field.
+	usermembershipDescFailCount := usermembershipFields[2].Descriptor()
+	// usermembership.DefaultFailCount holds the default value on creation for the fail_count field.
+	usermembership.DefaultFailCount = usermembershipDescFailCount.Default.(int)
 	youtubetalentFields := schema.YouTubeTalent{}.Fields()
 	_ = youtubetalentFields
 	// youtubetalentDescLastUpdated is the schema descriptor for last_updated field.

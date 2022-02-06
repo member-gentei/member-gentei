@@ -10,13 +10,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// MembershipMetadata holds info about a current or past membership.
-type MembershipMetadata struct {
-	LastVerified time.Time
-	// Whether this user was but is now no longer a member of this channel.
-	Past bool
-}
-
 // User holds the schema definition for the User entity.
 type User struct {
 	ent.Schema
@@ -44,9 +37,6 @@ func (User) Fields() []ent.Field {
 			Optional(),
 		field.JSON("discord_token", &oauth2.Token{}).
 			Optional(), // TODO: remove Optional() on next PR
-		field.JSON("membership_metadata", map[string]MembershipMetadata{}).
-			Optional().
-			Comment("Info about current and past memberships, keyed by channel ID."),
 	}
 }
 
@@ -58,8 +48,6 @@ func (User) Edges() []ent.Edge {
 			Comment("Guild that this user has joined"),
 		edge.From("guilds_admin", Guild.Type).
 			Ref("admins"),
-		edge.To("roles", GuildRole.Type).
-			Comment("Roles that this user should hold"),
-		edge.To("youtube_memberships", YouTubeTalent.Type),
+		edge.To("memberships", UserMembership.Type),
 	}
 }

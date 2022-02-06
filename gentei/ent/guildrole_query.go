@@ -16,7 +16,8 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
 	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
 	"github.com/member-gentei/member-gentei/gentei/ent/predicate"
-	"github.com/member-gentei/member-gentei/gentei/ent/user"
+	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
+	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 )
 
 // GuildRoleQuery is the builder for querying GuildRole entities.
@@ -29,10 +30,11 @@ type GuildRoleQuery struct {
 	fields     []string
 	predicates []predicate.GuildRole
 	// eager-loading edges.
-	withGuild *GuildQuery
-	withUsers *UserQuery
-	withFKs   bool
-	modifiers []func(s *sql.Selector)
+	withGuild           *GuildQuery
+	withUserMemberships *UserMembershipQuery
+	withTalent          *YouTubeTalentQuery
+	withFKs             bool
+	modifiers           []func(s *sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -91,9 +93,9 @@ func (grq *GuildRoleQuery) QueryGuild() *GuildQuery {
 	return query
 }
 
-// QueryUsers chains the current query on the "users" edge.
-func (grq *GuildRoleQuery) QueryUsers() *UserQuery {
-	query := &UserQuery{config: grq.config}
+// QueryUserMemberships chains the current query on the "user_memberships" edge.
+func (grq *GuildRoleQuery) QueryUserMemberships() *UserMembershipQuery {
+	query := &UserMembershipQuery{config: grq.config}
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := grq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -104,8 +106,30 @@ func (grq *GuildRoleQuery) QueryUsers() *UserQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(guildrole.Table, guildrole.FieldID, selector),
-			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, guildrole.UsersTable, guildrole.UsersPrimaryKey...),
+			sqlgraph.To(usermembership.Table, usermembership.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, guildrole.UserMembershipsTable, guildrole.UserMembershipsPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(grq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryTalent chains the current query on the "talent" edge.
+func (grq *GuildRoleQuery) QueryTalent() *YouTubeTalentQuery {
+	query := &YouTubeTalentQuery{config: grq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := grq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := grq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(guildrole.Table, guildrole.FieldID, selector),
+			sqlgraph.To(youtubetalent.Table, youtubetalent.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, guildrole.TalentTable, guildrole.TalentColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(grq.driver.Dialect(), step)
 		return fromU, nil
@@ -289,13 +313,14 @@ func (grq *GuildRoleQuery) Clone() *GuildRoleQuery {
 		return nil
 	}
 	return &GuildRoleQuery{
-		config:     grq.config,
-		limit:      grq.limit,
-		offset:     grq.offset,
-		order:      append([]OrderFunc{}, grq.order...),
-		predicates: append([]predicate.GuildRole{}, grq.predicates...),
-		withGuild:  grq.withGuild.Clone(),
-		withUsers:  grq.withUsers.Clone(),
+		config:              grq.config,
+		limit:               grq.limit,
+		offset:              grq.offset,
+		order:               append([]OrderFunc{}, grq.order...),
+		predicates:          append([]predicate.GuildRole{}, grq.predicates...),
+		withGuild:           grq.withGuild.Clone(),
+		withUserMemberships: grq.withUserMemberships.Clone(),
+		withTalent:          grq.withTalent.Clone(),
 		// clone intermediate query.
 		sql:  grq.sql.Clone(),
 		path: grq.path,
@@ -313,14 +338,25 @@ func (grq *GuildRoleQuery) WithGuild(opts ...func(*GuildQuery)) *GuildRoleQuery 
 	return grq
 }
 
-// WithUsers tells the query-builder to eager-load the nodes that are connected to
-// the "users" edge. The optional arguments are used to configure the query builder of the edge.
-func (grq *GuildRoleQuery) WithUsers(opts ...func(*UserQuery)) *GuildRoleQuery {
-	query := &UserQuery{config: grq.config}
+// WithUserMemberships tells the query-builder to eager-load the nodes that are connected to
+// the "user_memberships" edge. The optional arguments are used to configure the query builder of the edge.
+func (grq *GuildRoleQuery) WithUserMemberships(opts ...func(*UserMembershipQuery)) *GuildRoleQuery {
+	query := &UserMembershipQuery{config: grq.config}
 	for _, opt := range opts {
 		opt(query)
 	}
-	grq.withUsers = query
+	grq.withUserMemberships = query
+	return grq
+}
+
+// WithTalent tells the query-builder to eager-load the nodes that are connected to
+// the "talent" edge. The optional arguments are used to configure the query builder of the edge.
+func (grq *GuildRoleQuery) WithTalent(opts ...func(*YouTubeTalentQuery)) *GuildRoleQuery {
+	query := &YouTubeTalentQuery{config: grq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	grq.withTalent = query
 	return grq
 }
 
@@ -390,12 +426,13 @@ func (grq *GuildRoleQuery) sqlAll(ctx context.Context) ([]*GuildRole, error) {
 		nodes       = []*GuildRole{}
 		withFKs     = grq.withFKs
 		_spec       = grq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			grq.withGuild != nil,
-			grq.withUsers != nil,
+			grq.withUserMemberships != nil,
+			grq.withTalent != nil,
 		}
 	)
-	if grq.withGuild != nil {
+	if grq.withGuild != nil || grq.withTalent != nil {
 		withFKs = true
 	}
 	if withFKs {
@@ -453,26 +490,26 @@ func (grq *GuildRoleQuery) sqlAll(ctx context.Context) ([]*GuildRole, error) {
 		}
 	}
 
-	if query := grq.withUsers; query != nil {
+	if query := grq.withUserMemberships; query != nil {
 		fks := make([]driver.Value, 0, len(nodes))
 		ids := make(map[uint64]*GuildRole, len(nodes))
 		for _, node := range nodes {
 			ids[node.ID] = node
 			fks = append(fks, node.ID)
-			node.Edges.Users = []*User{}
+			node.Edges.UserMemberships = []*UserMembership{}
 		}
 		var (
-			edgeids []uint64
-			edges   = make(map[uint64][]*GuildRole)
+			edgeids []int
+			edges   = make(map[int][]*GuildRole)
 		)
 		_spec := &sqlgraph.EdgeQuerySpec{
 			Edge: &sqlgraph.EdgeSpec{
 				Inverse: true,
-				Table:   guildrole.UsersTable,
-				Columns: guildrole.UsersPrimaryKey,
+				Table:   guildrole.UserMembershipsTable,
+				Columns: guildrole.UserMembershipsPrimaryKey,
 			},
 			Predicate: func(s *sql.Selector) {
-				s.Where(sql.InValues(guildrole.UsersPrimaryKey[1], fks...))
+				s.Where(sql.InValues(guildrole.UserMembershipsPrimaryKey[1], fks...))
 			},
 			ScanValues: func() [2]interface{} {
 				return [2]interface{}{new(sql.NullInt64), new(sql.NullInt64)}
@@ -487,7 +524,7 @@ func (grq *GuildRoleQuery) sqlAll(ctx context.Context) ([]*GuildRole, error) {
 					return fmt.Errorf("unexpected id value for edge-in")
 				}
 				outValue := uint64(eout.Int64)
-				inValue := uint64(ein.Int64)
+				inValue := int(ein.Int64)
 				node, ok := ids[outValue]
 				if !ok {
 					return fmt.Errorf("unexpected node id in edges: %v", outValue)
@@ -500,9 +537,9 @@ func (grq *GuildRoleQuery) sqlAll(ctx context.Context) ([]*GuildRole, error) {
 			},
 		}
 		if err := sqlgraph.QueryEdges(ctx, grq.driver, _spec); err != nil {
-			return nil, fmt.Errorf(`query edges "users": %w`, err)
+			return nil, fmt.Errorf(`query edges "user_memberships": %w`, err)
 		}
-		query.Where(user.IDIn(edgeids...))
+		query.Where(usermembership.IDIn(edgeids...))
 		neighbors, err := query.All(ctx)
 		if err != nil {
 			return nil, err
@@ -510,10 +547,39 @@ func (grq *GuildRoleQuery) sqlAll(ctx context.Context) ([]*GuildRole, error) {
 		for _, n := range neighbors {
 			nodes, ok := edges[n.ID]
 			if !ok {
-				return nil, fmt.Errorf(`unexpected "users" node returned %v`, n.ID)
+				return nil, fmt.Errorf(`unexpected "user_memberships" node returned %v`, n.ID)
 			}
 			for i := range nodes {
-				nodes[i].Edges.Users = append(nodes[i].Edges.Users, n)
+				nodes[i].Edges.UserMemberships = append(nodes[i].Edges.UserMemberships, n)
+			}
+		}
+	}
+
+	if query := grq.withTalent; query != nil {
+		ids := make([]string, 0, len(nodes))
+		nodeids := make(map[string][]*GuildRole)
+		for i := range nodes {
+			if nodes[i].you_tube_talent_roles == nil {
+				continue
+			}
+			fk := *nodes[i].you_tube_talent_roles
+			if _, ok := nodeids[fk]; !ok {
+				ids = append(ids, fk)
+			}
+			nodeids[fk] = append(nodeids[fk], nodes[i])
+		}
+		query.Where(youtubetalent.IDIn(ids...))
+		neighbors, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, n := range neighbors {
+			nodes, ok := nodeids[n.ID]
+			if !ok {
+				return nil, fmt.Errorf(`unexpected foreign-key "you_tube_talent_roles" returned %v`, n.ID)
+			}
+			for i := range nodes {
+				nodes[i].Edges.Talent = n
 			}
 		}
 	}
@@ -525,6 +591,10 @@ func (grq *GuildRoleQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := grq.querySpec()
 	if len(grq.modifiers) > 0 {
 		_spec.Modifiers = grq.modifiers
+	}
+	_spec.Node.Columns = grq.fields
+	if len(grq.fields) > 0 {
+		_spec.Unique = grq.unique != nil && *grq.unique
 	}
 	return sqlgraph.CountNodes(ctx, grq.driver, _spec)
 }
@@ -596,6 +666,9 @@ func (grq *GuildRoleQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if grq.sql != nil {
 		selector = grq.sql
 		selector.Select(selector.Columns(columns...)...)
+	}
+	if grq.unique != nil && *grq.unique {
+		selector.Distinct()
 	}
 	for _, m := range grq.modifiers {
 		m(selector)
@@ -904,9 +977,7 @@ func (grgb *GuildRoleGroupBy) sqlQuery() *sql.Selector {
 		for _, f := range grgb.fields {
 			columns = append(columns, selector.C(f))
 		}
-		for _, c := range aggregation {
-			columns = append(columns, c)
-		}
+		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
 	return selector.GroupBy(selector.Columns(grgb.fields...)...)

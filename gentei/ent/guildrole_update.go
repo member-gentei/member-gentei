@@ -14,7 +14,8 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
 	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
 	"github.com/member-gentei/member-gentei/gentei/ent/predicate"
-	"github.com/member-gentei/member-gentei/gentei/ent/user"
+	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
+	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 )
 
 // GuildRoleUpdate is the builder for updating GuildRole entities.
@@ -61,19 +62,38 @@ func (gru *GuildRoleUpdate) SetGuild(g *Guild) *GuildRoleUpdate {
 	return gru.SetGuildID(g.ID)
 }
 
-// AddUserIDs adds the "users" edge to the User entity by IDs.
-func (gru *GuildRoleUpdate) AddUserIDs(ids ...uint64) *GuildRoleUpdate {
-	gru.mutation.AddUserIDs(ids...)
+// AddUserMembershipIDs adds the "user_memberships" edge to the UserMembership entity by IDs.
+func (gru *GuildRoleUpdate) AddUserMembershipIDs(ids ...int) *GuildRoleUpdate {
+	gru.mutation.AddUserMembershipIDs(ids...)
 	return gru
 }
 
-// AddUsers adds the "users" edges to the User entity.
-func (gru *GuildRoleUpdate) AddUsers(u ...*User) *GuildRoleUpdate {
-	ids := make([]uint64, len(u))
+// AddUserMemberships adds the "user_memberships" edges to the UserMembership entity.
+func (gru *GuildRoleUpdate) AddUserMemberships(u ...*UserMembership) *GuildRoleUpdate {
+	ids := make([]int, len(u))
 	for i := range u {
 		ids[i] = u[i].ID
 	}
-	return gru.AddUserIDs(ids...)
+	return gru.AddUserMembershipIDs(ids...)
+}
+
+// SetTalentID sets the "talent" edge to the YouTubeTalent entity by ID.
+func (gru *GuildRoleUpdate) SetTalentID(id string) *GuildRoleUpdate {
+	gru.mutation.SetTalentID(id)
+	return gru
+}
+
+// SetNillableTalentID sets the "talent" edge to the YouTubeTalent entity by ID if the given value is not nil.
+func (gru *GuildRoleUpdate) SetNillableTalentID(id *string) *GuildRoleUpdate {
+	if id != nil {
+		gru = gru.SetTalentID(*id)
+	}
+	return gru
+}
+
+// SetTalent sets the "talent" edge to the YouTubeTalent entity.
+func (gru *GuildRoleUpdate) SetTalent(y *YouTubeTalent) *GuildRoleUpdate {
+	return gru.SetTalentID(y.ID)
 }
 
 // Mutation returns the GuildRoleMutation object of the builder.
@@ -87,25 +107,31 @@ func (gru *GuildRoleUpdate) ClearGuild() *GuildRoleUpdate {
 	return gru
 }
 
-// ClearUsers clears all "users" edges to the User entity.
-func (gru *GuildRoleUpdate) ClearUsers() *GuildRoleUpdate {
-	gru.mutation.ClearUsers()
+// ClearUserMemberships clears all "user_memberships" edges to the UserMembership entity.
+func (gru *GuildRoleUpdate) ClearUserMemberships() *GuildRoleUpdate {
+	gru.mutation.ClearUserMemberships()
 	return gru
 }
 
-// RemoveUserIDs removes the "users" edge to User entities by IDs.
-func (gru *GuildRoleUpdate) RemoveUserIDs(ids ...uint64) *GuildRoleUpdate {
-	gru.mutation.RemoveUserIDs(ids...)
+// RemoveUserMembershipIDs removes the "user_memberships" edge to UserMembership entities by IDs.
+func (gru *GuildRoleUpdate) RemoveUserMembershipIDs(ids ...int) *GuildRoleUpdate {
+	gru.mutation.RemoveUserMembershipIDs(ids...)
 	return gru
 }
 
-// RemoveUsers removes "users" edges to User entities.
-func (gru *GuildRoleUpdate) RemoveUsers(u ...*User) *GuildRoleUpdate {
-	ids := make([]uint64, len(u))
+// RemoveUserMemberships removes "user_memberships" edges to UserMembership entities.
+func (gru *GuildRoleUpdate) RemoveUserMemberships(u ...*UserMembership) *GuildRoleUpdate {
+	ids := make([]int, len(u))
 	for i := range u {
 		ids[i] = u[i].ID
 	}
-	return gru.RemoveUserIDs(ids...)
+	return gru.RemoveUserMembershipIDs(ids...)
+}
+
+// ClearTalent clears the "talent" edge to the YouTubeTalent entity.
+func (gru *GuildRoleUpdate) ClearTalent() *GuildRoleUpdate {
+	gru.mutation.ClearTalent()
+	return gru
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -171,7 +197,7 @@ func (gru *GuildRoleUpdate) ExecX(ctx context.Context) {
 // check runs all checks and user-defined validators on the builder.
 func (gru *GuildRoleUpdate) check() error {
 	if _, ok := gru.mutation.GuildID(); gru.mutation.GuildCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"guild\"")
+		return errors.New(`ent: clearing a required unique edge "GuildRole.guild"`)
 	}
 	return nil
 }
@@ -243,33 +269,33 @@ func (gru *GuildRoleUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if gru.mutation.UsersCleared() {
+	if gru.mutation.UserMembershipsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: true,
-			Table:   guildrole.UsersTable,
-			Columns: guildrole.UsersPrimaryKey,
+			Table:   guildrole.UserMembershipsTable,
+			Columns: guildrole.UserMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
 				},
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := gru.mutation.RemovedUsersIDs(); len(nodes) > 0 && !gru.mutation.UsersCleared() {
+	if nodes := gru.mutation.RemovedUserMembershipsIDs(); len(nodes) > 0 && !gru.mutation.UserMembershipsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: true,
-			Table:   guildrole.UsersTable,
-			Columns: guildrole.UsersPrimaryKey,
+			Table:   guildrole.UserMembershipsTable,
+			Columns: guildrole.UserMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
 				},
 			},
 		}
@@ -278,17 +304,52 @@ func (gru *GuildRoleUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := gru.mutation.UsersIDs(); len(nodes) > 0 {
+	if nodes := gru.mutation.UserMembershipsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: true,
-			Table:   guildrole.UsersTable,
-			Columns: guildrole.UsersPrimaryKey,
+			Table:   guildrole.UserMembershipsTable,
+			Columns: guildrole.UserMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if gru.mutation.TalentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   guildrole.TalentTable,
+			Columns: []string{guildrole.TalentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: youtubetalent.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := gru.mutation.TalentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   guildrole.TalentTable,
+			Columns: []string{guildrole.TalentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: youtubetalent.FieldID,
 				},
 			},
 		}
@@ -347,19 +408,38 @@ func (gruo *GuildRoleUpdateOne) SetGuild(g *Guild) *GuildRoleUpdateOne {
 	return gruo.SetGuildID(g.ID)
 }
 
-// AddUserIDs adds the "users" edge to the User entity by IDs.
-func (gruo *GuildRoleUpdateOne) AddUserIDs(ids ...uint64) *GuildRoleUpdateOne {
-	gruo.mutation.AddUserIDs(ids...)
+// AddUserMembershipIDs adds the "user_memberships" edge to the UserMembership entity by IDs.
+func (gruo *GuildRoleUpdateOne) AddUserMembershipIDs(ids ...int) *GuildRoleUpdateOne {
+	gruo.mutation.AddUserMembershipIDs(ids...)
 	return gruo
 }
 
-// AddUsers adds the "users" edges to the User entity.
-func (gruo *GuildRoleUpdateOne) AddUsers(u ...*User) *GuildRoleUpdateOne {
-	ids := make([]uint64, len(u))
+// AddUserMemberships adds the "user_memberships" edges to the UserMembership entity.
+func (gruo *GuildRoleUpdateOne) AddUserMemberships(u ...*UserMembership) *GuildRoleUpdateOne {
+	ids := make([]int, len(u))
 	for i := range u {
 		ids[i] = u[i].ID
 	}
-	return gruo.AddUserIDs(ids...)
+	return gruo.AddUserMembershipIDs(ids...)
+}
+
+// SetTalentID sets the "talent" edge to the YouTubeTalent entity by ID.
+func (gruo *GuildRoleUpdateOne) SetTalentID(id string) *GuildRoleUpdateOne {
+	gruo.mutation.SetTalentID(id)
+	return gruo
+}
+
+// SetNillableTalentID sets the "talent" edge to the YouTubeTalent entity by ID if the given value is not nil.
+func (gruo *GuildRoleUpdateOne) SetNillableTalentID(id *string) *GuildRoleUpdateOne {
+	if id != nil {
+		gruo = gruo.SetTalentID(*id)
+	}
+	return gruo
+}
+
+// SetTalent sets the "talent" edge to the YouTubeTalent entity.
+func (gruo *GuildRoleUpdateOne) SetTalent(y *YouTubeTalent) *GuildRoleUpdateOne {
+	return gruo.SetTalentID(y.ID)
 }
 
 // Mutation returns the GuildRoleMutation object of the builder.
@@ -373,25 +453,31 @@ func (gruo *GuildRoleUpdateOne) ClearGuild() *GuildRoleUpdateOne {
 	return gruo
 }
 
-// ClearUsers clears all "users" edges to the User entity.
-func (gruo *GuildRoleUpdateOne) ClearUsers() *GuildRoleUpdateOne {
-	gruo.mutation.ClearUsers()
+// ClearUserMemberships clears all "user_memberships" edges to the UserMembership entity.
+func (gruo *GuildRoleUpdateOne) ClearUserMemberships() *GuildRoleUpdateOne {
+	gruo.mutation.ClearUserMemberships()
 	return gruo
 }
 
-// RemoveUserIDs removes the "users" edge to User entities by IDs.
-func (gruo *GuildRoleUpdateOne) RemoveUserIDs(ids ...uint64) *GuildRoleUpdateOne {
-	gruo.mutation.RemoveUserIDs(ids...)
+// RemoveUserMembershipIDs removes the "user_memberships" edge to UserMembership entities by IDs.
+func (gruo *GuildRoleUpdateOne) RemoveUserMembershipIDs(ids ...int) *GuildRoleUpdateOne {
+	gruo.mutation.RemoveUserMembershipIDs(ids...)
 	return gruo
 }
 
-// RemoveUsers removes "users" edges to User entities.
-func (gruo *GuildRoleUpdateOne) RemoveUsers(u ...*User) *GuildRoleUpdateOne {
-	ids := make([]uint64, len(u))
+// RemoveUserMemberships removes "user_memberships" edges to UserMembership entities.
+func (gruo *GuildRoleUpdateOne) RemoveUserMemberships(u ...*UserMembership) *GuildRoleUpdateOne {
+	ids := make([]int, len(u))
 	for i := range u {
 		ids[i] = u[i].ID
 	}
-	return gruo.RemoveUserIDs(ids...)
+	return gruo.RemoveUserMembershipIDs(ids...)
+}
+
+// ClearTalent clears the "talent" edge to the YouTubeTalent entity.
+func (gruo *GuildRoleUpdateOne) ClearTalent() *GuildRoleUpdateOne {
+	gruo.mutation.ClearTalent()
+	return gruo
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -464,7 +550,7 @@ func (gruo *GuildRoleUpdateOne) ExecX(ctx context.Context) {
 // check runs all checks and user-defined validators on the builder.
 func (gruo *GuildRoleUpdateOne) check() error {
 	if _, ok := gruo.mutation.GuildID(); gruo.mutation.GuildCleared() && !ok {
-		return errors.New("ent: clearing a required unique edge \"guild\"")
+		return errors.New(`ent: clearing a required unique edge "GuildRole.guild"`)
 	}
 	return nil
 }
@@ -482,7 +568,7 @@ func (gruo *GuildRoleUpdateOne) sqlSave(ctx context.Context) (_node *GuildRole, 
 	}
 	id, ok := gruo.mutation.ID()
 	if !ok {
-		return nil, &ValidationError{Name: "ID", err: fmt.Errorf("missing GuildRole.ID for update")}
+		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "GuildRole.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
 	if fields := gruo.fields; len(fields) > 0 {
@@ -553,33 +639,33 @@ func (gruo *GuildRoleUpdateOne) sqlSave(ctx context.Context) (_node *GuildRole, 
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if gruo.mutation.UsersCleared() {
+	if gruo.mutation.UserMembershipsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: true,
-			Table:   guildrole.UsersTable,
-			Columns: guildrole.UsersPrimaryKey,
+			Table:   guildrole.UserMembershipsTable,
+			Columns: guildrole.UserMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
 				},
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := gruo.mutation.RemovedUsersIDs(); len(nodes) > 0 && !gruo.mutation.UsersCleared() {
+	if nodes := gruo.mutation.RemovedUserMembershipsIDs(); len(nodes) > 0 && !gruo.mutation.UserMembershipsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: true,
-			Table:   guildrole.UsersTable,
-			Columns: guildrole.UsersPrimaryKey,
+			Table:   guildrole.UserMembershipsTable,
+			Columns: guildrole.UserMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
 				},
 			},
 		}
@@ -588,17 +674,52 @@ func (gruo *GuildRoleUpdateOne) sqlSave(ctx context.Context) (_node *GuildRole, 
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := gruo.mutation.UsersIDs(); len(nodes) > 0 {
+	if nodes := gruo.mutation.UserMembershipsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: true,
-			Table:   guildrole.UsersTable,
-			Columns: guildrole.UsersPrimaryKey,
+			Table:   guildrole.UserMembershipsTable,
+			Columns: guildrole.UserMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if gruo.mutation.TalentCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   guildrole.TalentTable,
+			Columns: []string{guildrole.TalentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: youtubetalent.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := gruo.mutation.TalentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   guildrole.TalentTable,
+			Columns: []string{guildrole.TalentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: youtubetalent.FieldID,
 				},
 			},
 		}

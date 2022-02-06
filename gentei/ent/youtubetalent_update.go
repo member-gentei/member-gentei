@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,8 +12,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
+	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
 	"github.com/member-gentei/member-gentei/gentei/ent/predicate"
-	"github.com/member-gentei/member-gentei/gentei/ent/user"
+	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 )
 
@@ -95,6 +97,26 @@ func (yttu *YouTubeTalentUpdate) SetNillableLastUpdated(t *time.Time) *YouTubeTa
 	return yttu
 }
 
+// SetDisabled sets the "disabled" field.
+func (yttu *YouTubeTalentUpdate) SetDisabled(t time.Time) *YouTubeTalentUpdate {
+	yttu.mutation.SetDisabled(t)
+	return yttu
+}
+
+// SetNillableDisabled sets the "disabled" field if the given value is not nil.
+func (yttu *YouTubeTalentUpdate) SetNillableDisabled(t *time.Time) *YouTubeTalentUpdate {
+	if t != nil {
+		yttu.SetDisabled(*t)
+	}
+	return yttu
+}
+
+// ClearDisabled clears the value of the "disabled" field.
+func (yttu *YouTubeTalentUpdate) ClearDisabled() *YouTubeTalentUpdate {
+	yttu.mutation.ClearDisabled()
+	return yttu
+}
+
 // AddGuildIDs adds the "guilds" edge to the Guild entity by IDs.
 func (yttu *YouTubeTalentUpdate) AddGuildIDs(ids ...uint64) *YouTubeTalentUpdate {
 	yttu.mutation.AddGuildIDs(ids...)
@@ -110,19 +132,34 @@ func (yttu *YouTubeTalentUpdate) AddGuilds(g ...*Guild) *YouTubeTalentUpdate {
 	return yttu.AddGuildIDs(ids...)
 }
 
-// AddMemberIDs adds the "members" edge to the User entity by IDs.
-func (yttu *YouTubeTalentUpdate) AddMemberIDs(ids ...uint64) *YouTubeTalentUpdate {
-	yttu.mutation.AddMemberIDs(ids...)
+// AddRoleIDs adds the "roles" edge to the GuildRole entity by IDs.
+func (yttu *YouTubeTalentUpdate) AddRoleIDs(ids ...uint64) *YouTubeTalentUpdate {
+	yttu.mutation.AddRoleIDs(ids...)
 	return yttu
 }
 
-// AddMembers adds the "members" edges to the User entity.
-func (yttu *YouTubeTalentUpdate) AddMembers(u ...*User) *YouTubeTalentUpdate {
-	ids := make([]uint64, len(u))
+// AddRoles adds the "roles" edges to the GuildRole entity.
+func (yttu *YouTubeTalentUpdate) AddRoles(g ...*GuildRole) *YouTubeTalentUpdate {
+	ids := make([]uint64, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return yttu.AddRoleIDs(ids...)
+}
+
+// AddMembershipIDs adds the "memberships" edge to the UserMembership entity by IDs.
+func (yttu *YouTubeTalentUpdate) AddMembershipIDs(ids ...int) *YouTubeTalentUpdate {
+	yttu.mutation.AddMembershipIDs(ids...)
+	return yttu
+}
+
+// AddMemberships adds the "memberships" edges to the UserMembership entity.
+func (yttu *YouTubeTalentUpdate) AddMemberships(u ...*UserMembership) *YouTubeTalentUpdate {
+	ids := make([]int, len(u))
 	for i := range u {
 		ids[i] = u[i].ID
 	}
-	return yttu.AddMemberIDs(ids...)
+	return yttu.AddMembershipIDs(ids...)
 }
 
 // Mutation returns the YouTubeTalentMutation object of the builder.
@@ -151,25 +188,46 @@ func (yttu *YouTubeTalentUpdate) RemoveGuilds(g ...*Guild) *YouTubeTalentUpdate 
 	return yttu.RemoveGuildIDs(ids...)
 }
 
-// ClearMembers clears all "members" edges to the User entity.
-func (yttu *YouTubeTalentUpdate) ClearMembers() *YouTubeTalentUpdate {
-	yttu.mutation.ClearMembers()
+// ClearRoles clears all "roles" edges to the GuildRole entity.
+func (yttu *YouTubeTalentUpdate) ClearRoles() *YouTubeTalentUpdate {
+	yttu.mutation.ClearRoles()
 	return yttu
 }
 
-// RemoveMemberIDs removes the "members" edge to User entities by IDs.
-func (yttu *YouTubeTalentUpdate) RemoveMemberIDs(ids ...uint64) *YouTubeTalentUpdate {
-	yttu.mutation.RemoveMemberIDs(ids...)
+// RemoveRoleIDs removes the "roles" edge to GuildRole entities by IDs.
+func (yttu *YouTubeTalentUpdate) RemoveRoleIDs(ids ...uint64) *YouTubeTalentUpdate {
+	yttu.mutation.RemoveRoleIDs(ids...)
 	return yttu
 }
 
-// RemoveMembers removes "members" edges to User entities.
-func (yttu *YouTubeTalentUpdate) RemoveMembers(u ...*User) *YouTubeTalentUpdate {
-	ids := make([]uint64, len(u))
+// RemoveRoles removes "roles" edges to GuildRole entities.
+func (yttu *YouTubeTalentUpdate) RemoveRoles(g ...*GuildRole) *YouTubeTalentUpdate {
+	ids := make([]uint64, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return yttu.RemoveRoleIDs(ids...)
+}
+
+// ClearMemberships clears all "memberships" edges to the UserMembership entity.
+func (yttu *YouTubeTalentUpdate) ClearMemberships() *YouTubeTalentUpdate {
+	yttu.mutation.ClearMemberships()
+	return yttu
+}
+
+// RemoveMembershipIDs removes the "memberships" edge to UserMembership entities by IDs.
+func (yttu *YouTubeTalentUpdate) RemoveMembershipIDs(ids ...int) *YouTubeTalentUpdate {
+	yttu.mutation.RemoveMembershipIDs(ids...)
+	return yttu
+}
+
+// RemoveMemberships removes "memberships" edges to UserMembership entities.
+func (yttu *YouTubeTalentUpdate) RemoveMemberships(u ...*UserMembership) *YouTubeTalentUpdate {
+	ids := make([]int, len(u))
 	for i := range u {
 		ids[i] = u[i].ID
 	}
-	return yttu.RemoveMemberIDs(ids...)
+	return yttu.RemoveMembershipIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -291,6 +349,19 @@ func (yttu *YouTubeTalentUpdate) sqlSave(ctx context.Context) (n int, err error)
 			Column: youtubetalent.FieldLastUpdated,
 		})
 	}
+	if value, ok := yttu.mutation.Disabled(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: youtubetalent.FieldDisabled,
+		})
+	}
+	if yttu.mutation.DisabledCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Column: youtubetalent.FieldDisabled,
+		})
+	}
 	if yttu.mutation.GuildsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
@@ -345,33 +416,33 @@ func (yttu *YouTubeTalentUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if yttu.mutation.MembersCleared() {
+	if yttu.mutation.RolesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   youtubetalent.MembersTable,
-			Columns: youtubetalent.MembersPrimaryKey,
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   youtubetalent.RolesTable,
+			Columns: []string{youtubetalent.RolesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeUint64,
-					Column: user.FieldID,
+					Column: guildrole.FieldID,
 				},
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := yttu.mutation.RemovedMembersIDs(); len(nodes) > 0 && !yttu.mutation.MembersCleared() {
+	if nodes := yttu.mutation.RemovedRolesIDs(); len(nodes) > 0 && !yttu.mutation.RolesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   youtubetalent.MembersTable,
-			Columns: youtubetalent.MembersPrimaryKey,
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   youtubetalent.RolesTable,
+			Columns: []string{youtubetalent.RolesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeUint64,
-					Column: user.FieldID,
+					Column: guildrole.FieldID,
 				},
 			},
 		}
@@ -380,17 +451,71 @@ func (yttu *YouTubeTalentUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := yttu.mutation.MembersIDs(); len(nodes) > 0 {
+	if nodes := yttu.mutation.RolesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   youtubetalent.MembersTable,
-			Columns: youtubetalent.MembersPrimaryKey,
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   youtubetalent.RolesTable,
+			Columns: []string{youtubetalent.RolesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeUint64,
-					Column: user.FieldID,
+					Column: guildrole.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if yttu.mutation.MembershipsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   youtubetalent.MembershipsTable,
+			Columns: []string{youtubetalent.MembershipsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := yttu.mutation.RemovedMembershipsIDs(); len(nodes) > 0 && !yttu.mutation.MembershipsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   youtubetalent.MembershipsTable,
+			Columns: []string{youtubetalent.MembershipsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := yttu.mutation.MembershipsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   youtubetalent.MembershipsTable,
+			Columns: []string{youtubetalent.MembershipsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
 				},
 			},
 		}
@@ -484,6 +609,26 @@ func (yttuo *YouTubeTalentUpdateOne) SetNillableLastUpdated(t *time.Time) *YouTu
 	return yttuo
 }
 
+// SetDisabled sets the "disabled" field.
+func (yttuo *YouTubeTalentUpdateOne) SetDisabled(t time.Time) *YouTubeTalentUpdateOne {
+	yttuo.mutation.SetDisabled(t)
+	return yttuo
+}
+
+// SetNillableDisabled sets the "disabled" field if the given value is not nil.
+func (yttuo *YouTubeTalentUpdateOne) SetNillableDisabled(t *time.Time) *YouTubeTalentUpdateOne {
+	if t != nil {
+		yttuo.SetDisabled(*t)
+	}
+	return yttuo
+}
+
+// ClearDisabled clears the value of the "disabled" field.
+func (yttuo *YouTubeTalentUpdateOne) ClearDisabled() *YouTubeTalentUpdateOne {
+	yttuo.mutation.ClearDisabled()
+	return yttuo
+}
+
 // AddGuildIDs adds the "guilds" edge to the Guild entity by IDs.
 func (yttuo *YouTubeTalentUpdateOne) AddGuildIDs(ids ...uint64) *YouTubeTalentUpdateOne {
 	yttuo.mutation.AddGuildIDs(ids...)
@@ -499,19 +644,34 @@ func (yttuo *YouTubeTalentUpdateOne) AddGuilds(g ...*Guild) *YouTubeTalentUpdate
 	return yttuo.AddGuildIDs(ids...)
 }
 
-// AddMemberIDs adds the "members" edge to the User entity by IDs.
-func (yttuo *YouTubeTalentUpdateOne) AddMemberIDs(ids ...uint64) *YouTubeTalentUpdateOne {
-	yttuo.mutation.AddMemberIDs(ids...)
+// AddRoleIDs adds the "roles" edge to the GuildRole entity by IDs.
+func (yttuo *YouTubeTalentUpdateOne) AddRoleIDs(ids ...uint64) *YouTubeTalentUpdateOne {
+	yttuo.mutation.AddRoleIDs(ids...)
 	return yttuo
 }
 
-// AddMembers adds the "members" edges to the User entity.
-func (yttuo *YouTubeTalentUpdateOne) AddMembers(u ...*User) *YouTubeTalentUpdateOne {
-	ids := make([]uint64, len(u))
+// AddRoles adds the "roles" edges to the GuildRole entity.
+func (yttuo *YouTubeTalentUpdateOne) AddRoles(g ...*GuildRole) *YouTubeTalentUpdateOne {
+	ids := make([]uint64, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return yttuo.AddRoleIDs(ids...)
+}
+
+// AddMembershipIDs adds the "memberships" edge to the UserMembership entity by IDs.
+func (yttuo *YouTubeTalentUpdateOne) AddMembershipIDs(ids ...int) *YouTubeTalentUpdateOne {
+	yttuo.mutation.AddMembershipIDs(ids...)
+	return yttuo
+}
+
+// AddMemberships adds the "memberships" edges to the UserMembership entity.
+func (yttuo *YouTubeTalentUpdateOne) AddMemberships(u ...*UserMembership) *YouTubeTalentUpdateOne {
+	ids := make([]int, len(u))
 	for i := range u {
 		ids[i] = u[i].ID
 	}
-	return yttuo.AddMemberIDs(ids...)
+	return yttuo.AddMembershipIDs(ids...)
 }
 
 // Mutation returns the YouTubeTalentMutation object of the builder.
@@ -540,25 +700,46 @@ func (yttuo *YouTubeTalentUpdateOne) RemoveGuilds(g ...*Guild) *YouTubeTalentUpd
 	return yttuo.RemoveGuildIDs(ids...)
 }
 
-// ClearMembers clears all "members" edges to the User entity.
-func (yttuo *YouTubeTalentUpdateOne) ClearMembers() *YouTubeTalentUpdateOne {
-	yttuo.mutation.ClearMembers()
+// ClearRoles clears all "roles" edges to the GuildRole entity.
+func (yttuo *YouTubeTalentUpdateOne) ClearRoles() *YouTubeTalentUpdateOne {
+	yttuo.mutation.ClearRoles()
 	return yttuo
 }
 
-// RemoveMemberIDs removes the "members" edge to User entities by IDs.
-func (yttuo *YouTubeTalentUpdateOne) RemoveMemberIDs(ids ...uint64) *YouTubeTalentUpdateOne {
-	yttuo.mutation.RemoveMemberIDs(ids...)
+// RemoveRoleIDs removes the "roles" edge to GuildRole entities by IDs.
+func (yttuo *YouTubeTalentUpdateOne) RemoveRoleIDs(ids ...uint64) *YouTubeTalentUpdateOne {
+	yttuo.mutation.RemoveRoleIDs(ids...)
 	return yttuo
 }
 
-// RemoveMembers removes "members" edges to User entities.
-func (yttuo *YouTubeTalentUpdateOne) RemoveMembers(u ...*User) *YouTubeTalentUpdateOne {
-	ids := make([]uint64, len(u))
+// RemoveRoles removes "roles" edges to GuildRole entities.
+func (yttuo *YouTubeTalentUpdateOne) RemoveRoles(g ...*GuildRole) *YouTubeTalentUpdateOne {
+	ids := make([]uint64, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return yttuo.RemoveRoleIDs(ids...)
+}
+
+// ClearMemberships clears all "memberships" edges to the UserMembership entity.
+func (yttuo *YouTubeTalentUpdateOne) ClearMemberships() *YouTubeTalentUpdateOne {
+	yttuo.mutation.ClearMemberships()
+	return yttuo
+}
+
+// RemoveMembershipIDs removes the "memberships" edge to UserMembership entities by IDs.
+func (yttuo *YouTubeTalentUpdateOne) RemoveMembershipIDs(ids ...int) *YouTubeTalentUpdateOne {
+	yttuo.mutation.RemoveMembershipIDs(ids...)
+	return yttuo
+}
+
+// RemoveMemberships removes "memberships" edges to UserMembership entities.
+func (yttuo *YouTubeTalentUpdateOne) RemoveMemberships(u ...*UserMembership) *YouTubeTalentUpdateOne {
+	ids := make([]int, len(u))
 	for i := range u {
 		ids[i] = u[i].ID
 	}
-	return yttuo.RemoveMemberIDs(ids...)
+	return yttuo.RemoveMembershipIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -635,7 +816,7 @@ func (yttuo *YouTubeTalentUpdateOne) sqlSave(ctx context.Context) (_node *YouTub
 	}
 	id, ok := yttuo.mutation.ID()
 	if !ok {
-		return nil, &ValidationError{Name: "ID", err: fmt.Errorf("missing YouTubeTalent.ID for update")}
+		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "YouTubeTalent.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
 	if fields := yttuo.fields; len(fields) > 0 {
@@ -704,6 +885,19 @@ func (yttuo *YouTubeTalentUpdateOne) sqlSave(ctx context.Context) (_node *YouTub
 			Column: youtubetalent.FieldLastUpdated,
 		})
 	}
+	if value, ok := yttuo.mutation.Disabled(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: youtubetalent.FieldDisabled,
+		})
+	}
+	if yttuo.mutation.DisabledCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Column: youtubetalent.FieldDisabled,
+		})
+	}
 	if yttuo.mutation.GuildsCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
@@ -758,33 +952,33 @@ func (yttuo *YouTubeTalentUpdateOne) sqlSave(ctx context.Context) (_node *YouTub
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if yttuo.mutation.MembersCleared() {
+	if yttuo.mutation.RolesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   youtubetalent.MembersTable,
-			Columns: youtubetalent.MembersPrimaryKey,
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   youtubetalent.RolesTable,
+			Columns: []string{youtubetalent.RolesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeUint64,
-					Column: user.FieldID,
+					Column: guildrole.FieldID,
 				},
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := yttuo.mutation.RemovedMembersIDs(); len(nodes) > 0 && !yttuo.mutation.MembersCleared() {
+	if nodes := yttuo.mutation.RemovedRolesIDs(); len(nodes) > 0 && !yttuo.mutation.RolesCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   youtubetalent.MembersTable,
-			Columns: youtubetalent.MembersPrimaryKey,
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   youtubetalent.RolesTable,
+			Columns: []string{youtubetalent.RolesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeUint64,
-					Column: user.FieldID,
+					Column: guildrole.FieldID,
 				},
 			},
 		}
@@ -793,17 +987,71 @@ func (yttuo *YouTubeTalentUpdateOne) sqlSave(ctx context.Context) (_node *YouTub
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := yttuo.mutation.MembersIDs(); len(nodes) > 0 {
+	if nodes := yttuo.mutation.RolesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   youtubetalent.MembersTable,
-			Columns: youtubetalent.MembersPrimaryKey,
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   youtubetalent.RolesTable,
+			Columns: []string{youtubetalent.RolesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeUint64,
-					Column: user.FieldID,
+					Column: guildrole.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if yttuo.mutation.MembershipsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   youtubetalent.MembershipsTable,
+			Columns: []string{youtubetalent.MembershipsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := yttuo.mutation.RemovedMembershipsIDs(); len(nodes) > 0 && !yttuo.mutation.MembershipsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   youtubetalent.MembershipsTable,
+			Columns: []string{youtubetalent.MembershipsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := yttuo.mutation.MembershipsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   youtubetalent.MembershipsTable,
+			Columns: []string{youtubetalent.MembershipsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
 				},
 			},
 		}

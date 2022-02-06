@@ -5,6 +5,7 @@ package bot
 import (
 	"context"
 	"strconv"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqljson"
@@ -13,6 +14,7 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
+	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -81,6 +83,11 @@ var (
 					},
 				},
 			},
+			{
+				Name:        "check",
+				Description: "Check membership eligiblity.",
+				Type:        discordgo.ApplicationCommandOptionSubCommand,
+			},
 		},
 	}
 	globalCommand = &discordgo.ApplicationCommand{}
@@ -88,6 +95,55 @@ var (
 
 // slashResponseFunc should return an error message if error != nil. If not, it's treated as a real error.
 type slashResponseFunc func(logger zerolog.Logger) (*discordgo.WebhookEdit, error)
+
+func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCreate) {
+	b.deferredReply(ctx, i, "info", true, func(logger zerolog.Logger) (*discordgo.WebhookEdit, error) {
+		var response *discordgo.WebhookEdit
+		// if this is a DM, fetch user info
+		if i.User != nil {
+			// TODO
+		} else {
+			// fetch guild info + user-relevant info
+			userID, err := strconv.ParseUint(i.Member.User.ID, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			guildID, err := strconv.ParseUint(i.GuildID, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			u, err := b.db.User.Get(ctx, userID)
+			if err != nil {
+				return nil, err
+			}
+			if time.Since(u.LastCheck).Minutes() < 1 {
+				return &discordgo.WebhookEdit{
+					Content: "Your membership checks are rate limited to prevent abuse. Please try again in a minute!",
+				}, nil
+			}
+			talents, err := b.db.YouTubeTalent.Query().
+				Where(youtubetalent.HasGuildsWith(guild.ID(guildID))).
+				All(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if len(talents) == 0 {
+				return &discordgo.WebhookEdit{
+					Content: "This server has not configured memberships yet or has paused membership management. Please be discreet until server moderation announces something!",
+				}, nil
+			}
+			talentIDs := make([]string, len(talents))
+			for i := range talents {
+				talentIDs[i] = talents[i].ID
+			}
+			// results, err := membership.CheckForUser(ctx, b.db, b.youTubeConfig, userID, &membership.CheckForUserOptions{
+			// 	ChannelIDs: talentIDs,
+			// })
+
+		}
+		return response, nil
+	})
+}
 
 func (b *DiscordBot) handleInfo(ctx context.Context, i *discordgo.InteractionCreate) {
 	b.deferredReply(ctx, i, "info", true, func(logger zerolog.Logger) (*discordgo.WebhookEdit, error) {

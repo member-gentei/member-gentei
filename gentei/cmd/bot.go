@@ -16,9 +16,9 @@ const (
 )
 
 var (
-	flagBotToken         string
-	flagBotProd          bool
-	flagNoUpsertCommands bool
+	flagBotToken       string
+	flagBotProd        bool
+	flagUpsertCommands bool
 )
 
 // botCmd represents the bot command
@@ -30,6 +30,12 @@ var botCmd = &cobra.Command{
 		if flagBotToken == "" {
 			return fmt.Errorf("must specify env var '%s'", envNameDiscordBotToken)
 		}
+		if flagYouTubeClientID == "" {
+			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientID)
+		}
+		if flagYouTubeClientSecret == "" {
+			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientSecret)
+		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -37,11 +43,11 @@ var botCmd = &cobra.Command{
 			ctx = context.Background()
 			db  = mustOpenDB(ctx)
 		)
-		genteiBot, err := bot.New(db, flagBotToken)
+		genteiBot, err := bot.New(db, flagBotToken, getYouTubeConfig())
 		if err != nil {
-			log.Fatal().Err(err).Msg("erorr creating bot.DiscordBot")
+			log.Fatal().Err(err).Msg("error creating bot.DiscordBot")
 		}
-		if err = genteiBot.Start(flagBotProd, !flagNoUpsertCommands); err != nil {
+		if err = genteiBot.Start(flagBotProd, flagUpsertCommands); err != nil {
 			log.Fatal().Err(err).Msg("error starting bot")
 		}
 		log.Info().Msg("bot started")
@@ -57,5 +63,5 @@ func init() {
 	rootCmd.AddCommand(botCmd)
 	flags := botCmd.Flags()
 	flags.BoolVar(&flagBotProd, "prod", false, "pushes global commands")
-	flags.BoolVar(&flagNoUpsertCommands, "no-upsert-commands", false, "disable pushing new commands")
+	flags.BoolVar(&flagUpsertCommands, "upsert-commands", false, "push new commands")
 }

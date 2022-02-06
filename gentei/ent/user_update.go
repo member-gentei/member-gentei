@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,11 +12,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
-	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
 	"github.com/member-gentei/member-gentei/gentei/ent/predicate"
-	"github.com/member-gentei/member-gentei/gentei/ent/schema"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
-	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
+	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
 	"golang.org/x/oauth2"
 )
 
@@ -102,18 +101,6 @@ func (uu *UserUpdate) ClearDiscordToken() *UserUpdate {
 	return uu
 }
 
-// SetMembershipMetadata sets the "membership_metadata" field.
-func (uu *UserUpdate) SetMembershipMetadata(mm map[string]schema.MembershipMetadata) *UserUpdate {
-	uu.mutation.SetMembershipMetadata(mm)
-	return uu
-}
-
-// ClearMembershipMetadata clears the value of the "membership_metadata" field.
-func (uu *UserUpdate) ClearMembershipMetadata() *UserUpdate {
-	uu.mutation.ClearMembershipMetadata()
-	return uu
-}
-
 // AddGuildIDs adds the "guilds" edge to the Guild entity by IDs.
 func (uu *UserUpdate) AddGuildIDs(ids ...uint64) *UserUpdate {
 	uu.mutation.AddGuildIDs(ids...)
@@ -144,34 +131,19 @@ func (uu *UserUpdate) AddGuildsAdmin(g ...*Guild) *UserUpdate {
 	return uu.AddGuildsAdminIDs(ids...)
 }
 
-// AddRoleIDs adds the "roles" edge to the GuildRole entity by IDs.
-func (uu *UserUpdate) AddRoleIDs(ids ...uint64) *UserUpdate {
-	uu.mutation.AddRoleIDs(ids...)
+// AddMembershipIDs adds the "memberships" edge to the UserMembership entity by IDs.
+func (uu *UserUpdate) AddMembershipIDs(ids ...int) *UserUpdate {
+	uu.mutation.AddMembershipIDs(ids...)
 	return uu
 }
 
-// AddRoles adds the "roles" edges to the GuildRole entity.
-func (uu *UserUpdate) AddRoles(g ...*GuildRole) *UserUpdate {
-	ids := make([]uint64, len(g))
-	for i := range g {
-		ids[i] = g[i].ID
+// AddMemberships adds the "memberships" edges to the UserMembership entity.
+func (uu *UserUpdate) AddMemberships(u ...*UserMembership) *UserUpdate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
 	}
-	return uu.AddRoleIDs(ids...)
-}
-
-// AddYoutubeMembershipIDs adds the "youtube_memberships" edge to the YouTubeTalent entity by IDs.
-func (uu *UserUpdate) AddYoutubeMembershipIDs(ids ...string) *UserUpdate {
-	uu.mutation.AddYoutubeMembershipIDs(ids...)
-	return uu
-}
-
-// AddYoutubeMemberships adds the "youtube_memberships" edges to the YouTubeTalent entity.
-func (uu *UserUpdate) AddYoutubeMemberships(y ...*YouTubeTalent) *UserUpdate {
-	ids := make([]string, len(y))
-	for i := range y {
-		ids[i] = y[i].ID
-	}
-	return uu.AddYoutubeMembershipIDs(ids...)
+	return uu.AddMembershipIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -221,46 +193,25 @@ func (uu *UserUpdate) RemoveGuildsAdmin(g ...*Guild) *UserUpdate {
 	return uu.RemoveGuildsAdminIDs(ids...)
 }
 
-// ClearRoles clears all "roles" edges to the GuildRole entity.
-func (uu *UserUpdate) ClearRoles() *UserUpdate {
-	uu.mutation.ClearRoles()
+// ClearMemberships clears all "memberships" edges to the UserMembership entity.
+func (uu *UserUpdate) ClearMemberships() *UserUpdate {
+	uu.mutation.ClearMemberships()
 	return uu
 }
 
-// RemoveRoleIDs removes the "roles" edge to GuildRole entities by IDs.
-func (uu *UserUpdate) RemoveRoleIDs(ids ...uint64) *UserUpdate {
-	uu.mutation.RemoveRoleIDs(ids...)
+// RemoveMembershipIDs removes the "memberships" edge to UserMembership entities by IDs.
+func (uu *UserUpdate) RemoveMembershipIDs(ids ...int) *UserUpdate {
+	uu.mutation.RemoveMembershipIDs(ids...)
 	return uu
 }
 
-// RemoveRoles removes "roles" edges to GuildRole entities.
-func (uu *UserUpdate) RemoveRoles(g ...*GuildRole) *UserUpdate {
-	ids := make([]uint64, len(g))
-	for i := range g {
-		ids[i] = g[i].ID
+// RemoveMemberships removes "memberships" edges to UserMembership entities.
+func (uu *UserUpdate) RemoveMemberships(u ...*UserMembership) *UserUpdate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
 	}
-	return uu.RemoveRoleIDs(ids...)
-}
-
-// ClearYoutubeMemberships clears all "youtube_memberships" edges to the YouTubeTalent entity.
-func (uu *UserUpdate) ClearYoutubeMemberships() *UserUpdate {
-	uu.mutation.ClearYoutubeMemberships()
-	return uu
-}
-
-// RemoveYoutubeMembershipIDs removes the "youtube_memberships" edge to YouTubeTalent entities by IDs.
-func (uu *UserUpdate) RemoveYoutubeMembershipIDs(ids ...string) *UserUpdate {
-	uu.mutation.RemoveYoutubeMembershipIDs(ids...)
-	return uu
-}
-
-// RemoveYoutubeMemberships removes "youtube_memberships" edges to YouTubeTalent entities.
-func (uu *UserUpdate) RemoveYoutubeMemberships(y ...*YouTubeTalent) *UserUpdate {
-	ids := make([]string, len(y))
-	for i := range y {
-		ids[i] = y[i].ID
-	}
-	return uu.RemoveYoutubeMembershipIDs(ids...)
+	return uu.RemoveMembershipIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -327,7 +278,7 @@ func (uu *UserUpdate) ExecX(ctx context.Context) {
 func (uu *UserUpdate) check() error {
 	if v, ok := uu.mutation.FullName(); ok {
 		if err := user.FullNameValidator(v); err != nil {
-			return &ValidationError{Name: "full_name", err: fmt.Errorf("ent: validator failed for field \"full_name\": %w", err)}
+			return &ValidationError{Name: "full_name", err: fmt.Errorf(`ent: validator failed for field "User.full_name": %w`, err)}
 		}
 	}
 	return nil
@@ -409,19 +360,6 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
 			Type:   field.TypeJSON,
 			Column: user.FieldDiscordToken,
-		})
-	}
-	if value, ok := uu.mutation.MembershipMetadata(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeJSON,
-			Value:  value,
-			Column: user.FieldMembershipMetadata,
-		})
-	}
-	if uu.mutation.MembershipMetadataCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeJSON,
-			Column: user.FieldMembershipMetadata,
 		})
 	}
 	if uu.mutation.GuildsCleared() {
@@ -532,33 +470,33 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if uu.mutation.RolesCleared() {
+	if uu.mutation.MembershipsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   user.RolesTable,
-			Columns: user.RolesPrimaryKey,
+			Table:   user.MembershipsTable,
+			Columns: []string{user.MembershipsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
 				},
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := uu.mutation.RemovedRolesIDs(); len(nodes) > 0 && !uu.mutation.RolesCleared() {
+	if nodes := uu.mutation.RemovedMembershipsIDs(); len(nodes) > 0 && !uu.mutation.MembershipsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   user.RolesTable,
-			Columns: user.RolesPrimaryKey,
+			Table:   user.MembershipsTable,
+			Columns: []string{user.MembershipsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
 				},
 			},
 		}
@@ -567,71 +505,17 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := uu.mutation.RolesIDs(); len(nodes) > 0 {
+	if nodes := uu.mutation.MembershipsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   user.RolesTable,
-			Columns: user.RolesPrimaryKey,
+			Table:   user.MembershipsTable,
+			Columns: []string{user.MembershipsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
-				},
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if uu.mutation.YoutubeMembershipsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   user.YoutubeMembershipsTable,
-			Columns: user.YoutubeMembershipsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
-				},
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := uu.mutation.RemovedYoutubeMembershipsIDs(); len(nodes) > 0 && !uu.mutation.YoutubeMembershipsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   user.YoutubeMembershipsTable,
-			Columns: user.YoutubeMembershipsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
-				},
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := uu.mutation.YoutubeMembershipsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   user.YoutubeMembershipsTable,
-			Columns: user.YoutubeMembershipsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
 				},
 			},
 		}
@@ -729,18 +613,6 @@ func (uuo *UserUpdateOne) ClearDiscordToken() *UserUpdateOne {
 	return uuo
 }
 
-// SetMembershipMetadata sets the "membership_metadata" field.
-func (uuo *UserUpdateOne) SetMembershipMetadata(mm map[string]schema.MembershipMetadata) *UserUpdateOne {
-	uuo.mutation.SetMembershipMetadata(mm)
-	return uuo
-}
-
-// ClearMembershipMetadata clears the value of the "membership_metadata" field.
-func (uuo *UserUpdateOne) ClearMembershipMetadata() *UserUpdateOne {
-	uuo.mutation.ClearMembershipMetadata()
-	return uuo
-}
-
 // AddGuildIDs adds the "guilds" edge to the Guild entity by IDs.
 func (uuo *UserUpdateOne) AddGuildIDs(ids ...uint64) *UserUpdateOne {
 	uuo.mutation.AddGuildIDs(ids...)
@@ -771,34 +643,19 @@ func (uuo *UserUpdateOne) AddGuildsAdmin(g ...*Guild) *UserUpdateOne {
 	return uuo.AddGuildsAdminIDs(ids...)
 }
 
-// AddRoleIDs adds the "roles" edge to the GuildRole entity by IDs.
-func (uuo *UserUpdateOne) AddRoleIDs(ids ...uint64) *UserUpdateOne {
-	uuo.mutation.AddRoleIDs(ids...)
+// AddMembershipIDs adds the "memberships" edge to the UserMembership entity by IDs.
+func (uuo *UserUpdateOne) AddMembershipIDs(ids ...int) *UserUpdateOne {
+	uuo.mutation.AddMembershipIDs(ids...)
 	return uuo
 }
 
-// AddRoles adds the "roles" edges to the GuildRole entity.
-func (uuo *UserUpdateOne) AddRoles(g ...*GuildRole) *UserUpdateOne {
-	ids := make([]uint64, len(g))
-	for i := range g {
-		ids[i] = g[i].ID
+// AddMemberships adds the "memberships" edges to the UserMembership entity.
+func (uuo *UserUpdateOne) AddMemberships(u ...*UserMembership) *UserUpdateOne {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
 	}
-	return uuo.AddRoleIDs(ids...)
-}
-
-// AddYoutubeMembershipIDs adds the "youtube_memberships" edge to the YouTubeTalent entity by IDs.
-func (uuo *UserUpdateOne) AddYoutubeMembershipIDs(ids ...string) *UserUpdateOne {
-	uuo.mutation.AddYoutubeMembershipIDs(ids...)
-	return uuo
-}
-
-// AddYoutubeMemberships adds the "youtube_memberships" edges to the YouTubeTalent entity.
-func (uuo *UserUpdateOne) AddYoutubeMemberships(y ...*YouTubeTalent) *UserUpdateOne {
-	ids := make([]string, len(y))
-	for i := range y {
-		ids[i] = y[i].ID
-	}
-	return uuo.AddYoutubeMembershipIDs(ids...)
+	return uuo.AddMembershipIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -848,46 +705,25 @@ func (uuo *UserUpdateOne) RemoveGuildsAdmin(g ...*Guild) *UserUpdateOne {
 	return uuo.RemoveGuildsAdminIDs(ids...)
 }
 
-// ClearRoles clears all "roles" edges to the GuildRole entity.
-func (uuo *UserUpdateOne) ClearRoles() *UserUpdateOne {
-	uuo.mutation.ClearRoles()
+// ClearMemberships clears all "memberships" edges to the UserMembership entity.
+func (uuo *UserUpdateOne) ClearMemberships() *UserUpdateOne {
+	uuo.mutation.ClearMemberships()
 	return uuo
 }
 
-// RemoveRoleIDs removes the "roles" edge to GuildRole entities by IDs.
-func (uuo *UserUpdateOne) RemoveRoleIDs(ids ...uint64) *UserUpdateOne {
-	uuo.mutation.RemoveRoleIDs(ids...)
+// RemoveMembershipIDs removes the "memberships" edge to UserMembership entities by IDs.
+func (uuo *UserUpdateOne) RemoveMembershipIDs(ids ...int) *UserUpdateOne {
+	uuo.mutation.RemoveMembershipIDs(ids...)
 	return uuo
 }
 
-// RemoveRoles removes "roles" edges to GuildRole entities.
-func (uuo *UserUpdateOne) RemoveRoles(g ...*GuildRole) *UserUpdateOne {
-	ids := make([]uint64, len(g))
-	for i := range g {
-		ids[i] = g[i].ID
+// RemoveMemberships removes "memberships" edges to UserMembership entities.
+func (uuo *UserUpdateOne) RemoveMemberships(u ...*UserMembership) *UserUpdateOne {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
 	}
-	return uuo.RemoveRoleIDs(ids...)
-}
-
-// ClearYoutubeMemberships clears all "youtube_memberships" edges to the YouTubeTalent entity.
-func (uuo *UserUpdateOne) ClearYoutubeMemberships() *UserUpdateOne {
-	uuo.mutation.ClearYoutubeMemberships()
-	return uuo
-}
-
-// RemoveYoutubeMembershipIDs removes the "youtube_memberships" edge to YouTubeTalent entities by IDs.
-func (uuo *UserUpdateOne) RemoveYoutubeMembershipIDs(ids ...string) *UserUpdateOne {
-	uuo.mutation.RemoveYoutubeMembershipIDs(ids...)
-	return uuo
-}
-
-// RemoveYoutubeMemberships removes "youtube_memberships" edges to YouTubeTalent entities.
-func (uuo *UserUpdateOne) RemoveYoutubeMemberships(y ...*YouTubeTalent) *UserUpdateOne {
-	ids := make([]string, len(y))
-	for i := range y {
-		ids[i] = y[i].ID
-	}
-	return uuo.RemoveYoutubeMembershipIDs(ids...)
+	return uuo.RemoveMembershipIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -961,7 +797,7 @@ func (uuo *UserUpdateOne) ExecX(ctx context.Context) {
 func (uuo *UserUpdateOne) check() error {
 	if v, ok := uuo.mutation.FullName(); ok {
 		if err := user.FullNameValidator(v); err != nil {
-			return &ValidationError{Name: "full_name", err: fmt.Errorf("ent: validator failed for field \"full_name\": %w", err)}
+			return &ValidationError{Name: "full_name", err: fmt.Errorf(`ent: validator failed for field "User.full_name": %w`, err)}
 		}
 	}
 	return nil
@@ -980,7 +816,7 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 	}
 	id, ok := uuo.mutation.ID()
 	if !ok {
-		return nil, &ValidationError{Name: "ID", err: fmt.Errorf("missing User.ID for update")}
+		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "User.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
 	if fields := uuo.fields; len(fields) > 0 {
@@ -1060,19 +896,6 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
 			Type:   field.TypeJSON,
 			Column: user.FieldDiscordToken,
-		})
-	}
-	if value, ok := uuo.mutation.MembershipMetadata(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeJSON,
-			Value:  value,
-			Column: user.FieldMembershipMetadata,
-		})
-	}
-	if uuo.mutation.MembershipMetadataCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeJSON,
-			Column: user.FieldMembershipMetadata,
 		})
 	}
 	if uuo.mutation.GuildsCleared() {
@@ -1183,33 +1006,33 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
-	if uuo.mutation.RolesCleared() {
+	if uuo.mutation.MembershipsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   user.RolesTable,
-			Columns: user.RolesPrimaryKey,
+			Table:   user.MembershipsTable,
+			Columns: []string{user.MembershipsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
 				},
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := uuo.mutation.RemovedRolesIDs(); len(nodes) > 0 && !uuo.mutation.RolesCleared() {
+	if nodes := uuo.mutation.RemovedMembershipsIDs(); len(nodes) > 0 && !uuo.mutation.MembershipsCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   user.RolesTable,
-			Columns: user.RolesPrimaryKey,
+			Table:   user.MembershipsTable,
+			Columns: []string{user.MembershipsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
 				},
 			},
 		}
@@ -1218,71 +1041,17 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
-	if nodes := uuo.mutation.RolesIDs(); len(nodes) > 0 {
+	if nodes := uuo.mutation.MembershipsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   user.RolesTable,
-			Columns: user.RolesPrimaryKey,
+			Table:   user.MembershipsTable,
+			Columns: []string{user.MembershipsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
-				},
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Add = append(_spec.Edges.Add, edge)
-	}
-	if uuo.mutation.YoutubeMembershipsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   user.YoutubeMembershipsTable,
-			Columns: user.YoutubeMembershipsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
-				},
-			},
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := uuo.mutation.RemovedYoutubeMembershipsIDs(); len(nodes) > 0 && !uuo.mutation.YoutubeMembershipsCleared() {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   user.YoutubeMembershipsTable,
-			Columns: user.YoutubeMembershipsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
-				},
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
-	}
-	if nodes := uuo.mutation.YoutubeMembershipsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   user.YoutubeMembershipsTable,
-			Columns: user.YoutubeMembershipsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
 				},
 			},
 		}

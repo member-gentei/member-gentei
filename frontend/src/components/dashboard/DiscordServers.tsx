@@ -43,9 +43,12 @@ export default function DiscordServers() {
             </div>
             <div className="message-body">
               <p>
-                The role assignments below do not yet reflect your current
-                YouTube memberships. The job scheduled to check your memberships
-                has not finished - this message will disappear after it has.
+                <strong>
+                  The role assignments below do not yet reflect your current
+                  YouTube memberships.
+                </strong>{" "}
+                The job scheduled to check your memberships has not finished -
+                this message will disappear after it has.
               </p>
             </div>
           </div>

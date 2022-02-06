@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/member-gentei/member-gentei/gentei/bot/templates"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/schema"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
@@ -62,12 +63,11 @@ func (b *DiscordBot) handleManageMap(
 					return nil, err
 				}
 				return &discordgo.WebhookEdit{
-					Content: fmt.Sprintf(
-						"%s is already mapped to **%s** (%s). If you meant to remap this role to a new YouTube talent, please unmap this role first.",
-						role.Mention(),
-						existingTalent.ChannelName,
-						existingTalent.ID,
-					),
+					Content: templates.MustRender(templates.RoleAlreadyMapped, templates.RoleAlreadyMappedContext{
+						ChannelID:   existingTalent.ID,
+						ChannelName: existingTalent.ChannelName,
+						RoleMention: role.Mention(),
+					}),
 				}, nil
 			}
 		}
@@ -96,19 +96,19 @@ func (b *DiscordBot) handleManageMap(
 	err = b.applyRole(ctx, guildID, roleID, botUserID, true)
 	if err != nil {
 		return &discordgo.WebhookEdit{
-			Content: fmt.Sprintf(
-				"We failed to confirm permissions to add users to %s. Please re-run this command after granting the bot permission to add + remove users from that role.",
-				role.Mention(),
-			),
+			Content: templates.MustRender(templates.RolePermissionFailure, templates.RolePermissionFailureContext{
+				Action:      "add",
+				RoleMention: role.Mention(),
+			}),
 		}, err
 	}
 	err = b.applyRole(ctx, guildID, roleID, botUserID, false)
 	if err != nil {
 		return &discordgo.WebhookEdit{
-			Content: fmt.Sprintf(
-				"We failed to confirm permissions to remove users from %s. Please re-run this command after granting the bot permission to add + remove users from that role.",
-				role.Mention(),
-			),
+			Content: templates.MustRender(templates.RolePermissionFailure, templates.RolePermissionFailureContext{
+				Action:      "remove",
+				RoleMention: role.Mention(),
+			}),
 		}, err
 	}
 	err = b.db.Guild.UpdateOneID(guildID).
@@ -118,7 +118,10 @@ func (b *DiscordBot) handleManageMap(
 		return nil, err
 	}
 	return &discordgo.WebhookEdit{
-		Content: fmt.Sprintf("Role for membership to **%s** is now %s.\nThis role mapping will take effect during the next daily membership check for any users already registered with Gentei.", talent.ChannelName, role.Mention()),
+		Content: templates.MustRender(templates.RoleApplied, templates.RoleAppliedContext{
+			ChannelName: talent.ChannelName,
+			RoleMention: role.Mention(),
+		}),
 	}, nil
 }
 

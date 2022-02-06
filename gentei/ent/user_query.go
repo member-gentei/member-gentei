@@ -14,10 +14,9 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
-	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
 	"github.com/member-gentei/member-gentei/gentei/ent/predicate"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
-	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
+	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
 )
 
 // UserQuery is the builder for querying User entities.
@@ -30,11 +29,10 @@ type UserQuery struct {
 	fields     []string
 	predicates []predicate.User
 	// eager-loading edges.
-	withGuilds             *GuildQuery
-	withGuildsAdmin        *GuildQuery
-	withRoles              *GuildRoleQuery
-	withYoutubeMemberships *YouTubeTalentQuery
-	modifiers              []func(s *sql.Selector)
+	withGuilds      *GuildQuery
+	withGuildsAdmin *GuildQuery
+	withMemberships *UserMembershipQuery
+	modifiers       []func(s *sql.Selector)
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -115,9 +113,9 @@ func (uq *UserQuery) QueryGuildsAdmin() *GuildQuery {
 	return query
 }
 
-// QueryRoles chains the current query on the "roles" edge.
-func (uq *UserQuery) QueryRoles() *GuildRoleQuery {
-	query := &GuildRoleQuery{config: uq.config}
+// QueryMemberships chains the current query on the "memberships" edge.
+func (uq *UserQuery) QueryMemberships() *UserMembershipQuery {
+	query := &UserMembershipQuery{config: uq.config}
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := uq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -128,30 +126,8 @@ func (uq *UserQuery) QueryRoles() *GuildRoleQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, selector),
-			sqlgraph.To(guildrole.Table, guildrole.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, user.RolesTable, user.RolesPrimaryKey...),
-		)
-		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryYoutubeMemberships chains the current query on the "youtube_memberships" edge.
-func (uq *UserQuery) QueryYoutubeMemberships() *YouTubeTalentQuery {
-	query := &YouTubeTalentQuery{config: uq.config}
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := uq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := uq.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(user.Table, user.FieldID, selector),
-			sqlgraph.To(youtubetalent.Table, youtubetalent.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, user.YoutubeMembershipsTable, user.YoutubeMembershipsPrimaryKey...),
+			sqlgraph.To(usermembership.Table, usermembership.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.MembershipsTable, user.MembershipsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(uq.driver.Dialect(), step)
 		return fromU, nil
@@ -335,15 +311,14 @@ func (uq *UserQuery) Clone() *UserQuery {
 		return nil
 	}
 	return &UserQuery{
-		config:                 uq.config,
-		limit:                  uq.limit,
-		offset:                 uq.offset,
-		order:                  append([]OrderFunc{}, uq.order...),
-		predicates:             append([]predicate.User{}, uq.predicates...),
-		withGuilds:             uq.withGuilds.Clone(),
-		withGuildsAdmin:        uq.withGuildsAdmin.Clone(),
-		withRoles:              uq.withRoles.Clone(),
-		withYoutubeMemberships: uq.withYoutubeMemberships.Clone(),
+		config:          uq.config,
+		limit:           uq.limit,
+		offset:          uq.offset,
+		order:           append([]OrderFunc{}, uq.order...),
+		predicates:      append([]predicate.User{}, uq.predicates...),
+		withGuilds:      uq.withGuilds.Clone(),
+		withGuildsAdmin: uq.withGuildsAdmin.Clone(),
+		withMemberships: uq.withMemberships.Clone(),
 		// clone intermediate query.
 		sql:  uq.sql.Clone(),
 		path: uq.path,
@@ -372,25 +347,14 @@ func (uq *UserQuery) WithGuildsAdmin(opts ...func(*GuildQuery)) *UserQuery {
 	return uq
 }
 
-// WithRoles tells the query-builder to eager-load the nodes that are connected to
-// the "roles" edge. The optional arguments are used to configure the query builder of the edge.
-func (uq *UserQuery) WithRoles(opts ...func(*GuildRoleQuery)) *UserQuery {
-	query := &GuildRoleQuery{config: uq.config}
+// WithMemberships tells the query-builder to eager-load the nodes that are connected to
+// the "memberships" edge. The optional arguments are used to configure the query builder of the edge.
+func (uq *UserQuery) WithMemberships(opts ...func(*UserMembershipQuery)) *UserQuery {
+	query := &UserMembershipQuery{config: uq.config}
 	for _, opt := range opts {
 		opt(query)
 	}
-	uq.withRoles = query
-	return uq
-}
-
-// WithYoutubeMemberships tells the query-builder to eager-load the nodes that are connected to
-// the "youtube_memberships" edge. The optional arguments are used to configure the query builder of the edge.
-func (uq *UserQuery) WithYoutubeMemberships(opts ...func(*YouTubeTalentQuery)) *UserQuery {
-	query := &YouTubeTalentQuery{config: uq.config}
-	for _, opt := range opts {
-		opt(query)
-	}
-	uq.withYoutubeMemberships = query
+	uq.withMemberships = query
 	return uq
 }
 
@@ -459,11 +423,10 @@ func (uq *UserQuery) sqlAll(ctx context.Context) ([]*User, error) {
 	var (
 		nodes       = []*User{}
 		_spec       = uq.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [3]bool{
 			uq.withGuilds != nil,
 			uq.withGuildsAdmin != nil,
-			uq.withRoles != nil,
-			uq.withYoutubeMemberships != nil,
+			uq.withMemberships != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
@@ -619,133 +582,32 @@ func (uq *UserQuery) sqlAll(ctx context.Context) ([]*User, error) {
 		}
 	}
 
-	if query := uq.withRoles; query != nil {
+	if query := uq.withMemberships; query != nil {
 		fks := make([]driver.Value, 0, len(nodes))
-		ids := make(map[uint64]*User, len(nodes))
-		for _, node := range nodes {
-			ids[node.ID] = node
-			fks = append(fks, node.ID)
-			node.Edges.Roles = []*GuildRole{}
+		nodeids := make(map[uint64]*User)
+		for i := range nodes {
+			fks = append(fks, nodes[i].ID)
+			nodeids[nodes[i].ID] = nodes[i]
+			nodes[i].Edges.Memberships = []*UserMembership{}
 		}
-		var (
-			edgeids []uint64
-			edges   = make(map[uint64][]*User)
-		)
-		_spec := &sqlgraph.EdgeQuerySpec{
-			Edge: &sqlgraph.EdgeSpec{
-				Inverse: false,
-				Table:   user.RolesTable,
-				Columns: user.RolesPrimaryKey,
-			},
-			Predicate: func(s *sql.Selector) {
-				s.Where(sql.InValues(user.RolesPrimaryKey[0], fks...))
-			},
-			ScanValues: func() [2]interface{} {
-				return [2]interface{}{new(sql.NullInt64), new(sql.NullInt64)}
-			},
-			Assign: func(out, in interface{}) error {
-				eout, ok := out.(*sql.NullInt64)
-				if !ok || eout == nil {
-					return fmt.Errorf("unexpected id value for edge-out")
-				}
-				ein, ok := in.(*sql.NullInt64)
-				if !ok || ein == nil {
-					return fmt.Errorf("unexpected id value for edge-in")
-				}
-				outValue := uint64(eout.Int64)
-				inValue := uint64(ein.Int64)
-				node, ok := ids[outValue]
-				if !ok {
-					return fmt.Errorf("unexpected node id in edges: %v", outValue)
-				}
-				if _, ok := edges[inValue]; !ok {
-					edgeids = append(edgeids, inValue)
-				}
-				edges[inValue] = append(edges[inValue], node)
-				return nil
-			},
-		}
-		if err := sqlgraph.QueryEdges(ctx, uq.driver, _spec); err != nil {
-			return nil, fmt.Errorf(`query edges "roles": %w`, err)
-		}
-		query.Where(guildrole.IDIn(edgeids...))
+		query.withFKs = true
+		query.Where(predicate.UserMembership(func(s *sql.Selector) {
+			s.Where(sql.InValues(user.MembershipsColumn, fks...))
+		}))
 		neighbors, err := query.All(ctx)
 		if err != nil {
 			return nil, err
 		}
 		for _, n := range neighbors {
-			nodes, ok := edges[n.ID]
+			fk := n.user_memberships
+			if fk == nil {
+				return nil, fmt.Errorf(`foreign-key "user_memberships" is nil for node %v`, n.ID)
+			}
+			node, ok := nodeids[*fk]
 			if !ok {
-				return nil, fmt.Errorf(`unexpected "roles" node returned %v`, n.ID)
+				return nil, fmt.Errorf(`unexpected foreign-key "user_memberships" returned %v for node %v`, *fk, n.ID)
 			}
-			for i := range nodes {
-				nodes[i].Edges.Roles = append(nodes[i].Edges.Roles, n)
-			}
-		}
-	}
-
-	if query := uq.withYoutubeMemberships; query != nil {
-		fks := make([]driver.Value, 0, len(nodes))
-		ids := make(map[uint64]*User, len(nodes))
-		for _, node := range nodes {
-			ids[node.ID] = node
-			fks = append(fks, node.ID)
-			node.Edges.YoutubeMemberships = []*YouTubeTalent{}
-		}
-		var (
-			edgeids []string
-			edges   = make(map[string][]*User)
-		)
-		_spec := &sqlgraph.EdgeQuerySpec{
-			Edge: &sqlgraph.EdgeSpec{
-				Inverse: false,
-				Table:   user.YoutubeMembershipsTable,
-				Columns: user.YoutubeMembershipsPrimaryKey,
-			},
-			Predicate: func(s *sql.Selector) {
-				s.Where(sql.InValues(user.YoutubeMembershipsPrimaryKey[0], fks...))
-			},
-			ScanValues: func() [2]interface{} {
-				return [2]interface{}{new(sql.NullInt64), new(sql.NullString)}
-			},
-			Assign: func(out, in interface{}) error {
-				eout, ok := out.(*sql.NullInt64)
-				if !ok || eout == nil {
-					return fmt.Errorf("unexpected id value for edge-out")
-				}
-				ein, ok := in.(*sql.NullString)
-				if !ok || ein == nil {
-					return fmt.Errorf("unexpected id value for edge-in")
-				}
-				outValue := uint64(eout.Int64)
-				inValue := ein.String
-				node, ok := ids[outValue]
-				if !ok {
-					return fmt.Errorf("unexpected node id in edges: %v", outValue)
-				}
-				if _, ok := edges[inValue]; !ok {
-					edgeids = append(edgeids, inValue)
-				}
-				edges[inValue] = append(edges[inValue], node)
-				return nil
-			},
-		}
-		if err := sqlgraph.QueryEdges(ctx, uq.driver, _spec); err != nil {
-			return nil, fmt.Errorf(`query edges "youtube_memberships": %w`, err)
-		}
-		query.Where(youtubetalent.IDIn(edgeids...))
-		neighbors, err := query.All(ctx)
-		if err != nil {
-			return nil, err
-		}
-		for _, n := range neighbors {
-			nodes, ok := edges[n.ID]
-			if !ok {
-				return nil, fmt.Errorf(`unexpected "youtube_memberships" node returned %v`, n.ID)
-			}
-			for i := range nodes {
-				nodes[i].Edges.YoutubeMemberships = append(nodes[i].Edges.YoutubeMemberships, n)
-			}
+			node.Edges.Memberships = append(node.Edges.Memberships, n)
 		}
 	}
 
@@ -756,6 +618,10 @@ func (uq *UserQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := uq.querySpec()
 	if len(uq.modifiers) > 0 {
 		_spec.Modifiers = uq.modifiers
+	}
+	_spec.Node.Columns = uq.fields
+	if len(uq.fields) > 0 {
+		_spec.Unique = uq.unique != nil && *uq.unique
 	}
 	return sqlgraph.CountNodes(ctx, uq.driver, _spec)
 }
@@ -827,6 +693,9 @@ func (uq *UserQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	if uq.sql != nil {
 		selector = uq.sql
 		selector.Select(selector.Columns(columns...)...)
+	}
+	if uq.unique != nil && *uq.unique {
+		selector.Distinct()
 	}
 	for _, m := range uq.modifiers {
 		m(selector)
@@ -1135,9 +1004,7 @@ func (ugb *UserGroupBy) sqlQuery() *sql.Selector {
 		for _, f := range ugb.fields {
 			columns = append(columns, selector.C(f))
 		}
-		for _, c := range aggregation {
-			columns = append(columns, c)
-		}
+		columns = append(columns, aggregation...)
 		selector.Select(columns...)
 	}
 	return selector.GroupBy(selector.Columns(ugb.fields...)...)

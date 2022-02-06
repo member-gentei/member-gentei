@@ -17,8 +17,10 @@ const (
 	FieldLastUpdated = "last_updated"
 	// EdgeGuild holds the string denoting the guild edge name in mutations.
 	EdgeGuild = "guild"
-	// EdgeUsers holds the string denoting the users edge name in mutations.
-	EdgeUsers = "users"
+	// EdgeUserMemberships holds the string denoting the user_memberships edge name in mutations.
+	EdgeUserMemberships = "user_memberships"
+	// EdgeTalent holds the string denoting the talent edge name in mutations.
+	EdgeTalent = "talent"
 	// Table holds the table name of the guildrole in the database.
 	Table = "guild_roles"
 	// GuildTable is the table that holds the guild relation/edge.
@@ -28,11 +30,18 @@ const (
 	GuildInverseTable = "guilds"
 	// GuildColumn is the table column denoting the guild relation/edge.
 	GuildColumn = "guild_roles"
-	// UsersTable is the table that holds the users relation/edge. The primary key declared below.
-	UsersTable = "user_roles"
-	// UsersInverseTable is the table name for the User entity.
-	// It exists in this package in order to avoid circular dependency with the "user" package.
-	UsersInverseTable = "users"
+	// UserMembershipsTable is the table that holds the user_memberships relation/edge. The primary key declared below.
+	UserMembershipsTable = "user_membership_roles"
+	// UserMembershipsInverseTable is the table name for the UserMembership entity.
+	// It exists in this package in order to avoid circular dependency with the "usermembership" package.
+	UserMembershipsInverseTable = "user_memberships"
+	// TalentTable is the table that holds the talent relation/edge.
+	TalentTable = "guild_roles"
+	// TalentInverseTable is the table name for the YouTubeTalent entity.
+	// It exists in this package in order to avoid circular dependency with the "youtubetalent" package.
+	TalentInverseTable = "you_tube_talents"
+	// TalentColumn is the table column denoting the talent relation/edge.
+	TalentColumn = "you_tube_talent_roles"
 )
 
 // Columns holds all SQL columns for guildrole fields.
@@ -46,12 +55,13 @@ var Columns = []string{
 // table and are not defined as standalone fields in the schema.
 var ForeignKeys = []string{
 	"guild_roles",
+	"you_tube_talent_roles",
 }
 
 var (
-	// UsersPrimaryKey and UsersColumn2 are the table columns denoting the
-	// primary key for the users relation (M2M).
-	UsersPrimaryKey = []string{"user_id", "guild_role_id"}
+	// UserMembershipsPrimaryKey and UserMembershipsColumn2 are the table columns denoting the
+	// primary key for the user_memberships relation (M2M).
+	UserMembershipsPrimaryKey = []string{"user_membership_id", "guild_role_id"}
 )
 
 // ValidColumn reports if the column name is valid (part of the table columns).

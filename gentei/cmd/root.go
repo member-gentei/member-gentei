@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"entgo.io/ent/dialect/sql/schema"
 	_ "github.com/lib/pq"
 	zlg "github.com/mark-ignacio/zerolog-gcp"
 	_ "github.com/mattn/go-sqlite3"
@@ -83,11 +84,17 @@ func mustOpenDB(ctx context.Context) *ent.Client {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("error opening SQL database")
 	}
-	if err := db.Schema.Create(
-		ctx,
-		migrate.WithDropIndex(true),
+	var migrateOptions = []schema.MigrateOption{
+		schema.WithAtlas(true),
 		migrate.WithDropColumn(true),
-	); err != nil {
+	}
+	if flagDBEngine != "sqlite3" {
+		migrateOptions = append(
+			migrateOptions,
+			migrate.WithDropIndex(true),
+		)
+	}
+	if err := db.Schema.Create(ctx, migrateOptions...); err != nil {
 		logger.Fatal().Err(err).Msg("failed to create schema resources")
 	}
 	return db

@@ -215,13 +215,20 @@ func loginDiscord(
 			Expires:  expiry,
 			HttpOnly: true,
 		})
-		return c.JSON(http.StatusAccepted, meResponseFromUser(
+		me, err := meResponseFromUser(
 			db.User.Query().
 				Where(user.ID(userDBID)).
 				WithGuilds().
 				WithGuildsAdmin().
+				WithMemberships(func(umq *ent.UserMembershipQuery) {
+					umq.WithRoles()
+				}).
 				OnlyX(ctx),
-		))
+		)
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusAccepted, me)
 	}
 }
 
@@ -332,7 +339,7 @@ type meResponse struct {
 
 type meResponseMembership struct {
 	LastVerified int64
-	Past         bool
+	Failed       bool
 }
 
 type meResponseYouTube struct {
@@ -340,7 +347,7 @@ type meResponseYouTube struct {
 	Valid bool
 }
 
-func meResponseFromUser(user *ent.User) meResponse {
+func meResponseFromUser(user *ent.User) (meResponse, error) {
 	yt := meResponseYouTube{
 		Valid: user.YoutubeToken != nil,
 	}
@@ -348,6 +355,7 @@ func meResponseFromUser(user *ent.User) meResponse {
 		yt.ID = *user.YoutubeID
 	}
 	var (
+		memberships map[string]meResponseMembership
 		serverAdmin []string
 		servers     []string
 	)
@@ -361,11 +369,19 @@ func meResponseFromUser(user *ent.User) meResponse {
 			servers = append(servers, strconv.FormatUint(dg.ID, 10))
 		}
 	}
-	var memberships = make(map[string]meResponseMembership, len(user.MembershipMetadata))
-	for k, v := range user.MembershipMetadata {
-		memberships[k] = meResponseMembership{
-			LastVerified: v.LastVerified.Unix(),
-			Past:         v.Past,
+	if len(user.Edges.Memberships) > 0 {
+		memberships = make(map[string]meResponseMembership, len(user.Edges.Memberships))
+		for _, membership := range user.Edges.Memberships {
+			guildRoles, err := membership.Edges.RolesOrErr()
+			if err != nil {
+				return meResponse{}, err
+			}
+			for _, guildRole := range guildRoles {
+				roleID := strconv.FormatUint(guildRole.ID, 10)
+				memberships[roleID] = meResponseMembership{
+					LastVerified: membership.LastVerified.Unix(),
+				}
+			}
 		}
 	}
 	return meResponse{
@@ -377,7 +393,7 @@ func meResponseFromUser(user *ent.User) meResponse {
 		Memberships:   memberships,
 		ServerAdmin:   serverAdmin,
 		Servers:       servers,
-	}
+	}, nil
 }
 
 func getMe(db *ent.Client) echo.HandlerFunc {
@@ -397,11 +413,25 @@ func getMe(db *ent.Client) echo.HandlerFunc {
 			WithGuildsAdmin().
 			Where(user.ID(userID)).
 			First(ctx)
-		if err != nil {
+		if ent.IsNotFound(err) {
+			// this happens with multiple sessions
+			c.SetCookie(&http.Cookie{
+				Name:    "token",
+				Value:   "delete-this",
+				Path:    "/",
+				Expires: time.Now().Add(-time.Hour),
+				MaxAge:  0,
+			})
+			return c.NoContent(http.StatusUnauthorized)
+		} else if err != nil {
 			return err
 		}
 		// TODO: cache management on this response
-		return c.JSON(http.StatusOK, meResponseFromUser(u))
+		me, err := meResponseFromUser(u)
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusAccepted, me)
 	}
 }
 
@@ -418,18 +448,22 @@ func deleteYouTube(db *ent.Client) echo.HandlerFunc {
 		}
 		err = db.User.UpdateOneID(userID).
 			ClearYoutubeID().
-			ClearYoutubeMemberships().
+			ClearMemberships().
 			Exec(ctx)
 		if err != nil {
 			return err
 		}
-		return c.JSON(http.StatusOK, meResponseFromUser(
+		me, err := meResponseFromUser(
 			db.User.Query().
 				Where(user.ID(userID)).
 				WithGuilds().
 				WithGuildsAdmin().
 				OnlyX(ctx),
-		))
+		)
+		if err != nil {
+			return err
+		}
+		return c.JSON(http.StatusAccepted, me)
 	}
 }
 

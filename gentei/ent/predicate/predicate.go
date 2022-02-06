@@ -15,5 +15,8 @@ type GuildRole func(*sql.Selector)
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
 
+// UserMembership is the predicate function for usermembership builders.
+type UserMembership func(*sql.Selector)
+
 // YouTubeTalent is the predicate function for youtubetalent builders.
 type YouTubeTalent func(*sql.Selector)

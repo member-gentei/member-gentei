@@ -10,24 +10,27 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/bot/roles"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/oauth2"
 )
 
 type DiscordBot struct {
-	session *discordgo.Session
-	db      *ent.Client
-	rut     *roles.RoleUpdateTracker
+	session       *discordgo.Session
+	db            *ent.Client
+	rut           *roles.RoleUpdateTracker
+	youTubeConfig *oauth2.Config
 }
 
-func New(db *ent.Client, token string) (*DiscordBot, error) {
+func New(db *ent.Client, token string, youTubeConfig *oauth2.Config) (*DiscordBot, error) {
 	session, err := discordgo.New(fmt.Sprintf("Bot %s", token))
 	if err != nil {
 		return nil, fmt.Errorf("error creating discordgo session: %w", err)
 	}
 	rut := roles.NewRoleUpdateTracker(session)
 	return &DiscordBot{
-		session: session,
-		db:      db,
-		rut:     rut,
+		session:       session,
+		db:            db,
+		rut:           rut,
+		youTubeConfig: youTubeConfig,
 	}, nil
 }
 
@@ -43,6 +46,8 @@ func (b *DiscordBot) Start(prod, upsertCommands bool) (err error) {
 		// subcommand
 		subcommand := appCommandData.Options[0]
 		switch subcommand.Name {
+		case "check":
+			b.handleCheck(ctx, i)
 		case "info":
 			b.handleInfo(ctx, i)
 		case "manage":

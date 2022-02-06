@@ -237,18 +237,18 @@ func (gc *GuildCreate) defaults() {
 // check runs all checks and user-defined validators on the builder.
 func (gc *GuildCreate) check() error {
 	if _, ok := gc.mutation.Name(); !ok {
-		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "name"`)}
+		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Guild.name"`)}
 	}
 	if _, ok := gc.mutation.Language(); !ok {
-		return &ValidationError{Name: "language", err: errors.New(`ent: missing required field "language"`)}
+		return &ValidationError{Name: "language", err: errors.New(`ent: missing required field "Guild.language"`)}
 	}
 	if v, ok := gc.mutation.Language(); ok {
 		if err := guild.LanguageValidator(v); err != nil {
-			return &ValidationError{Name: "language", err: fmt.Errorf(`ent: validator failed for field "language": %w`, err)}
+			return &ValidationError{Name: "language", err: fmt.Errorf(`ent: validator failed for field "Guild.language": %w`, err)}
 		}
 	}
 	if _, ok := gc.mutation.AdminSnowflakes(); !ok {
-		return &ValidationError{Name: "admin_snowflakes", err: errors.New(`ent: missing required field "admin_snowflakes"`)}
+		return &ValidationError{Name: "admin_snowflakes", err: errors.New(`ent: missing required field "Guild.admin_snowflakes"`)}
 	}
 	return nil
 }
@@ -512,6 +512,12 @@ func (u *GuildUpsert) UpdateAuditChannel() *GuildUpsert {
 	return u
 }
 
+// AddAuditChannel adds v to the "audit_channel" field.
+func (u *GuildUpsert) AddAuditChannel(v uint64) *GuildUpsert {
+	u.Add(guild.FieldAuditChannel, v)
+	return u
+}
+
 // ClearAuditChannel clears the value of the "audit_channel" field.
 func (u *GuildUpsert) ClearAuditChannel() *GuildUpsert {
 	u.SetNull(guild.FieldAuditChannel)
@@ -578,7 +584,7 @@ func (u *GuildUpsert) ClearSettings() *GuildUpsert {
 	return u
 }
 
-// UpdateNewValues updates the fields using the new values that were set on create except the ID field.
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
 //	client.Guild.Create().
@@ -667,6 +673,13 @@ func (u *GuildUpsertOne) ClearIconHash() *GuildUpsertOne {
 func (u *GuildUpsertOne) SetAuditChannel(v uint64) *GuildUpsertOne {
 	return u.Update(func(s *GuildUpsert) {
 		s.SetAuditChannel(v)
+	})
+}
+
+// AddAuditChannel adds v to the "audit_channel" field.
+func (u *GuildUpsertOne) AddAuditChannel(v uint64) *GuildUpsertOne {
+	return u.Update(func(s *GuildUpsert) {
+		s.AddAuditChannel(v)
 	})
 }
 
@@ -916,7 +929,7 @@ type GuildUpsertBulk struct {
 	create *GuildCreateBulk
 }
 
-// UpdateNewValues updates the fields using the new values that
+// UpdateNewValues updates the mutable fields using the new values that
 // were set on create. Using this option is equivalent to using:
 //
 //	client.Guild.Create().
@@ -1008,6 +1021,13 @@ func (u *GuildUpsertBulk) ClearIconHash() *GuildUpsertBulk {
 func (u *GuildUpsertBulk) SetAuditChannel(v uint64) *GuildUpsertBulk {
 	return u.Update(func(s *GuildUpsert) {
 		s.SetAuditChannel(v)
+	})
+}
+
+// AddAuditChannel adds v to the "audit_channel" field.
+func (u *GuildUpsertBulk) AddAuditChannel(v uint64) *GuildUpsertBulk {
+	return u.Update(func(s *GuildUpsert) {
+		s.AddAuditChannel(v)
 	})
 }
 

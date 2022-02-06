@@ -18,6 +18,8 @@ type Tx struct {
 	GuildRole *GuildRoleClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// UserMembership is the client for interacting with the UserMembership builders.
+	UserMembership *UserMembershipClient
 	// YouTubeTalent is the client for interacting with the YouTubeTalent builders.
 	YouTubeTalent *YouTubeTalentClient
 
@@ -36,7 +38,7 @@ type Tx struct {
 }
 
 type (
-	// Committer is the interface that wraps the Committer method.
+	// Committer is the interface that wraps the Commit method.
 	Committer interface {
 		Commit(context.Context, *Tx) error
 	}
@@ -50,7 +52,7 @@ type (
 	// and returns a Committer. For example:
 	//
 	//	hook := func(next ent.Committer) ent.Committer {
-	//		return ent.CommitFunc(func(context.Context, tx *ent.Tx) error {
+	//		return ent.CommitFunc(func(ctx context.Context, tx *ent.Tx) error {
 	//			// Do some stuff before.
 	//			if err := next.Commit(ctx, tx); err != nil {
 	//				return err
@@ -91,7 +93,7 @@ func (tx *Tx) OnCommit(f CommitHook) {
 }
 
 type (
-	// Rollbacker is the interface that wraps the Rollbacker method.
+	// Rollbacker is the interface that wraps the Rollback method.
 	Rollbacker interface {
 		Rollback(context.Context, *Tx) error
 	}
@@ -105,7 +107,7 @@ type (
 	// and returns a Rollbacker. For example:
 	//
 	//	hook := func(next ent.Rollbacker) ent.Rollbacker {
-	//		return ent.RollbackFunc(func(context.Context, tx *ent.Tx) error {
+	//		return ent.RollbackFunc(func(ctx context.Context, tx *ent.Tx) error {
 	//			// Do some stuff before.
 	//			if err := next.Rollback(ctx, tx); err != nil {
 	//				return err
@@ -158,6 +160,7 @@ func (tx *Tx) init() {
 	tx.Guild = NewGuildClient(tx.config)
 	tx.GuildRole = NewGuildRoleClient(tx.config)
 	tx.User = NewUserClient(tx.config)
+	tx.UserMembership = NewUserMembershipClient(tx.config)
 	tx.YouTubeTalent = NewYouTubeTalentClient(tx.config)
 }
 

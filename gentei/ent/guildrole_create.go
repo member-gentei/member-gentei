@@ -13,7 +13,8 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
 	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
-	"github.com/member-gentei/member-gentei/gentei/ent/user"
+	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
+	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 )
 
 // GuildRoleCreate is the builder for creating a GuildRole entity.
@@ -61,19 +62,38 @@ func (grc *GuildRoleCreate) SetGuild(g *Guild) *GuildRoleCreate {
 	return grc.SetGuildID(g.ID)
 }
 
-// AddUserIDs adds the "users" edge to the User entity by IDs.
-func (grc *GuildRoleCreate) AddUserIDs(ids ...uint64) *GuildRoleCreate {
-	grc.mutation.AddUserIDs(ids...)
+// AddUserMembershipIDs adds the "user_memberships" edge to the UserMembership entity by IDs.
+func (grc *GuildRoleCreate) AddUserMembershipIDs(ids ...int) *GuildRoleCreate {
+	grc.mutation.AddUserMembershipIDs(ids...)
 	return grc
 }
 
-// AddUsers adds the "users" edges to the User entity.
-func (grc *GuildRoleCreate) AddUsers(u ...*User) *GuildRoleCreate {
-	ids := make([]uint64, len(u))
+// AddUserMemberships adds the "user_memberships" edges to the UserMembership entity.
+func (grc *GuildRoleCreate) AddUserMemberships(u ...*UserMembership) *GuildRoleCreate {
+	ids := make([]int, len(u))
 	for i := range u {
 		ids[i] = u[i].ID
 	}
-	return grc.AddUserIDs(ids...)
+	return grc.AddUserMembershipIDs(ids...)
+}
+
+// SetTalentID sets the "talent" edge to the YouTubeTalent entity by ID.
+func (grc *GuildRoleCreate) SetTalentID(id string) *GuildRoleCreate {
+	grc.mutation.SetTalentID(id)
+	return grc
+}
+
+// SetNillableTalentID sets the "talent" edge to the YouTubeTalent entity by ID if the given value is not nil.
+func (grc *GuildRoleCreate) SetNillableTalentID(id *string) *GuildRoleCreate {
+	if id != nil {
+		grc = grc.SetTalentID(*id)
+	}
+	return grc
+}
+
+// SetTalent sets the "talent" edge to the YouTubeTalent entity.
+func (grc *GuildRoleCreate) SetTalent(y *YouTubeTalent) *GuildRoleCreate {
+	return grc.SetTalentID(y.ID)
 }
 
 // Mutation returns the GuildRoleMutation object of the builder.
@@ -156,13 +176,13 @@ func (grc *GuildRoleCreate) defaults() {
 // check runs all checks and user-defined validators on the builder.
 func (grc *GuildRoleCreate) check() error {
 	if _, ok := grc.mutation.Name(); !ok {
-		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "name"`)}
+		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "GuildRole.name"`)}
 	}
 	if _, ok := grc.mutation.LastUpdated(); !ok {
-		return &ValidationError{Name: "last_updated", err: errors.New(`ent: missing required field "last_updated"`)}
+		return &ValidationError{Name: "last_updated", err: errors.New(`ent: missing required field "GuildRole.last_updated"`)}
 	}
 	if _, ok := grc.mutation.GuildID(); !ok {
-		return &ValidationError{Name: "guild", err: errors.New("ent: missing required edge \"guild\"")}
+		return &ValidationError{Name: "guild", err: errors.New(`ent: missing required edge "GuildRole.guild"`)}
 	}
 	return nil
 }
@@ -234,23 +254,43 @@ func (grc *GuildRoleCreate) createSpec() (*GuildRole, *sqlgraph.CreateSpec) {
 		_node.guild_roles = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := grc.mutation.UsersIDs(); len(nodes) > 0 {
+	if nodes := grc.mutation.UserMembershipsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
 			Inverse: true,
-			Table:   guildrole.UsersTable,
-			Columns: guildrole.UsersPrimaryKey,
+			Table:   guildrole.UserMembershipsTable,
+			Columns: guildrole.UserMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
 				},
 			},
 		}
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := grc.mutation.TalentIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   guildrole.TalentTable,
+			Columns: []string{guildrole.TalentColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeString,
+					Column: youtubetalent.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.you_tube_talent_roles = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
@@ -331,7 +371,7 @@ func (u *GuildRoleUpsert) UpdateLastUpdated() *GuildRoleUpsert {
 	return u
 }
 
-// UpdateNewValues updates the fields using the new values that were set on create except the ID field.
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
 //	client.GuildRole.Create().
@@ -571,7 +611,7 @@ type GuildRoleUpsertBulk struct {
 	create *GuildRoleCreateBulk
 }
 
-// UpdateNewValues updates the fields using the new values that
+// UpdateNewValues updates the mutable fields using the new values that
 // were set on create. Using this option is equivalent to using:
 //
 //	client.GuildRole.Create().

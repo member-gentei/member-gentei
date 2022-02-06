@@ -32,6 +32,9 @@ type YouTubeTalent struct {
 	// LastUpdated holds the value of the "last_updated" field.
 	// Last time data was fetched
 	LastUpdated time.Time `json:"last_updated,omitempty"`
+	// Disabled holds the value of the "disabled" field.
+	// When refresh/membership checks were disabled. Set to zero value to re-enable.
+	Disabled time.Time `json:"disabled,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the YouTubeTalentQuery when eager-loading is set.
 	Edges YouTubeTalentEdges `json:"edges"`
@@ -41,11 +44,13 @@ type YouTubeTalent struct {
 type YouTubeTalentEdges struct {
 	// Guilds holds the value of the guilds edge.
 	Guilds []*Guild `json:"guilds,omitempty"`
-	// Members holds the value of the members edge.
-	Members []*User `json:"members,omitempty"`
+	// Roles holds the value of the roles edge.
+	Roles []*GuildRole `json:"roles,omitempty"`
+	// Memberships holds the value of the memberships edge.
+	Memberships []*UserMembership `json:"memberships,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // GuildsOrErr returns the Guilds value or an error if the edge
@@ -57,13 +62,22 @@ func (e YouTubeTalentEdges) GuildsOrErr() ([]*Guild, error) {
 	return nil, &NotLoadedError{edge: "guilds"}
 }
 
-// MembersOrErr returns the Members value or an error if the edge
+// RolesOrErr returns the Roles value or an error if the edge
 // was not loaded in eager-loading.
-func (e YouTubeTalentEdges) MembersOrErr() ([]*User, error) {
+func (e YouTubeTalentEdges) RolesOrErr() ([]*GuildRole, error) {
 	if e.loadedTypes[1] {
-		return e.Members, nil
+		return e.Roles, nil
 	}
-	return nil, &NotLoadedError{edge: "members"}
+	return nil, &NotLoadedError{edge: "roles"}
+}
+
+// MembershipsOrErr returns the Memberships value or an error if the edge
+// was not loaded in eager-loading.
+func (e YouTubeTalentEdges) MembershipsOrErr() ([]*UserMembership, error) {
+	if e.loadedTypes[2] {
+		return e.Memberships, nil
+	}
+	return nil, &NotLoadedError{edge: "memberships"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -73,7 +87,7 @@ func (*YouTubeTalent) scanValues(columns []string) ([]interface{}, error) {
 		switch columns[i] {
 		case youtubetalent.FieldID, youtubetalent.FieldChannelName, youtubetalent.FieldThumbnailURL, youtubetalent.FieldMembershipVideoID:
 			values[i] = new(sql.NullString)
-		case youtubetalent.FieldLastMembershipVideoIDMiss, youtubetalent.FieldLastUpdated:
+		case youtubetalent.FieldLastMembershipVideoIDMiss, youtubetalent.FieldLastUpdated, youtubetalent.FieldDisabled:
 			values[i] = new(sql.NullTime)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type YouTubeTalent", columns[i])
@@ -126,6 +140,12 @@ func (ytt *YouTubeTalent) assignValues(columns []string, values []interface{}) e
 			} else if value.Valid {
 				ytt.LastUpdated = value.Time
 			}
+		case youtubetalent.FieldDisabled:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field disabled", values[i])
+			} else if value.Valid {
+				ytt.Disabled = value.Time
+			}
 		}
 	}
 	return nil
@@ -136,9 +156,14 @@ func (ytt *YouTubeTalent) QueryGuilds() *GuildQuery {
 	return (&YouTubeTalentClient{config: ytt.config}).QueryGuilds(ytt)
 }
 
-// QueryMembers queries the "members" edge of the YouTubeTalent entity.
-func (ytt *YouTubeTalent) QueryMembers() *UserQuery {
-	return (&YouTubeTalentClient{config: ytt.config}).QueryMembers(ytt)
+// QueryRoles queries the "roles" edge of the YouTubeTalent entity.
+func (ytt *YouTubeTalent) QueryRoles() *GuildRoleQuery {
+	return (&YouTubeTalentClient{config: ytt.config}).QueryRoles(ytt)
+}
+
+// QueryMemberships queries the "memberships" edge of the YouTubeTalent entity.
+func (ytt *YouTubeTalent) QueryMemberships() *UserMembershipQuery {
+	return (&YouTubeTalentClient{config: ytt.config}).QueryMemberships(ytt)
 }
 
 // Update returns a builder for updating this YouTubeTalent.
@@ -174,6 +199,8 @@ func (ytt *YouTubeTalent) String() string {
 	builder.WriteString(ytt.LastMembershipVideoIDMiss.Format(time.ANSIC))
 	builder.WriteString(", last_updated=")
 	builder.WriteString(ytt.LastUpdated.Format(time.ANSIC))
+	builder.WriteString(", disabled=")
+	builder.WriteString(ytt.Disabled.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }
