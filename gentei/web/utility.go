@@ -13,6 +13,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
+	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog/log"
@@ -51,7 +52,7 @@ func parseAndSaveGuild(ctx context.Context, db *ent.Client, userID uint64, guild
 		return guildResponse{}, fmt.Errorf("error parsing embedded guild.ID as uint64: %w", err)
 	}
 	// update guild - if the guild exists, we do not update the owner ID.
-	// we  don't know if the owner is a user, so don't do anything with this yet
+	// we don't know if the owner is a user, so don't do anything with this yet
 	dg, err := db.Guild.Query().
 		WithYoutubeTalents().
 		Where(guild.ID(guildID)).
@@ -73,21 +74,31 @@ func parseAndSaveGuild(ctx context.Context, db *ent.Client, userID uint64, guild
 		}
 		log.Debug().Interface("guild", dg).Msg("created Guild")
 	} else {
-		// update edges and admin fields to include this user
-		var isAlreadyAdmin bool
+		// update edges and admin fields to include this and other user
+		var connectingUserIsAdmin bool
 		for _, snowflake := range dg.AdminSnowflakes {
 			if snowflake == userID {
-				isAlreadyAdmin = true
+				connectingUserIsAdmin = true
 				break
 			}
 		}
-		if !isAlreadyAdmin {
+		if !connectingUserIsAdmin {
+			dg.AdminSnowflakes = append(dg.AdminSnowflakes, userID)
+			err = db.Guild.UpdateOneID(dg.ID).SetAdminSnowflakes(dg.AdminSnowflakes).Exec(ctx)
+			if err != nil {
+				return guildResponse{}, fmt.Errorf("error updating Guild admin snowflakes with enrolling user: %w", err)
+			}
+		}
+		exists, err := db.Guild.QueryAdmins(dg).Where(user.ID(userID)).Exist(ctx)
+		if err != nil {
+			return guildResponse{}, fmt.Errorf("error querying Guild admins for enrolling user: %w", err)
+		}
+		if !exists {
 			err = db.Guild.UpdateOneID(guildID).
-				SetAdminSnowflakes(append(dg.AdminSnowflakes, userID)).
 				AddAdminIDs(userID).
 				Exec(ctx)
 			if err != nil {
-				return guildResponse{}, fmt.Errorf("error updating Guild admin IDs: %w", err)
+				return guildResponse{}, fmt.Errorf("error updating Guild admin edges with enrolling user: %w", err)
 			}
 		}
 	}

@@ -119,6 +119,20 @@ export function LoginYouTube() {
             </Fragment>
           );
           break;
+        case "YouTube channel belongs to a different user":
+          explainer = (
+            <Fragment>
+              <p>
+                The YouTube channel you tried to log in with belongs to a
+                different Discord user of Gentei.
+              </p>
+              <p>
+                If you want to associate that channel with your currently logged
+                in user, sign in as that other user and remove your account.
+              </p>
+            </Fragment>
+          );
+          break;
         default:
           explainer = (
             <Fragment>

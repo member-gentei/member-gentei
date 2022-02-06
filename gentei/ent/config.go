@@ -24,10 +24,11 @@ type config struct {
 
 // hooks per client, for fast access.
 type hooks struct {
-	Guild         []ent.Hook
-	GuildRole     []ent.Hook
-	User          []ent.Hook
-	YouTubeTalent []ent.Hook
+	Guild          []ent.Hook
+	GuildRole      []ent.Hook
+	User           []ent.Hook
+	UserMembership []ent.Hook
+	YouTubeTalent  []ent.Hook
 }
 
 // Options applies the options on the config object.

@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/ent/predicate"
 	"github.com/member-gentei/member-gentei/gentei/ent/schema"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
+	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 	"golang.org/x/oauth2"
 
@@ -28,10 +30,11 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeGuild         = "Guild"
-	TypeGuildRole     = "GuildRole"
-	TypeUser          = "User"
-	TypeYouTubeTalent = "YouTubeTalent"
+	TypeGuild          = "Guild"
+	TypeGuildRole      = "GuildRole"
+	TypeUser           = "User"
+	TypeUserMembership = "UserMembership"
+	TypeYouTubeTalent  = "YouTubeTalent"
 )
 
 // GuildMutation represents an operation that mutates the Guild nodes in the graph.
@@ -43,7 +46,7 @@ type GuildMutation struct {
 	name                   *string
 	icon_hash              *string
 	audit_channel          *uint64
-	addaudit_channel       *uint64
+	addaudit_channel       *int64
 	language               *guild.Language
 	admin_snowflakes       *[]uint64
 	moderator_snowflakes   *[]uint64
@@ -96,7 +99,7 @@ func withGuildID(id uint64) guildOption {
 		m.oldValue = func(ctx context.Context) (*Guild, error) {
 			once.Do(func() {
 				if m.done {
-					err = fmt.Errorf("querying old values post mutation is not allowed")
+					err = errors.New("querying old values post mutation is not allowed")
 				} else {
 					value, err = m.Client().Guild.Get(ctx, id)
 				}
@@ -129,7 +132,7 @@ func (m GuildMutation) Client() *Client {
 // it returns an error otherwise.
 func (m GuildMutation) Tx() (*Tx, error) {
 	if _, ok := m.driver.(*txDriver); !ok {
-		return nil, fmt.Errorf("ent: mutation is not running in a transaction")
+		return nil, errors.New("ent: mutation is not running in a transaction")
 	}
 	tx := &Tx{config: m.config}
 	tx.init()
@@ -151,6 +154,25 @@ func (m *GuildMutation) ID() (id uint64, exists bool) {
 	return *m.id, true
 }
 
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *GuildMutation) IDs(ctx context.Context) ([]uint64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uint64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Guild.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
 // SetName sets the "name" field.
 func (m *GuildMutation) SetName(s string) {
 	m.name = &s
@@ -170,10 +192,10 @@ func (m *GuildMutation) Name() (r string, exists bool) {
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *GuildMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldName is only allowed on UpdateOne operations")
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldName requires an ID field in the mutation")
+		return v, errors.New("OldName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -206,10 +228,10 @@ func (m *GuildMutation) IconHash() (r string, exists bool) {
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *GuildMutation) OldIconHash(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldIconHash is only allowed on UpdateOne operations")
+		return v, errors.New("OldIconHash is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldIconHash requires an ID field in the mutation")
+		return v, errors.New("OldIconHash requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -256,10 +278,10 @@ func (m *GuildMutation) AuditChannel() (r uint64, exists bool) {
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *GuildMutation) OldAuditChannel(ctx context.Context) (v uint64, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldAuditChannel is only allowed on UpdateOne operations")
+		return v, errors.New("OldAuditChannel is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldAuditChannel requires an ID field in the mutation")
+		return v, errors.New("OldAuditChannel requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -269,7 +291,7 @@ func (m *GuildMutation) OldAuditChannel(ctx context.Context) (v uint64, err erro
 }
 
 // AddAuditChannel adds u to the "audit_channel" field.
-func (m *GuildMutation) AddAuditChannel(u uint64) {
+func (m *GuildMutation) AddAuditChannel(u int64) {
 	if m.addaudit_channel != nil {
 		*m.addaudit_channel += u
 	} else {
@@ -278,7 +300,7 @@ func (m *GuildMutation) AddAuditChannel(u uint64) {
 }
 
 // AddedAuditChannel returns the value that was added to the "audit_channel" field in this mutation.
-func (m *GuildMutation) AddedAuditChannel() (r uint64, exists bool) {
+func (m *GuildMutation) AddedAuditChannel() (r int64, exists bool) {
 	v := m.addaudit_channel
 	if v == nil {
 		return
@@ -325,10 +347,10 @@ func (m *GuildMutation) Language() (r guild.Language, exists bool) {
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *GuildMutation) OldLanguage(ctx context.Context) (v guild.Language, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldLanguage is only allowed on UpdateOne operations")
+		return v, errors.New("OldLanguage is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldLanguage requires an ID field in the mutation")
+		return v, errors.New("OldLanguage requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -361,10 +383,10 @@ func (m *GuildMutation) AdminSnowflakes() (r []uint64, exists bool) {
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *GuildMutation) OldAdminSnowflakes(ctx context.Context) (v []uint64, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldAdminSnowflakes is only allowed on UpdateOne operations")
+		return v, errors.New("OldAdminSnowflakes is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldAdminSnowflakes requires an ID field in the mutation")
+		return v, errors.New("OldAdminSnowflakes requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -397,10 +419,10 @@ func (m *GuildMutation) ModeratorSnowflakes() (r []uint64, exists bool) {
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *GuildMutation) OldModeratorSnowflakes(ctx context.Context) (v []uint64, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldModeratorSnowflakes is only allowed on UpdateOne operations")
+		return v, errors.New("OldModeratorSnowflakes is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldModeratorSnowflakes requires an ID field in the mutation")
+		return v, errors.New("OldModeratorSnowflakes requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -446,10 +468,10 @@ func (m *GuildMutation) Settings() (r *schema.GuildSettings, exists bool) {
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *GuildMutation) OldSettings(ctx context.Context) (v *schema.GuildSettings, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldSettings is only allowed on UpdateOne operations")
+		return v, errors.New("OldSettings is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldSettings requires an ID field in the mutation")
+		return v, errors.New("OldSettings requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -867,7 +889,7 @@ func (m *GuildMutation) AddedField(name string) (ent.Value, bool) {
 func (m *GuildMutation) AddField(name string, value ent.Value) error {
 	switch name {
 	case guild.FieldAuditChannel:
-		v, ok := value.(uint64)
+		v, ok := value.(int64)
 		if !ok {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
@@ -1117,20 +1139,22 @@ func (m *GuildMutation) ResetEdge(name string) error {
 // GuildRoleMutation represents an operation that mutates the GuildRole nodes in the graph.
 type GuildRoleMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *uint64
-	name          *string
-	last_updated  *time.Time
-	clearedFields map[string]struct{}
-	guild         *uint64
-	clearedguild  bool
-	users         map[uint64]struct{}
-	removedusers  map[uint64]struct{}
-	clearedusers  bool
-	done          bool
-	oldValue      func(context.Context) (*GuildRole, error)
-	predicates    []predicate.GuildRole
+	op                      Op
+	typ                     string
+	id                      *uint64
+	name                    *string
+	last_updated            *time.Time
+	clearedFields           map[string]struct{}
+	guild                   *uint64
+	clearedguild            bool
+	user_memberships        map[int]struct{}
+	removeduser_memberships map[int]struct{}
+	cleareduser_memberships bool
+	talent                  *string
+	clearedtalent           bool
+	done                    bool
+	oldValue                func(context.Context) (*GuildRole, error)
+	predicates              []predicate.GuildRole
 }
 
 var _ ent.Mutation = (*GuildRoleMutation)(nil)
@@ -1163,7 +1187,7 @@ func withGuildRoleID(id uint64) guildroleOption {
 		m.oldValue = func(ctx context.Context) (*GuildRole, error) {
 			once.Do(func() {
 				if m.done {
-					err = fmt.Errorf("querying old values post mutation is not allowed")
+					err = errors.New("querying old values post mutation is not allowed")
 				} else {
 					value, err = m.Client().GuildRole.Get(ctx, id)
 				}
@@ -1196,7 +1220,7 @@ func (m GuildRoleMutation) Client() *Client {
 // it returns an error otherwise.
 func (m GuildRoleMutation) Tx() (*Tx, error) {
 	if _, ok := m.driver.(*txDriver); !ok {
-		return nil, fmt.Errorf("ent: mutation is not running in a transaction")
+		return nil, errors.New("ent: mutation is not running in a transaction")
 	}
 	tx := &Tx{config: m.config}
 	tx.init()
@@ -1218,6 +1242,25 @@ func (m *GuildRoleMutation) ID() (id uint64, exists bool) {
 	return *m.id, true
 }
 
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *GuildRoleMutation) IDs(ctx context.Context) ([]uint64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uint64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().GuildRole.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
 // SetName sets the "name" field.
 func (m *GuildRoleMutation) SetName(s string) {
 	m.name = &s
@@ -1237,10 +1280,10 @@ func (m *GuildRoleMutation) Name() (r string, exists bool) {
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *GuildRoleMutation) OldName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldName is only allowed on UpdateOne operations")
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldName requires an ID field in the mutation")
+		return v, errors.New("OldName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -1273,10 +1316,10 @@ func (m *GuildRoleMutation) LastUpdated() (r time.Time, exists bool) {
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *GuildRoleMutation) OldLastUpdated(ctx context.Context) (v time.Time, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldLastUpdated is only allowed on UpdateOne operations")
+		return v, errors.New("OldLastUpdated is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldLastUpdated requires an ID field in the mutation")
+		return v, errors.New("OldLastUpdated requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -1329,58 +1372,97 @@ func (m *GuildRoleMutation) ResetGuild() {
 	m.clearedguild = false
 }
 
-// AddUserIDs adds the "users" edge to the User entity by ids.
-func (m *GuildRoleMutation) AddUserIDs(ids ...uint64) {
-	if m.users == nil {
-		m.users = make(map[uint64]struct{})
+// AddUserMembershipIDs adds the "user_memberships" edge to the UserMembership entity by ids.
+func (m *GuildRoleMutation) AddUserMembershipIDs(ids ...int) {
+	if m.user_memberships == nil {
+		m.user_memberships = make(map[int]struct{})
 	}
 	for i := range ids {
-		m.users[ids[i]] = struct{}{}
+		m.user_memberships[ids[i]] = struct{}{}
 	}
 }
 
-// ClearUsers clears the "users" edge to the User entity.
-func (m *GuildRoleMutation) ClearUsers() {
-	m.clearedusers = true
+// ClearUserMemberships clears the "user_memberships" edge to the UserMembership entity.
+func (m *GuildRoleMutation) ClearUserMemberships() {
+	m.cleareduser_memberships = true
 }
 
-// UsersCleared reports if the "users" edge to the User entity was cleared.
-func (m *GuildRoleMutation) UsersCleared() bool {
-	return m.clearedusers
+// UserMembershipsCleared reports if the "user_memberships" edge to the UserMembership entity was cleared.
+func (m *GuildRoleMutation) UserMembershipsCleared() bool {
+	return m.cleareduser_memberships
 }
 
-// RemoveUserIDs removes the "users" edge to the User entity by IDs.
-func (m *GuildRoleMutation) RemoveUserIDs(ids ...uint64) {
-	if m.removedusers == nil {
-		m.removedusers = make(map[uint64]struct{})
+// RemoveUserMembershipIDs removes the "user_memberships" edge to the UserMembership entity by IDs.
+func (m *GuildRoleMutation) RemoveUserMembershipIDs(ids ...int) {
+	if m.removeduser_memberships == nil {
+		m.removeduser_memberships = make(map[int]struct{})
 	}
 	for i := range ids {
-		delete(m.users, ids[i])
-		m.removedusers[ids[i]] = struct{}{}
+		delete(m.user_memberships, ids[i])
+		m.removeduser_memberships[ids[i]] = struct{}{}
 	}
 }
 
-// RemovedUsers returns the removed IDs of the "users" edge to the User entity.
-func (m *GuildRoleMutation) RemovedUsersIDs() (ids []uint64) {
-	for id := range m.removedusers {
+// RemovedUserMemberships returns the removed IDs of the "user_memberships" edge to the UserMembership entity.
+func (m *GuildRoleMutation) RemovedUserMembershipsIDs() (ids []int) {
+	for id := range m.removeduser_memberships {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// UsersIDs returns the "users" edge IDs in the mutation.
-func (m *GuildRoleMutation) UsersIDs() (ids []uint64) {
-	for id := range m.users {
+// UserMembershipsIDs returns the "user_memberships" edge IDs in the mutation.
+func (m *GuildRoleMutation) UserMembershipsIDs() (ids []int) {
+	for id := range m.user_memberships {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// ResetUsers resets all changes to the "users" edge.
-func (m *GuildRoleMutation) ResetUsers() {
-	m.users = nil
-	m.clearedusers = false
-	m.removedusers = nil
+// ResetUserMemberships resets all changes to the "user_memberships" edge.
+func (m *GuildRoleMutation) ResetUserMemberships() {
+	m.user_memberships = nil
+	m.cleareduser_memberships = false
+	m.removeduser_memberships = nil
+}
+
+// SetTalentID sets the "talent" edge to the YouTubeTalent entity by id.
+func (m *GuildRoleMutation) SetTalentID(id string) {
+	m.talent = &id
+}
+
+// ClearTalent clears the "talent" edge to the YouTubeTalent entity.
+func (m *GuildRoleMutation) ClearTalent() {
+	m.clearedtalent = true
+}
+
+// TalentCleared reports if the "talent" edge to the YouTubeTalent entity was cleared.
+func (m *GuildRoleMutation) TalentCleared() bool {
+	return m.clearedtalent
+}
+
+// TalentID returns the "talent" edge ID in the mutation.
+func (m *GuildRoleMutation) TalentID() (id string, exists bool) {
+	if m.talent != nil {
+		return *m.talent, true
+	}
+	return
+}
+
+// TalentIDs returns the "talent" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TalentID instead. It exists only for internal usage by the builders.
+func (m *GuildRoleMutation) TalentIDs() (ids []string) {
+	if id := m.talent; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTalent resets all changes to the "talent" edge.
+func (m *GuildRoleMutation) ResetTalent() {
+	m.talent = nil
+	m.clearedtalent = false
 }
 
 // Where appends a list predicates to the GuildRoleMutation builder.
@@ -1518,12 +1600,15 @@ func (m *GuildRoleMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *GuildRoleMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.guild != nil {
 		edges = append(edges, guildrole.EdgeGuild)
 	}
-	if m.users != nil {
-		edges = append(edges, guildrole.EdgeUsers)
+	if m.user_memberships != nil {
+		edges = append(edges, guildrole.EdgeUserMemberships)
+	}
+	if m.talent != nil {
+		edges = append(edges, guildrole.EdgeTalent)
 	}
 	return edges
 }
@@ -1536,21 +1621,25 @@ func (m *GuildRoleMutation) AddedIDs(name string) []ent.Value {
 		if id := m.guild; id != nil {
 			return []ent.Value{*id}
 		}
-	case guildrole.EdgeUsers:
-		ids := make([]ent.Value, 0, len(m.users))
-		for id := range m.users {
+	case guildrole.EdgeUserMemberships:
+		ids := make([]ent.Value, 0, len(m.user_memberships))
+		for id := range m.user_memberships {
 			ids = append(ids, id)
 		}
 		return ids
+	case guildrole.EdgeTalent:
+		if id := m.talent; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *GuildRoleMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
-	if m.removedusers != nil {
-		edges = append(edges, guildrole.EdgeUsers)
+	edges := make([]string, 0, 3)
+	if m.removeduser_memberships != nil {
+		edges = append(edges, guildrole.EdgeUserMemberships)
 	}
 	return edges
 }
@@ -1559,9 +1648,9 @@ func (m *GuildRoleMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *GuildRoleMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
-	case guildrole.EdgeUsers:
-		ids := make([]ent.Value, 0, len(m.removedusers))
-		for id := range m.removedusers {
+	case guildrole.EdgeUserMemberships:
+		ids := make([]ent.Value, 0, len(m.removeduser_memberships))
+		for id := range m.removeduser_memberships {
 			ids = append(ids, id)
 		}
 		return ids
@@ -1571,12 +1660,15 @@ func (m *GuildRoleMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *GuildRoleMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedguild {
 		edges = append(edges, guildrole.EdgeGuild)
 	}
-	if m.clearedusers {
-		edges = append(edges, guildrole.EdgeUsers)
+	if m.cleareduser_memberships {
+		edges = append(edges, guildrole.EdgeUserMemberships)
+	}
+	if m.clearedtalent {
+		edges = append(edges, guildrole.EdgeTalent)
 	}
 	return edges
 }
@@ -1587,8 +1679,10 @@ func (m *GuildRoleMutation) EdgeCleared(name string) bool {
 	switch name {
 	case guildrole.EdgeGuild:
 		return m.clearedguild
-	case guildrole.EdgeUsers:
-		return m.clearedusers
+	case guildrole.EdgeUserMemberships:
+		return m.cleareduser_memberships
+	case guildrole.EdgeTalent:
+		return m.clearedtalent
 	}
 	return false
 }
@@ -1599,6 +1693,9 @@ func (m *GuildRoleMutation) ClearEdge(name string) error {
 	switch name {
 	case guildrole.EdgeGuild:
 		m.ClearGuild()
+		return nil
+	case guildrole.EdgeTalent:
+		m.ClearTalent()
 		return nil
 	}
 	return fmt.Errorf("unknown GuildRole unique edge %s", name)
@@ -1611,8 +1708,11 @@ func (m *GuildRoleMutation) ResetEdge(name string) error {
 	case guildrole.EdgeGuild:
 		m.ResetGuild()
 		return nil
-	case guildrole.EdgeUsers:
-		m.ResetUsers()
+	case guildrole.EdgeUserMemberships:
+		m.ResetUserMemberships()
+		return nil
+	case guildrole.EdgeTalent:
+		m.ResetTalent()
 		return nil
 	}
 	return fmt.Errorf("unknown GuildRole edge %s", name)
@@ -1621,32 +1721,28 @@ func (m *GuildRoleMutation) ResetEdge(name string) error {
 // UserMutation represents an operation that mutates the User nodes in the graph.
 type UserMutation struct {
 	config
-	op                         Op
-	typ                        string
-	id                         *uint64
-	full_name                  *string
-	avatar_hash                *string
-	last_check                 *time.Time
-	youtube_id                 *string
-	youtube_token              **oauth2.Token
-	discord_token              **oauth2.Token
-	membership_metadata        *map[string]schema.MembershipMetadata
-	clearedFields              map[string]struct{}
-	guilds                     map[uint64]struct{}
-	removedguilds              map[uint64]struct{}
-	clearedguilds              bool
-	guilds_admin               map[uint64]struct{}
-	removedguilds_admin        map[uint64]struct{}
-	clearedguilds_admin        bool
-	roles                      map[uint64]struct{}
-	removedroles               map[uint64]struct{}
-	clearedroles               bool
-	youtube_memberships        map[string]struct{}
-	removedyoutube_memberships map[string]struct{}
-	clearedyoutube_memberships bool
-	done                       bool
-	oldValue                   func(context.Context) (*User, error)
-	predicates                 []predicate.User
+	op                  Op
+	typ                 string
+	id                  *uint64
+	full_name           *string
+	avatar_hash         *string
+	last_check          *time.Time
+	youtube_id          *string
+	youtube_token       **oauth2.Token
+	discord_token       **oauth2.Token
+	clearedFields       map[string]struct{}
+	guilds              map[uint64]struct{}
+	removedguilds       map[uint64]struct{}
+	clearedguilds       bool
+	guilds_admin        map[uint64]struct{}
+	removedguilds_admin map[uint64]struct{}
+	clearedguilds_admin bool
+	memberships         map[int]struct{}
+	removedmemberships  map[int]struct{}
+	clearedmemberships  bool
+	done                bool
+	oldValue            func(context.Context) (*User, error)
+	predicates          []predicate.User
 }
 
 var _ ent.Mutation = (*UserMutation)(nil)
@@ -1679,7 +1775,7 @@ func withUserID(id uint64) userOption {
 		m.oldValue = func(ctx context.Context) (*User, error) {
 			once.Do(func() {
 				if m.done {
-					err = fmt.Errorf("querying old values post mutation is not allowed")
+					err = errors.New("querying old values post mutation is not allowed")
 				} else {
 					value, err = m.Client().User.Get(ctx, id)
 				}
@@ -1712,7 +1808,7 @@ func (m UserMutation) Client() *Client {
 // it returns an error otherwise.
 func (m UserMutation) Tx() (*Tx, error) {
 	if _, ok := m.driver.(*txDriver); !ok {
-		return nil, fmt.Errorf("ent: mutation is not running in a transaction")
+		return nil, errors.New("ent: mutation is not running in a transaction")
 	}
 	tx := &Tx{config: m.config}
 	tx.init()
@@ -1734,6 +1830,25 @@ func (m *UserMutation) ID() (id uint64, exists bool) {
 	return *m.id, true
 }
 
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *UserMutation) IDs(ctx context.Context) ([]uint64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []uint64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().User.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
 // SetFullName sets the "full_name" field.
 func (m *UserMutation) SetFullName(s string) {
 	m.full_name = &s
@@ -1753,10 +1868,10 @@ func (m *UserMutation) FullName() (r string, exists bool) {
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *UserMutation) OldFullName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldFullName is only allowed on UpdateOne operations")
+		return v, errors.New("OldFullName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldFullName requires an ID field in the mutation")
+		return v, errors.New("OldFullName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -1789,10 +1904,10 @@ func (m *UserMutation) AvatarHash() (r string, exists bool) {
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *UserMutation) OldAvatarHash(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldAvatarHash is only allowed on UpdateOne operations")
+		return v, errors.New("OldAvatarHash is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldAvatarHash requires an ID field in the mutation")
+		return v, errors.New("OldAvatarHash requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -1825,10 +1940,10 @@ func (m *UserMutation) LastCheck() (r time.Time, exists bool) {
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *UserMutation) OldLastCheck(ctx context.Context) (v time.Time, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldLastCheck is only allowed on UpdateOne operations")
+		return v, errors.New("OldLastCheck is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldLastCheck requires an ID field in the mutation")
+		return v, errors.New("OldLastCheck requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -1861,10 +1976,10 @@ func (m *UserMutation) YoutubeID() (r string, exists bool) {
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *UserMutation) OldYoutubeID(ctx context.Context) (v *string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldYoutubeID is only allowed on UpdateOne operations")
+		return v, errors.New("OldYoutubeID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldYoutubeID requires an ID field in the mutation")
+		return v, errors.New("OldYoutubeID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -1910,10 +2025,10 @@ func (m *UserMutation) YoutubeToken() (r *oauth2.Token, exists bool) {
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *UserMutation) OldYoutubeToken(ctx context.Context) (v *oauth2.Token, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldYoutubeToken is only allowed on UpdateOne operations")
+		return v, errors.New("OldYoutubeToken is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldYoutubeToken requires an ID field in the mutation")
+		return v, errors.New("OldYoutubeToken requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -1959,10 +2074,10 @@ func (m *UserMutation) DiscordToken() (r *oauth2.Token, exists bool) {
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *UserMutation) OldDiscordToken(ctx context.Context) (v *oauth2.Token, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldDiscordToken is only allowed on UpdateOne operations")
+		return v, errors.New("OldDiscordToken is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldDiscordToken requires an ID field in the mutation")
+		return v, errors.New("OldDiscordToken requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -1987,55 +2102,6 @@ func (m *UserMutation) DiscordTokenCleared() bool {
 func (m *UserMutation) ResetDiscordToken() {
 	m.discord_token = nil
 	delete(m.clearedFields, user.FieldDiscordToken)
-}
-
-// SetMembershipMetadata sets the "membership_metadata" field.
-func (m *UserMutation) SetMembershipMetadata(mm map[string]schema.MembershipMetadata) {
-	m.membership_metadata = &mm
-}
-
-// MembershipMetadata returns the value of the "membership_metadata" field in the mutation.
-func (m *UserMutation) MembershipMetadata() (r map[string]schema.MembershipMetadata, exists bool) {
-	v := m.membership_metadata
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldMembershipMetadata returns the old "membership_metadata" field's value of the User entity.
-// If the User object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *UserMutation) OldMembershipMetadata(ctx context.Context) (v map[string]schema.MembershipMetadata, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldMembershipMetadata is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldMembershipMetadata requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldMembershipMetadata: %w", err)
-	}
-	return oldValue.MembershipMetadata, nil
-}
-
-// ClearMembershipMetadata clears the value of the "membership_metadata" field.
-func (m *UserMutation) ClearMembershipMetadata() {
-	m.membership_metadata = nil
-	m.clearedFields[user.FieldMembershipMetadata] = struct{}{}
-}
-
-// MembershipMetadataCleared returns if the "membership_metadata" field was cleared in this mutation.
-func (m *UserMutation) MembershipMetadataCleared() bool {
-	_, ok := m.clearedFields[user.FieldMembershipMetadata]
-	return ok
-}
-
-// ResetMembershipMetadata resets all changes to the "membership_metadata" field.
-func (m *UserMutation) ResetMembershipMetadata() {
-	m.membership_metadata = nil
-	delete(m.clearedFields, user.FieldMembershipMetadata)
 }
 
 // AddGuildIDs adds the "guilds" edge to the Guild entity by ids.
@@ -2146,112 +2212,58 @@ func (m *UserMutation) ResetGuildsAdmin() {
 	m.removedguilds_admin = nil
 }
 
-// AddRoleIDs adds the "roles" edge to the GuildRole entity by ids.
-func (m *UserMutation) AddRoleIDs(ids ...uint64) {
-	if m.roles == nil {
-		m.roles = make(map[uint64]struct{})
+// AddMembershipIDs adds the "memberships" edge to the UserMembership entity by ids.
+func (m *UserMutation) AddMembershipIDs(ids ...int) {
+	if m.memberships == nil {
+		m.memberships = make(map[int]struct{})
 	}
 	for i := range ids {
-		m.roles[ids[i]] = struct{}{}
+		m.memberships[ids[i]] = struct{}{}
 	}
 }
 
-// ClearRoles clears the "roles" edge to the GuildRole entity.
-func (m *UserMutation) ClearRoles() {
-	m.clearedroles = true
+// ClearMemberships clears the "memberships" edge to the UserMembership entity.
+func (m *UserMutation) ClearMemberships() {
+	m.clearedmemberships = true
 }
 
-// RolesCleared reports if the "roles" edge to the GuildRole entity was cleared.
-func (m *UserMutation) RolesCleared() bool {
-	return m.clearedroles
+// MembershipsCleared reports if the "memberships" edge to the UserMembership entity was cleared.
+func (m *UserMutation) MembershipsCleared() bool {
+	return m.clearedmemberships
 }
 
-// RemoveRoleIDs removes the "roles" edge to the GuildRole entity by IDs.
-func (m *UserMutation) RemoveRoleIDs(ids ...uint64) {
-	if m.removedroles == nil {
-		m.removedroles = make(map[uint64]struct{})
+// RemoveMembershipIDs removes the "memberships" edge to the UserMembership entity by IDs.
+func (m *UserMutation) RemoveMembershipIDs(ids ...int) {
+	if m.removedmemberships == nil {
+		m.removedmemberships = make(map[int]struct{})
 	}
 	for i := range ids {
-		delete(m.roles, ids[i])
-		m.removedroles[ids[i]] = struct{}{}
+		delete(m.memberships, ids[i])
+		m.removedmemberships[ids[i]] = struct{}{}
 	}
 }
 
-// RemovedRoles returns the removed IDs of the "roles" edge to the GuildRole entity.
-func (m *UserMutation) RemovedRolesIDs() (ids []uint64) {
-	for id := range m.removedroles {
+// RemovedMemberships returns the removed IDs of the "memberships" edge to the UserMembership entity.
+func (m *UserMutation) RemovedMembershipsIDs() (ids []int) {
+	for id := range m.removedmemberships {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// RolesIDs returns the "roles" edge IDs in the mutation.
-func (m *UserMutation) RolesIDs() (ids []uint64) {
-	for id := range m.roles {
+// MembershipsIDs returns the "memberships" edge IDs in the mutation.
+func (m *UserMutation) MembershipsIDs() (ids []int) {
+	for id := range m.memberships {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// ResetRoles resets all changes to the "roles" edge.
-func (m *UserMutation) ResetRoles() {
-	m.roles = nil
-	m.clearedroles = false
-	m.removedroles = nil
-}
-
-// AddYoutubeMembershipIDs adds the "youtube_memberships" edge to the YouTubeTalent entity by ids.
-func (m *UserMutation) AddYoutubeMembershipIDs(ids ...string) {
-	if m.youtube_memberships == nil {
-		m.youtube_memberships = make(map[string]struct{})
-	}
-	for i := range ids {
-		m.youtube_memberships[ids[i]] = struct{}{}
-	}
-}
-
-// ClearYoutubeMemberships clears the "youtube_memberships" edge to the YouTubeTalent entity.
-func (m *UserMutation) ClearYoutubeMemberships() {
-	m.clearedyoutube_memberships = true
-}
-
-// YoutubeMembershipsCleared reports if the "youtube_memberships" edge to the YouTubeTalent entity was cleared.
-func (m *UserMutation) YoutubeMembershipsCleared() bool {
-	return m.clearedyoutube_memberships
-}
-
-// RemoveYoutubeMembershipIDs removes the "youtube_memberships" edge to the YouTubeTalent entity by IDs.
-func (m *UserMutation) RemoveYoutubeMembershipIDs(ids ...string) {
-	if m.removedyoutube_memberships == nil {
-		m.removedyoutube_memberships = make(map[string]struct{})
-	}
-	for i := range ids {
-		delete(m.youtube_memberships, ids[i])
-		m.removedyoutube_memberships[ids[i]] = struct{}{}
-	}
-}
-
-// RemovedYoutubeMemberships returns the removed IDs of the "youtube_memberships" edge to the YouTubeTalent entity.
-func (m *UserMutation) RemovedYoutubeMembershipsIDs() (ids []string) {
-	for id := range m.removedyoutube_memberships {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// YoutubeMembershipsIDs returns the "youtube_memberships" edge IDs in the mutation.
-func (m *UserMutation) YoutubeMembershipsIDs() (ids []string) {
-	for id := range m.youtube_memberships {
-		ids = append(ids, id)
-	}
-	return
-}
-
-// ResetYoutubeMemberships resets all changes to the "youtube_memberships" edge.
-func (m *UserMutation) ResetYoutubeMemberships() {
-	m.youtube_memberships = nil
-	m.clearedyoutube_memberships = false
-	m.removedyoutube_memberships = nil
+// ResetMemberships resets all changes to the "memberships" edge.
+func (m *UserMutation) ResetMemberships() {
+	m.memberships = nil
+	m.clearedmemberships = false
+	m.removedmemberships = nil
 }
 
 // Where appends a list predicates to the UserMutation builder.
@@ -2273,7 +2285,7 @@ func (m *UserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 6)
 	if m.full_name != nil {
 		fields = append(fields, user.FieldFullName)
 	}
@@ -2291,9 +2303,6 @@ func (m *UserMutation) Fields() []string {
 	}
 	if m.discord_token != nil {
 		fields = append(fields, user.FieldDiscordToken)
-	}
-	if m.membership_metadata != nil {
-		fields = append(fields, user.FieldMembershipMetadata)
 	}
 	return fields
 }
@@ -2315,8 +2324,6 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 		return m.YoutubeToken()
 	case user.FieldDiscordToken:
 		return m.DiscordToken()
-	case user.FieldMembershipMetadata:
-		return m.MembershipMetadata()
 	}
 	return nil, false
 }
@@ -2338,8 +2345,6 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldYoutubeToken(ctx)
 	case user.FieldDiscordToken:
 		return m.OldDiscordToken(ctx)
-	case user.FieldMembershipMetadata:
-		return m.OldMembershipMetadata(ctx)
 	}
 	return nil, fmt.Errorf("unknown User field %s", name)
 }
@@ -2391,13 +2396,6 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDiscordToken(v)
 		return nil
-	case user.FieldMembershipMetadata:
-		v, ok := value.(map[string]schema.MembershipMetadata)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetMembershipMetadata(v)
-		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)
 }
@@ -2437,9 +2435,6 @@ func (m *UserMutation) ClearedFields() []string {
 	if m.FieldCleared(user.FieldDiscordToken) {
 		fields = append(fields, user.FieldDiscordToken)
 	}
-	if m.FieldCleared(user.FieldMembershipMetadata) {
-		fields = append(fields, user.FieldMembershipMetadata)
-	}
 	return fields
 }
 
@@ -2462,9 +2457,6 @@ func (m *UserMutation) ClearField(name string) error {
 		return nil
 	case user.FieldDiscordToken:
 		m.ClearDiscordToken()
-		return nil
-	case user.FieldMembershipMetadata:
-		m.ClearMembershipMetadata()
 		return nil
 	}
 	return fmt.Errorf("unknown User nullable field %s", name)
@@ -2492,27 +2484,21 @@ func (m *UserMutation) ResetField(name string) error {
 	case user.FieldDiscordToken:
 		m.ResetDiscordToken()
 		return nil
-	case user.FieldMembershipMetadata:
-		m.ResetMembershipMetadata()
-		return nil
 	}
 	return fmt.Errorf("unknown User field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UserMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 3)
 	if m.guilds != nil {
 		edges = append(edges, user.EdgeGuilds)
 	}
 	if m.guilds_admin != nil {
 		edges = append(edges, user.EdgeGuildsAdmin)
 	}
-	if m.roles != nil {
-		edges = append(edges, user.EdgeRoles)
-	}
-	if m.youtube_memberships != nil {
-		edges = append(edges, user.EdgeYoutubeMemberships)
+	if m.memberships != nil {
+		edges = append(edges, user.EdgeMemberships)
 	}
 	return edges
 }
@@ -2533,15 +2519,9 @@ func (m *UserMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case user.EdgeRoles:
-		ids := make([]ent.Value, 0, len(m.roles))
-		for id := range m.roles {
-			ids = append(ids, id)
-		}
-		return ids
-	case user.EdgeYoutubeMemberships:
-		ids := make([]ent.Value, 0, len(m.youtube_memberships))
-		for id := range m.youtube_memberships {
+	case user.EdgeMemberships:
+		ids := make([]ent.Value, 0, len(m.memberships))
+		for id := range m.memberships {
 			ids = append(ids, id)
 		}
 		return ids
@@ -2551,18 +2531,15 @@ func (m *UserMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UserMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 3)
 	if m.removedguilds != nil {
 		edges = append(edges, user.EdgeGuilds)
 	}
 	if m.removedguilds_admin != nil {
 		edges = append(edges, user.EdgeGuildsAdmin)
 	}
-	if m.removedroles != nil {
-		edges = append(edges, user.EdgeRoles)
-	}
-	if m.removedyoutube_memberships != nil {
-		edges = append(edges, user.EdgeYoutubeMemberships)
+	if m.removedmemberships != nil {
+		edges = append(edges, user.EdgeMemberships)
 	}
 	return edges
 }
@@ -2583,15 +2560,9 @@ func (m *UserMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case user.EdgeRoles:
-		ids := make([]ent.Value, 0, len(m.removedroles))
-		for id := range m.removedroles {
-			ids = append(ids, id)
-		}
-		return ids
-	case user.EdgeYoutubeMemberships:
-		ids := make([]ent.Value, 0, len(m.removedyoutube_memberships))
-		for id := range m.removedyoutube_memberships {
+	case user.EdgeMemberships:
+		ids := make([]ent.Value, 0, len(m.removedmemberships))
+		for id := range m.removedmemberships {
 			ids = append(ids, id)
 		}
 		return ids
@@ -2601,18 +2572,15 @@ func (m *UserMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UserMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 3)
 	if m.clearedguilds {
 		edges = append(edges, user.EdgeGuilds)
 	}
 	if m.clearedguilds_admin {
 		edges = append(edges, user.EdgeGuildsAdmin)
 	}
-	if m.clearedroles {
-		edges = append(edges, user.EdgeRoles)
-	}
-	if m.clearedyoutube_memberships {
-		edges = append(edges, user.EdgeYoutubeMemberships)
+	if m.clearedmemberships {
+		edges = append(edges, user.EdgeMemberships)
 	}
 	return edges
 }
@@ -2625,10 +2593,8 @@ func (m *UserMutation) EdgeCleared(name string) bool {
 		return m.clearedguilds
 	case user.EdgeGuildsAdmin:
 		return m.clearedguilds_admin
-	case user.EdgeRoles:
-		return m.clearedroles
-	case user.EdgeYoutubeMemberships:
-		return m.clearedyoutube_memberships
+	case user.EdgeMemberships:
+		return m.clearedmemberships
 	}
 	return false
 }
@@ -2651,14 +2617,699 @@ func (m *UserMutation) ResetEdge(name string) error {
 	case user.EdgeGuildsAdmin:
 		m.ResetGuildsAdmin()
 		return nil
-	case user.EdgeRoles:
-		m.ResetRoles()
-		return nil
-	case user.EdgeYoutubeMemberships:
-		m.ResetYoutubeMemberships()
+	case user.EdgeMemberships:
+		m.ResetMemberships()
 		return nil
 	}
 	return fmt.Errorf("unknown User edge %s", name)
+}
+
+// UserMembershipMutation represents an operation that mutates the UserMembership nodes in the graph.
+type UserMembershipMutation struct {
+	config
+	op                    Op
+	typ                   string
+	id                    *int
+	first_failed          *time.Time
+	last_verified         *time.Time
+	fail_count            *int
+	addfail_count         *int
+	clearedFields         map[string]struct{}
+	user                  *uint64
+	cleareduser           bool
+	youtube_talent        *string
+	clearedyoutube_talent bool
+	roles                 map[uint64]struct{}
+	removedroles          map[uint64]struct{}
+	clearedroles          bool
+	done                  bool
+	oldValue              func(context.Context) (*UserMembership, error)
+	predicates            []predicate.UserMembership
+}
+
+var _ ent.Mutation = (*UserMembershipMutation)(nil)
+
+// usermembershipOption allows management of the mutation configuration using functional options.
+type usermembershipOption func(*UserMembershipMutation)
+
+// newUserMembershipMutation creates new mutation for the UserMembership entity.
+func newUserMembershipMutation(c config, op Op, opts ...usermembershipOption) *UserMembershipMutation {
+	m := &UserMembershipMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeUserMembership,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withUserMembershipID sets the ID field of the mutation.
+func withUserMembershipID(id int) usermembershipOption {
+	return func(m *UserMembershipMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *UserMembership
+		)
+		m.oldValue = func(ctx context.Context) (*UserMembership, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().UserMembership.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withUserMembership sets the old UserMembership of the mutation.
+func withUserMembership(node *UserMembership) usermembershipOption {
+	return func(m *UserMembershipMutation) {
+		m.oldValue = func(context.Context) (*UserMembership, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m UserMembershipMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m UserMembershipMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *UserMembershipMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *UserMembershipMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().UserMembership.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetFirstFailed sets the "first_failed" field.
+func (m *UserMembershipMutation) SetFirstFailed(t time.Time) {
+	m.first_failed = &t
+}
+
+// FirstFailed returns the value of the "first_failed" field in the mutation.
+func (m *UserMembershipMutation) FirstFailed() (r time.Time, exists bool) {
+	v := m.first_failed
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFirstFailed returns the old "first_failed" field's value of the UserMembership entity.
+// If the UserMembership object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMembershipMutation) OldFirstFailed(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFirstFailed is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFirstFailed requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFirstFailed: %w", err)
+	}
+	return oldValue.FirstFailed, nil
+}
+
+// ClearFirstFailed clears the value of the "first_failed" field.
+func (m *UserMembershipMutation) ClearFirstFailed() {
+	m.first_failed = nil
+	m.clearedFields[usermembership.FieldFirstFailed] = struct{}{}
+}
+
+// FirstFailedCleared returns if the "first_failed" field was cleared in this mutation.
+func (m *UserMembershipMutation) FirstFailedCleared() bool {
+	_, ok := m.clearedFields[usermembership.FieldFirstFailed]
+	return ok
+}
+
+// ResetFirstFailed resets all changes to the "first_failed" field.
+func (m *UserMembershipMutation) ResetFirstFailed() {
+	m.first_failed = nil
+	delete(m.clearedFields, usermembership.FieldFirstFailed)
+}
+
+// SetLastVerified sets the "last_verified" field.
+func (m *UserMembershipMutation) SetLastVerified(t time.Time) {
+	m.last_verified = &t
+}
+
+// LastVerified returns the value of the "last_verified" field in the mutation.
+func (m *UserMembershipMutation) LastVerified() (r time.Time, exists bool) {
+	v := m.last_verified
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastVerified returns the old "last_verified" field's value of the UserMembership entity.
+// If the UserMembership object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMembershipMutation) OldLastVerified(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastVerified is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastVerified requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastVerified: %w", err)
+	}
+	return oldValue.LastVerified, nil
+}
+
+// ResetLastVerified resets all changes to the "last_verified" field.
+func (m *UserMembershipMutation) ResetLastVerified() {
+	m.last_verified = nil
+}
+
+// SetFailCount sets the "fail_count" field.
+func (m *UserMembershipMutation) SetFailCount(i int) {
+	m.fail_count = &i
+	m.addfail_count = nil
+}
+
+// FailCount returns the value of the "fail_count" field in the mutation.
+func (m *UserMembershipMutation) FailCount() (r int, exists bool) {
+	v := m.fail_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFailCount returns the old "fail_count" field's value of the UserMembership entity.
+// If the UserMembership object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMembershipMutation) OldFailCount(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFailCount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFailCount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFailCount: %w", err)
+	}
+	return oldValue.FailCount, nil
+}
+
+// AddFailCount adds i to the "fail_count" field.
+func (m *UserMembershipMutation) AddFailCount(i int) {
+	if m.addfail_count != nil {
+		*m.addfail_count += i
+	} else {
+		m.addfail_count = &i
+	}
+}
+
+// AddedFailCount returns the value that was added to the "fail_count" field in this mutation.
+func (m *UserMembershipMutation) AddedFailCount() (r int, exists bool) {
+	v := m.addfail_count
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetFailCount resets all changes to the "fail_count" field.
+func (m *UserMembershipMutation) ResetFailCount() {
+	m.fail_count = nil
+	m.addfail_count = nil
+}
+
+// SetUserID sets the "user" edge to the User entity by id.
+func (m *UserMembershipMutation) SetUserID(id uint64) {
+	m.user = &id
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (m *UserMembershipMutation) ClearUser() {
+	m.cleareduser = true
+}
+
+// UserCleared reports if the "user" edge to the User entity was cleared.
+func (m *UserMembershipMutation) UserCleared() bool {
+	return m.cleareduser
+}
+
+// UserID returns the "user" edge ID in the mutation.
+func (m *UserMembershipMutation) UserID() (id uint64, exists bool) {
+	if m.user != nil {
+		return *m.user, true
+	}
+	return
+}
+
+// UserIDs returns the "user" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// UserID instead. It exists only for internal usage by the builders.
+func (m *UserMembershipMutation) UserIDs() (ids []uint64) {
+	if id := m.user; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetUser resets all changes to the "user" edge.
+func (m *UserMembershipMutation) ResetUser() {
+	m.user = nil
+	m.cleareduser = false
+}
+
+// SetYoutubeTalentID sets the "youtube_talent" edge to the YouTubeTalent entity by id.
+func (m *UserMembershipMutation) SetYoutubeTalentID(id string) {
+	m.youtube_talent = &id
+}
+
+// ClearYoutubeTalent clears the "youtube_talent" edge to the YouTubeTalent entity.
+func (m *UserMembershipMutation) ClearYoutubeTalent() {
+	m.clearedyoutube_talent = true
+}
+
+// YoutubeTalentCleared reports if the "youtube_talent" edge to the YouTubeTalent entity was cleared.
+func (m *UserMembershipMutation) YoutubeTalentCleared() bool {
+	return m.clearedyoutube_talent
+}
+
+// YoutubeTalentID returns the "youtube_talent" edge ID in the mutation.
+func (m *UserMembershipMutation) YoutubeTalentID() (id string, exists bool) {
+	if m.youtube_talent != nil {
+		return *m.youtube_talent, true
+	}
+	return
+}
+
+// YoutubeTalentIDs returns the "youtube_talent" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// YoutubeTalentID instead. It exists only for internal usage by the builders.
+func (m *UserMembershipMutation) YoutubeTalentIDs() (ids []string) {
+	if id := m.youtube_talent; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetYoutubeTalent resets all changes to the "youtube_talent" edge.
+func (m *UserMembershipMutation) ResetYoutubeTalent() {
+	m.youtube_talent = nil
+	m.clearedyoutube_talent = false
+}
+
+// AddRoleIDs adds the "roles" edge to the GuildRole entity by ids.
+func (m *UserMembershipMutation) AddRoleIDs(ids ...uint64) {
+	if m.roles == nil {
+		m.roles = make(map[uint64]struct{})
+	}
+	for i := range ids {
+		m.roles[ids[i]] = struct{}{}
+	}
+}
+
+// ClearRoles clears the "roles" edge to the GuildRole entity.
+func (m *UserMembershipMutation) ClearRoles() {
+	m.clearedroles = true
+}
+
+// RolesCleared reports if the "roles" edge to the GuildRole entity was cleared.
+func (m *UserMembershipMutation) RolesCleared() bool {
+	return m.clearedroles
+}
+
+// RemoveRoleIDs removes the "roles" edge to the GuildRole entity by IDs.
+func (m *UserMembershipMutation) RemoveRoleIDs(ids ...uint64) {
+	if m.removedroles == nil {
+		m.removedroles = make(map[uint64]struct{})
+	}
+	for i := range ids {
+		delete(m.roles, ids[i])
+		m.removedroles[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedRoles returns the removed IDs of the "roles" edge to the GuildRole entity.
+func (m *UserMembershipMutation) RemovedRolesIDs() (ids []uint64) {
+	for id := range m.removedroles {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// RolesIDs returns the "roles" edge IDs in the mutation.
+func (m *UserMembershipMutation) RolesIDs() (ids []uint64) {
+	for id := range m.roles {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetRoles resets all changes to the "roles" edge.
+func (m *UserMembershipMutation) ResetRoles() {
+	m.roles = nil
+	m.clearedroles = false
+	m.removedroles = nil
+}
+
+// Where appends a list predicates to the UserMembershipMutation builder.
+func (m *UserMembershipMutation) Where(ps ...predicate.UserMembership) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// Op returns the operation name.
+func (m *UserMembershipMutation) Op() Op {
+	return m.op
+}
+
+// Type returns the node type of this mutation (UserMembership).
+func (m *UserMembershipMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *UserMembershipMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m.first_failed != nil {
+		fields = append(fields, usermembership.FieldFirstFailed)
+	}
+	if m.last_verified != nil {
+		fields = append(fields, usermembership.FieldLastVerified)
+	}
+	if m.fail_count != nil {
+		fields = append(fields, usermembership.FieldFailCount)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *UserMembershipMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case usermembership.FieldFirstFailed:
+		return m.FirstFailed()
+	case usermembership.FieldLastVerified:
+		return m.LastVerified()
+	case usermembership.FieldFailCount:
+		return m.FailCount()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *UserMembershipMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case usermembership.FieldFirstFailed:
+		return m.OldFirstFailed(ctx)
+	case usermembership.FieldLastVerified:
+		return m.OldLastVerified(ctx)
+	case usermembership.FieldFailCount:
+		return m.OldFailCount(ctx)
+	}
+	return nil, fmt.Errorf("unknown UserMembership field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *UserMembershipMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case usermembership.FieldFirstFailed:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFirstFailed(v)
+		return nil
+	case usermembership.FieldLastVerified:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastVerified(v)
+		return nil
+	case usermembership.FieldFailCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFailCount(v)
+		return nil
+	}
+	return fmt.Errorf("unknown UserMembership field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *UserMembershipMutation) AddedFields() []string {
+	var fields []string
+	if m.addfail_count != nil {
+		fields = append(fields, usermembership.FieldFailCount)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *UserMembershipMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case usermembership.FieldFailCount:
+		return m.AddedFailCount()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *UserMembershipMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case usermembership.FieldFailCount:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddFailCount(v)
+		return nil
+	}
+	return fmt.Errorf("unknown UserMembership numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *UserMembershipMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(usermembership.FieldFirstFailed) {
+		fields = append(fields, usermembership.FieldFirstFailed)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *UserMembershipMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *UserMembershipMutation) ClearField(name string) error {
+	switch name {
+	case usermembership.FieldFirstFailed:
+		m.ClearFirstFailed()
+		return nil
+	}
+	return fmt.Errorf("unknown UserMembership nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *UserMembershipMutation) ResetField(name string) error {
+	switch name {
+	case usermembership.FieldFirstFailed:
+		m.ResetFirstFailed()
+		return nil
+	case usermembership.FieldLastVerified:
+		m.ResetLastVerified()
+		return nil
+	case usermembership.FieldFailCount:
+		m.ResetFailCount()
+		return nil
+	}
+	return fmt.Errorf("unknown UserMembership field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *UserMembershipMutation) AddedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.user != nil {
+		edges = append(edges, usermembership.EdgeUser)
+	}
+	if m.youtube_talent != nil {
+		edges = append(edges, usermembership.EdgeYoutubeTalent)
+	}
+	if m.roles != nil {
+		edges = append(edges, usermembership.EdgeRoles)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *UserMembershipMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case usermembership.EdgeUser:
+		if id := m.user; id != nil {
+			return []ent.Value{*id}
+		}
+	case usermembership.EdgeYoutubeTalent:
+		if id := m.youtube_talent; id != nil {
+			return []ent.Value{*id}
+		}
+	case usermembership.EdgeRoles:
+		ids := make([]ent.Value, 0, len(m.roles))
+		for id := range m.roles {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *UserMembershipMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.removedroles != nil {
+		edges = append(edges, usermembership.EdgeRoles)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *UserMembershipMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case usermembership.EdgeRoles:
+		ids := make([]ent.Value, 0, len(m.removedroles))
+		for id := range m.removedroles {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *UserMembershipMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.cleareduser {
+		edges = append(edges, usermembership.EdgeUser)
+	}
+	if m.clearedyoutube_talent {
+		edges = append(edges, usermembership.EdgeYoutubeTalent)
+	}
+	if m.clearedroles {
+		edges = append(edges, usermembership.EdgeRoles)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *UserMembershipMutation) EdgeCleared(name string) bool {
+	switch name {
+	case usermembership.EdgeUser:
+		return m.cleareduser
+	case usermembership.EdgeYoutubeTalent:
+		return m.clearedyoutube_talent
+	case usermembership.EdgeRoles:
+		return m.clearedroles
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *UserMembershipMutation) ClearEdge(name string) error {
+	switch name {
+	case usermembership.EdgeUser:
+		m.ClearUser()
+		return nil
+	case usermembership.EdgeYoutubeTalent:
+		m.ClearYoutubeTalent()
+		return nil
+	}
+	return fmt.Errorf("unknown UserMembership unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *UserMembershipMutation) ResetEdge(name string) error {
+	switch name {
+	case usermembership.EdgeUser:
+		m.ResetUser()
+		return nil
+	case usermembership.EdgeYoutubeTalent:
+		m.ResetYoutubeTalent()
+		return nil
+	case usermembership.EdgeRoles:
+		m.ResetRoles()
+		return nil
+	}
+	return fmt.Errorf("unknown UserMembership edge %s", name)
 }
 
 // YouTubeTalentMutation represents an operation that mutates the YouTubeTalent nodes in the graph.
@@ -2672,13 +3323,17 @@ type YouTubeTalentMutation struct {
 	membership_video_id           *string
 	last_membership_video_id_miss *time.Time
 	last_updated                  *time.Time
+	disabled                      *time.Time
 	clearedFields                 map[string]struct{}
 	guilds                        map[uint64]struct{}
 	removedguilds                 map[uint64]struct{}
 	clearedguilds                 bool
-	members                       map[uint64]struct{}
-	removedmembers                map[uint64]struct{}
-	clearedmembers                bool
+	roles                         map[uint64]struct{}
+	removedroles                  map[uint64]struct{}
+	clearedroles                  bool
+	memberships                   map[int]struct{}
+	removedmemberships            map[int]struct{}
+	clearedmemberships            bool
 	done                          bool
 	oldValue                      func(context.Context) (*YouTubeTalent, error)
 	predicates                    []predicate.YouTubeTalent
@@ -2714,7 +3369,7 @@ func withYouTubeTalentID(id string) youtubetalentOption {
 		m.oldValue = func(ctx context.Context) (*YouTubeTalent, error) {
 			once.Do(func() {
 				if m.done {
-					err = fmt.Errorf("querying old values post mutation is not allowed")
+					err = errors.New("querying old values post mutation is not allowed")
 				} else {
 					value, err = m.Client().YouTubeTalent.Get(ctx, id)
 				}
@@ -2747,7 +3402,7 @@ func (m YouTubeTalentMutation) Client() *Client {
 // it returns an error otherwise.
 func (m YouTubeTalentMutation) Tx() (*Tx, error) {
 	if _, ok := m.driver.(*txDriver); !ok {
-		return nil, fmt.Errorf("ent: mutation is not running in a transaction")
+		return nil, errors.New("ent: mutation is not running in a transaction")
 	}
 	tx := &Tx{config: m.config}
 	tx.init()
@@ -2769,6 +3424,25 @@ func (m *YouTubeTalentMutation) ID() (id string, exists bool) {
 	return *m.id, true
 }
 
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *YouTubeTalentMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().YouTubeTalent.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
 // SetChannelName sets the "channel_name" field.
 func (m *YouTubeTalentMutation) SetChannelName(s string) {
 	m.channel_name = &s
@@ -2788,10 +3462,10 @@ func (m *YouTubeTalentMutation) ChannelName() (r string, exists bool) {
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *YouTubeTalentMutation) OldChannelName(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldChannelName is only allowed on UpdateOne operations")
+		return v, errors.New("OldChannelName is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldChannelName requires an ID field in the mutation")
+		return v, errors.New("OldChannelName requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -2824,10 +3498,10 @@ func (m *YouTubeTalentMutation) ThumbnailURL() (r string, exists bool) {
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *YouTubeTalentMutation) OldThumbnailURL(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldThumbnailURL is only allowed on UpdateOne operations")
+		return v, errors.New("OldThumbnailURL is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldThumbnailURL requires an ID field in the mutation")
+		return v, errors.New("OldThumbnailURL requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -2860,10 +3534,10 @@ func (m *YouTubeTalentMutation) MembershipVideoID() (r string, exists bool) {
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *YouTubeTalentMutation) OldMembershipVideoID(ctx context.Context) (v string, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldMembershipVideoID is only allowed on UpdateOne operations")
+		return v, errors.New("OldMembershipVideoID is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldMembershipVideoID requires an ID field in the mutation")
+		return v, errors.New("OldMembershipVideoID requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -2909,10 +3583,10 @@ func (m *YouTubeTalentMutation) LastMembershipVideoIDMiss() (r time.Time, exists
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *YouTubeTalentMutation) OldLastMembershipVideoIDMiss(ctx context.Context) (v time.Time, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldLastMembershipVideoIDMiss is only allowed on UpdateOne operations")
+		return v, errors.New("OldLastMembershipVideoIDMiss is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldLastMembershipVideoIDMiss requires an ID field in the mutation")
+		return v, errors.New("OldLastMembershipVideoIDMiss requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -2958,10 +3632,10 @@ func (m *YouTubeTalentMutation) LastUpdated() (r time.Time, exists bool) {
 // An error is returned if the mutation operation is not UpdateOne, or the database query fails.
 func (m *YouTubeTalentMutation) OldLastUpdated(ctx context.Context) (v time.Time, err error) {
 	if !m.op.Is(OpUpdateOne) {
-		return v, fmt.Errorf("OldLastUpdated is only allowed on UpdateOne operations")
+		return v, errors.New("OldLastUpdated is only allowed on UpdateOne operations")
 	}
 	if m.id == nil || m.oldValue == nil {
-		return v, fmt.Errorf("OldLastUpdated requires an ID field in the mutation")
+		return v, errors.New("OldLastUpdated requires an ID field in the mutation")
 	}
 	oldValue, err := m.oldValue(ctx)
 	if err != nil {
@@ -2973,6 +3647,55 @@ func (m *YouTubeTalentMutation) OldLastUpdated(ctx context.Context) (v time.Time
 // ResetLastUpdated resets all changes to the "last_updated" field.
 func (m *YouTubeTalentMutation) ResetLastUpdated() {
 	m.last_updated = nil
+}
+
+// SetDisabled sets the "disabled" field.
+func (m *YouTubeTalentMutation) SetDisabled(t time.Time) {
+	m.disabled = &t
+}
+
+// Disabled returns the value of the "disabled" field in the mutation.
+func (m *YouTubeTalentMutation) Disabled() (r time.Time, exists bool) {
+	v := m.disabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDisabled returns the old "disabled" field's value of the YouTubeTalent entity.
+// If the YouTubeTalent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *YouTubeTalentMutation) OldDisabled(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDisabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDisabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDisabled: %w", err)
+	}
+	return oldValue.Disabled, nil
+}
+
+// ClearDisabled clears the value of the "disabled" field.
+func (m *YouTubeTalentMutation) ClearDisabled() {
+	m.disabled = nil
+	m.clearedFields[youtubetalent.FieldDisabled] = struct{}{}
+}
+
+// DisabledCleared returns if the "disabled" field was cleared in this mutation.
+func (m *YouTubeTalentMutation) DisabledCleared() bool {
+	_, ok := m.clearedFields[youtubetalent.FieldDisabled]
+	return ok
+}
+
+// ResetDisabled resets all changes to the "disabled" field.
+func (m *YouTubeTalentMutation) ResetDisabled() {
+	m.disabled = nil
+	delete(m.clearedFields, youtubetalent.FieldDisabled)
 }
 
 // AddGuildIDs adds the "guilds" edge to the Guild entity by ids.
@@ -3029,58 +3752,112 @@ func (m *YouTubeTalentMutation) ResetGuilds() {
 	m.removedguilds = nil
 }
 
-// AddMemberIDs adds the "members" edge to the User entity by ids.
-func (m *YouTubeTalentMutation) AddMemberIDs(ids ...uint64) {
-	if m.members == nil {
-		m.members = make(map[uint64]struct{})
+// AddRoleIDs adds the "roles" edge to the GuildRole entity by ids.
+func (m *YouTubeTalentMutation) AddRoleIDs(ids ...uint64) {
+	if m.roles == nil {
+		m.roles = make(map[uint64]struct{})
 	}
 	for i := range ids {
-		m.members[ids[i]] = struct{}{}
+		m.roles[ids[i]] = struct{}{}
 	}
 }
 
-// ClearMembers clears the "members" edge to the User entity.
-func (m *YouTubeTalentMutation) ClearMembers() {
-	m.clearedmembers = true
+// ClearRoles clears the "roles" edge to the GuildRole entity.
+func (m *YouTubeTalentMutation) ClearRoles() {
+	m.clearedroles = true
 }
 
-// MembersCleared reports if the "members" edge to the User entity was cleared.
-func (m *YouTubeTalentMutation) MembersCleared() bool {
-	return m.clearedmembers
+// RolesCleared reports if the "roles" edge to the GuildRole entity was cleared.
+func (m *YouTubeTalentMutation) RolesCleared() bool {
+	return m.clearedroles
 }
 
-// RemoveMemberIDs removes the "members" edge to the User entity by IDs.
-func (m *YouTubeTalentMutation) RemoveMemberIDs(ids ...uint64) {
-	if m.removedmembers == nil {
-		m.removedmembers = make(map[uint64]struct{})
+// RemoveRoleIDs removes the "roles" edge to the GuildRole entity by IDs.
+func (m *YouTubeTalentMutation) RemoveRoleIDs(ids ...uint64) {
+	if m.removedroles == nil {
+		m.removedroles = make(map[uint64]struct{})
 	}
 	for i := range ids {
-		delete(m.members, ids[i])
-		m.removedmembers[ids[i]] = struct{}{}
+		delete(m.roles, ids[i])
+		m.removedroles[ids[i]] = struct{}{}
 	}
 }
 
-// RemovedMembers returns the removed IDs of the "members" edge to the User entity.
-func (m *YouTubeTalentMutation) RemovedMembersIDs() (ids []uint64) {
-	for id := range m.removedmembers {
+// RemovedRoles returns the removed IDs of the "roles" edge to the GuildRole entity.
+func (m *YouTubeTalentMutation) RemovedRolesIDs() (ids []uint64) {
+	for id := range m.removedroles {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// MembersIDs returns the "members" edge IDs in the mutation.
-func (m *YouTubeTalentMutation) MembersIDs() (ids []uint64) {
-	for id := range m.members {
+// RolesIDs returns the "roles" edge IDs in the mutation.
+func (m *YouTubeTalentMutation) RolesIDs() (ids []uint64) {
+	for id := range m.roles {
 		ids = append(ids, id)
 	}
 	return
 }
 
-// ResetMembers resets all changes to the "members" edge.
-func (m *YouTubeTalentMutation) ResetMembers() {
-	m.members = nil
-	m.clearedmembers = false
-	m.removedmembers = nil
+// ResetRoles resets all changes to the "roles" edge.
+func (m *YouTubeTalentMutation) ResetRoles() {
+	m.roles = nil
+	m.clearedroles = false
+	m.removedroles = nil
+}
+
+// AddMembershipIDs adds the "memberships" edge to the UserMembership entity by ids.
+func (m *YouTubeTalentMutation) AddMembershipIDs(ids ...int) {
+	if m.memberships == nil {
+		m.memberships = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.memberships[ids[i]] = struct{}{}
+	}
+}
+
+// ClearMemberships clears the "memberships" edge to the UserMembership entity.
+func (m *YouTubeTalentMutation) ClearMemberships() {
+	m.clearedmemberships = true
+}
+
+// MembershipsCleared reports if the "memberships" edge to the UserMembership entity was cleared.
+func (m *YouTubeTalentMutation) MembershipsCleared() bool {
+	return m.clearedmemberships
+}
+
+// RemoveMembershipIDs removes the "memberships" edge to the UserMembership entity by IDs.
+func (m *YouTubeTalentMutation) RemoveMembershipIDs(ids ...int) {
+	if m.removedmemberships == nil {
+		m.removedmemberships = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.memberships, ids[i])
+		m.removedmemberships[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedMemberships returns the removed IDs of the "memberships" edge to the UserMembership entity.
+func (m *YouTubeTalentMutation) RemovedMembershipsIDs() (ids []int) {
+	for id := range m.removedmemberships {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// MembershipsIDs returns the "memberships" edge IDs in the mutation.
+func (m *YouTubeTalentMutation) MembershipsIDs() (ids []int) {
+	for id := range m.memberships {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetMemberships resets all changes to the "memberships" edge.
+func (m *YouTubeTalentMutation) ResetMemberships() {
+	m.memberships = nil
+	m.clearedmemberships = false
+	m.removedmemberships = nil
 }
 
 // Where appends a list predicates to the YouTubeTalentMutation builder.
@@ -3102,7 +3879,7 @@ func (m *YouTubeTalentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *YouTubeTalentMutation) Fields() []string {
-	fields := make([]string, 0, 5)
+	fields := make([]string, 0, 6)
 	if m.channel_name != nil {
 		fields = append(fields, youtubetalent.FieldChannelName)
 	}
@@ -3117,6 +3894,9 @@ func (m *YouTubeTalentMutation) Fields() []string {
 	}
 	if m.last_updated != nil {
 		fields = append(fields, youtubetalent.FieldLastUpdated)
+	}
+	if m.disabled != nil {
+		fields = append(fields, youtubetalent.FieldDisabled)
 	}
 	return fields
 }
@@ -3136,6 +3916,8 @@ func (m *YouTubeTalentMutation) Field(name string) (ent.Value, bool) {
 		return m.LastMembershipVideoIDMiss()
 	case youtubetalent.FieldLastUpdated:
 		return m.LastUpdated()
+	case youtubetalent.FieldDisabled:
+		return m.Disabled()
 	}
 	return nil, false
 }
@@ -3155,6 +3937,8 @@ func (m *YouTubeTalentMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldLastMembershipVideoIDMiss(ctx)
 	case youtubetalent.FieldLastUpdated:
 		return m.OldLastUpdated(ctx)
+	case youtubetalent.FieldDisabled:
+		return m.OldDisabled(ctx)
 	}
 	return nil, fmt.Errorf("unknown YouTubeTalent field %s", name)
 }
@@ -3199,6 +3983,13 @@ func (m *YouTubeTalentMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetLastUpdated(v)
 		return nil
+	case youtubetalent.FieldDisabled:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDisabled(v)
+		return nil
 	}
 	return fmt.Errorf("unknown YouTubeTalent field %s", name)
 }
@@ -3235,6 +4026,9 @@ func (m *YouTubeTalentMutation) ClearedFields() []string {
 	if m.FieldCleared(youtubetalent.FieldLastMembershipVideoIDMiss) {
 		fields = append(fields, youtubetalent.FieldLastMembershipVideoIDMiss)
 	}
+	if m.FieldCleared(youtubetalent.FieldDisabled) {
+		fields = append(fields, youtubetalent.FieldDisabled)
+	}
 	return fields
 }
 
@@ -3254,6 +4048,9 @@ func (m *YouTubeTalentMutation) ClearField(name string) error {
 		return nil
 	case youtubetalent.FieldLastMembershipVideoIDMiss:
 		m.ClearLastMembershipVideoIDMiss()
+		return nil
+	case youtubetalent.FieldDisabled:
+		m.ClearDisabled()
 		return nil
 	}
 	return fmt.Errorf("unknown YouTubeTalent nullable field %s", name)
@@ -3278,18 +4075,24 @@ func (m *YouTubeTalentMutation) ResetField(name string) error {
 	case youtubetalent.FieldLastUpdated:
 		m.ResetLastUpdated()
 		return nil
+	case youtubetalent.FieldDisabled:
+		m.ResetDisabled()
+		return nil
 	}
 	return fmt.Errorf("unknown YouTubeTalent field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *YouTubeTalentMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.guilds != nil {
 		edges = append(edges, youtubetalent.EdgeGuilds)
 	}
-	if m.members != nil {
-		edges = append(edges, youtubetalent.EdgeMembers)
+	if m.roles != nil {
+		edges = append(edges, youtubetalent.EdgeRoles)
+	}
+	if m.memberships != nil {
+		edges = append(edges, youtubetalent.EdgeMemberships)
 	}
 	return edges
 }
@@ -3304,9 +4107,15 @@ func (m *YouTubeTalentMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case youtubetalent.EdgeMembers:
-		ids := make([]ent.Value, 0, len(m.members))
-		for id := range m.members {
+	case youtubetalent.EdgeRoles:
+		ids := make([]ent.Value, 0, len(m.roles))
+		for id := range m.roles {
+			ids = append(ids, id)
+		}
+		return ids
+	case youtubetalent.EdgeMemberships:
+		ids := make([]ent.Value, 0, len(m.memberships))
+		for id := range m.memberships {
 			ids = append(ids, id)
 		}
 		return ids
@@ -3316,12 +4125,15 @@ func (m *YouTubeTalentMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *YouTubeTalentMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removedguilds != nil {
 		edges = append(edges, youtubetalent.EdgeGuilds)
 	}
-	if m.removedmembers != nil {
-		edges = append(edges, youtubetalent.EdgeMembers)
+	if m.removedroles != nil {
+		edges = append(edges, youtubetalent.EdgeRoles)
+	}
+	if m.removedmemberships != nil {
+		edges = append(edges, youtubetalent.EdgeMemberships)
 	}
 	return edges
 }
@@ -3336,9 +4148,15 @@ func (m *YouTubeTalentMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
-	case youtubetalent.EdgeMembers:
-		ids := make([]ent.Value, 0, len(m.removedmembers))
-		for id := range m.removedmembers {
+	case youtubetalent.EdgeRoles:
+		ids := make([]ent.Value, 0, len(m.removedroles))
+		for id := range m.removedroles {
+			ids = append(ids, id)
+		}
+		return ids
+	case youtubetalent.EdgeMemberships:
+		ids := make([]ent.Value, 0, len(m.removedmemberships))
+		for id := range m.removedmemberships {
 			ids = append(ids, id)
 		}
 		return ids
@@ -3348,12 +4166,15 @@ func (m *YouTubeTalentMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *YouTubeTalentMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedguilds {
 		edges = append(edges, youtubetalent.EdgeGuilds)
 	}
-	if m.clearedmembers {
-		edges = append(edges, youtubetalent.EdgeMembers)
+	if m.clearedroles {
+		edges = append(edges, youtubetalent.EdgeRoles)
+	}
+	if m.clearedmemberships {
+		edges = append(edges, youtubetalent.EdgeMemberships)
 	}
 	return edges
 }
@@ -3364,8 +4185,10 @@ func (m *YouTubeTalentMutation) EdgeCleared(name string) bool {
 	switch name {
 	case youtubetalent.EdgeGuilds:
 		return m.clearedguilds
-	case youtubetalent.EdgeMembers:
-		return m.clearedmembers
+	case youtubetalent.EdgeRoles:
+		return m.clearedroles
+	case youtubetalent.EdgeMemberships:
+		return m.clearedmemberships
 	}
 	return false
 }
@@ -3385,8 +4208,11 @@ func (m *YouTubeTalentMutation) ResetEdge(name string) error {
 	case youtubetalent.EdgeGuilds:
 		m.ResetGuilds()
 		return nil
-	case youtubetalent.EdgeMembers:
-		m.ResetMembers()
+	case youtubetalent.EdgeRoles:
+		m.ResetRoles()
+		return nil
+	case youtubetalent.EdgeMemberships:
+		m.ResetMemberships()
 		return nil
 	}
 	return fmt.Errorf("unknown YouTubeTalent edge %s", name)

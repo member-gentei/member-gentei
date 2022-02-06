@@ -12,10 +12,8 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
-	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
-	"github.com/member-gentei/member-gentei/gentei/ent/schema"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
-	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
+	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
 	"golang.org/x/oauth2"
 )
 
@@ -79,12 +77,6 @@ func (uc *UserCreate) SetDiscordToken(o *oauth2.Token) *UserCreate {
 	return uc
 }
 
-// SetMembershipMetadata sets the "membership_metadata" field.
-func (uc *UserCreate) SetMembershipMetadata(mm map[string]schema.MembershipMetadata) *UserCreate {
-	uc.mutation.SetMembershipMetadata(mm)
-	return uc
-}
-
 // SetID sets the "id" field.
 func (uc *UserCreate) SetID(u uint64) *UserCreate {
 	uc.mutation.SetID(u)
@@ -121,34 +113,19 @@ func (uc *UserCreate) AddGuildsAdmin(g ...*Guild) *UserCreate {
 	return uc.AddGuildsAdminIDs(ids...)
 }
 
-// AddRoleIDs adds the "roles" edge to the GuildRole entity by IDs.
-func (uc *UserCreate) AddRoleIDs(ids ...uint64) *UserCreate {
-	uc.mutation.AddRoleIDs(ids...)
+// AddMembershipIDs adds the "memberships" edge to the UserMembership entity by IDs.
+func (uc *UserCreate) AddMembershipIDs(ids ...int) *UserCreate {
+	uc.mutation.AddMembershipIDs(ids...)
 	return uc
 }
 
-// AddRoles adds the "roles" edges to the GuildRole entity.
-func (uc *UserCreate) AddRoles(g ...*GuildRole) *UserCreate {
-	ids := make([]uint64, len(g))
-	for i := range g {
-		ids[i] = g[i].ID
+// AddMemberships adds the "memberships" edges to the UserMembership entity.
+func (uc *UserCreate) AddMemberships(u ...*UserMembership) *UserCreate {
+	ids := make([]int, len(u))
+	for i := range u {
+		ids[i] = u[i].ID
 	}
-	return uc.AddRoleIDs(ids...)
-}
-
-// AddYoutubeMembershipIDs adds the "youtube_memberships" edge to the YouTubeTalent entity by IDs.
-func (uc *UserCreate) AddYoutubeMembershipIDs(ids ...string) *UserCreate {
-	uc.mutation.AddYoutubeMembershipIDs(ids...)
-	return uc
-}
-
-// AddYoutubeMemberships adds the "youtube_memberships" edges to the YouTubeTalent entity.
-func (uc *UserCreate) AddYoutubeMemberships(y ...*YouTubeTalent) *UserCreate {
-	ids := make([]string, len(y))
-	for i := range y {
-		ids[i] = y[i].ID
-	}
-	return uc.AddYoutubeMembershipIDs(ids...)
+	return uc.AddMembershipIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -231,18 +208,18 @@ func (uc *UserCreate) defaults() {
 // check runs all checks and user-defined validators on the builder.
 func (uc *UserCreate) check() error {
 	if _, ok := uc.mutation.FullName(); !ok {
-		return &ValidationError{Name: "full_name", err: errors.New(`ent: missing required field "full_name"`)}
+		return &ValidationError{Name: "full_name", err: errors.New(`ent: missing required field "User.full_name"`)}
 	}
 	if v, ok := uc.mutation.FullName(); ok {
 		if err := user.FullNameValidator(v); err != nil {
-			return &ValidationError{Name: "full_name", err: fmt.Errorf(`ent: validator failed for field "full_name": %w`, err)}
+			return &ValidationError{Name: "full_name", err: fmt.Errorf(`ent: validator failed for field "User.full_name": %w`, err)}
 		}
 	}
 	if _, ok := uc.mutation.AvatarHash(); !ok {
-		return &ValidationError{Name: "avatar_hash", err: errors.New(`ent: missing required field "avatar_hash"`)}
+		return &ValidationError{Name: "avatar_hash", err: errors.New(`ent: missing required field "User.avatar_hash"`)}
 	}
 	if _, ok := uc.mutation.LastCheck(); !ok {
-		return &ValidationError{Name: "last_check", err: errors.New(`ent: missing required field "last_check"`)}
+		return &ValidationError{Name: "last_check", err: errors.New(`ent: missing required field "User.last_check"`)}
 	}
 	return nil
 }
@@ -326,14 +303,6 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		})
 		_node.DiscordToken = value
 	}
-	if value, ok := uc.mutation.MembershipMetadata(); ok {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeJSON,
-			Value:  value,
-			Column: user.FieldMembershipMetadata,
-		})
-		_node.MembershipMetadata = value
-	}
 	if nodes := uc.mutation.GuildsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
@@ -372,36 +341,17 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := uc.mutation.RolesIDs(); len(nodes) > 0 {
+	if nodes := uc.mutation.MembershipsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
+			Rel:     sqlgraph.O2M,
 			Inverse: false,
-			Table:   user.RolesTable,
-			Columns: user.RolesPrimaryKey,
+			Table:   user.MembershipsTable,
+			Columns: []string{user.MembershipsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
-				},
-			},
-		}
-		for _, k := range nodes {
-			edge.Target.Nodes = append(edge.Target.Nodes, k)
-		}
-		_spec.Edges = append(_spec.Edges, edge)
-	}
-	if nodes := uc.mutation.YoutubeMembershipsIDs(); len(nodes) > 0 {
-		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: false,
-			Table:   user.YoutubeMembershipsTable,
-			Columns: user.YoutubeMembershipsPrimaryKey,
-			Bidi:    false,
-			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
 				},
 			},
 		}
@@ -554,25 +504,7 @@ func (u *UserUpsert) ClearDiscordToken() *UserUpsert {
 	return u
 }
 
-// SetMembershipMetadata sets the "membership_metadata" field.
-func (u *UserUpsert) SetMembershipMetadata(v map[string]schema.MembershipMetadata) *UserUpsert {
-	u.Set(user.FieldMembershipMetadata, v)
-	return u
-}
-
-// UpdateMembershipMetadata sets the "membership_metadata" field to the value that was provided on create.
-func (u *UserUpsert) UpdateMembershipMetadata() *UserUpsert {
-	u.SetExcluded(user.FieldMembershipMetadata)
-	return u
-}
-
-// ClearMembershipMetadata clears the value of the "membership_metadata" field.
-func (u *UserUpsert) ClearMembershipMetadata() *UserUpsert {
-	u.SetNull(user.FieldMembershipMetadata)
-	return u
-}
-
-// UpdateNewValues updates the fields using the new values that were set on create except the ID field.
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
 //	client.User.Create().
@@ -724,27 +656,6 @@ func (u *UserUpsertOne) UpdateDiscordToken() *UserUpsertOne {
 func (u *UserUpsertOne) ClearDiscordToken() *UserUpsertOne {
 	return u.Update(func(s *UserUpsert) {
 		s.ClearDiscordToken()
-	})
-}
-
-// SetMembershipMetadata sets the "membership_metadata" field.
-func (u *UserUpsertOne) SetMembershipMetadata(v map[string]schema.MembershipMetadata) *UserUpsertOne {
-	return u.Update(func(s *UserUpsert) {
-		s.SetMembershipMetadata(v)
-	})
-}
-
-// UpdateMembershipMetadata sets the "membership_metadata" field to the value that was provided on create.
-func (u *UserUpsertOne) UpdateMembershipMetadata() *UserUpsertOne {
-	return u.Update(func(s *UserUpsert) {
-		s.UpdateMembershipMetadata()
-	})
-}
-
-// ClearMembershipMetadata clears the value of the "membership_metadata" field.
-func (u *UserUpsertOne) ClearMembershipMetadata() *UserUpsertOne {
-	return u.Update(func(s *UserUpsert) {
-		s.ClearMembershipMetadata()
 	})
 }
 
@@ -910,7 +821,7 @@ type UserUpsertBulk struct {
 	create *UserCreateBulk
 }
 
-// UpdateNewValues updates the fields using the new values that
+// UpdateNewValues updates the mutable fields using the new values that
 // were set on create. Using this option is equivalent to using:
 //
 //	client.User.Create().
@@ -1065,27 +976,6 @@ func (u *UserUpsertBulk) UpdateDiscordToken() *UserUpsertBulk {
 func (u *UserUpsertBulk) ClearDiscordToken() *UserUpsertBulk {
 	return u.Update(func(s *UserUpsert) {
 		s.ClearDiscordToken()
-	})
-}
-
-// SetMembershipMetadata sets the "membership_metadata" field.
-func (u *UserUpsertBulk) SetMembershipMetadata(v map[string]schema.MembershipMetadata) *UserUpsertBulk {
-	return u.Update(func(s *UserUpsert) {
-		s.SetMembershipMetadata(v)
-	})
-}
-
-// UpdateMembershipMetadata sets the "membership_metadata" field to the value that was provided on create.
-func (u *UserUpsertBulk) UpdateMembershipMetadata() *UserUpsertBulk {
-	return u.Update(func(s *UserUpsert) {
-		s.UpdateMembershipMetadata()
-	})
-}
-
-// ClearMembershipMetadata clears the value of the "membership_metadata" field.
-func (u *UserUpsertBulk) ClearMembershipMetadata() *UserUpsertBulk {
-	return u.Update(func(s *UserUpsert) {
-		s.ClearMembershipMetadata()
 	})
 }
 

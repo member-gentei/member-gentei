@@ -13,7 +13,8 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
-	"github.com/member-gentei/member-gentei/gentei/ent/user"
+	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
+	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 )
 
@@ -79,6 +80,20 @@ func (yttc *YouTubeTalentCreate) SetNillableLastUpdated(t *time.Time) *YouTubeTa
 	return yttc
 }
 
+// SetDisabled sets the "disabled" field.
+func (yttc *YouTubeTalentCreate) SetDisabled(t time.Time) *YouTubeTalentCreate {
+	yttc.mutation.SetDisabled(t)
+	return yttc
+}
+
+// SetNillableDisabled sets the "disabled" field if the given value is not nil.
+func (yttc *YouTubeTalentCreate) SetNillableDisabled(t *time.Time) *YouTubeTalentCreate {
+	if t != nil {
+		yttc.SetDisabled(*t)
+	}
+	return yttc
+}
+
 // SetID sets the "id" field.
 func (yttc *YouTubeTalentCreate) SetID(s string) *YouTubeTalentCreate {
 	yttc.mutation.SetID(s)
@@ -100,19 +115,34 @@ func (yttc *YouTubeTalentCreate) AddGuilds(g ...*Guild) *YouTubeTalentCreate {
 	return yttc.AddGuildIDs(ids...)
 }
 
-// AddMemberIDs adds the "members" edge to the User entity by IDs.
-func (yttc *YouTubeTalentCreate) AddMemberIDs(ids ...uint64) *YouTubeTalentCreate {
-	yttc.mutation.AddMemberIDs(ids...)
+// AddRoleIDs adds the "roles" edge to the GuildRole entity by IDs.
+func (yttc *YouTubeTalentCreate) AddRoleIDs(ids ...uint64) *YouTubeTalentCreate {
+	yttc.mutation.AddRoleIDs(ids...)
 	return yttc
 }
 
-// AddMembers adds the "members" edges to the User entity.
-func (yttc *YouTubeTalentCreate) AddMembers(u ...*User) *YouTubeTalentCreate {
-	ids := make([]uint64, len(u))
+// AddRoles adds the "roles" edges to the GuildRole entity.
+func (yttc *YouTubeTalentCreate) AddRoles(g ...*GuildRole) *YouTubeTalentCreate {
+	ids := make([]uint64, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return yttc.AddRoleIDs(ids...)
+}
+
+// AddMembershipIDs adds the "memberships" edge to the UserMembership entity by IDs.
+func (yttc *YouTubeTalentCreate) AddMembershipIDs(ids ...int) *YouTubeTalentCreate {
+	yttc.mutation.AddMembershipIDs(ids...)
+	return yttc
+}
+
+// AddMemberships adds the "memberships" edges to the UserMembership entity.
+func (yttc *YouTubeTalentCreate) AddMemberships(u ...*UserMembership) *YouTubeTalentCreate {
+	ids := make([]int, len(u))
 	for i := range u {
 		ids[i] = u[i].ID
 	}
-	return yttc.AddMemberIDs(ids...)
+	return yttc.AddMembershipIDs(ids...)
 }
 
 // Mutation returns the YouTubeTalentMutation object of the builder.
@@ -195,13 +225,13 @@ func (yttc *YouTubeTalentCreate) defaults() {
 // check runs all checks and user-defined validators on the builder.
 func (yttc *YouTubeTalentCreate) check() error {
 	if _, ok := yttc.mutation.ChannelName(); !ok {
-		return &ValidationError{Name: "channel_name", err: errors.New(`ent: missing required field "channel_name"`)}
+		return &ValidationError{Name: "channel_name", err: errors.New(`ent: missing required field "YouTubeTalent.channel_name"`)}
 	}
 	if _, ok := yttc.mutation.ThumbnailURL(); !ok {
-		return &ValidationError{Name: "thumbnail_url", err: errors.New(`ent: missing required field "thumbnail_url"`)}
+		return &ValidationError{Name: "thumbnail_url", err: errors.New(`ent: missing required field "YouTubeTalent.thumbnail_url"`)}
 	}
 	if _, ok := yttc.mutation.LastUpdated(); !ok {
-		return &ValidationError{Name: "last_updated", err: errors.New(`ent: missing required field "last_updated"`)}
+		return &ValidationError{Name: "last_updated", err: errors.New(`ent: missing required field "YouTubeTalent.last_updated"`)}
 	}
 	return nil
 }
@@ -215,7 +245,11 @@ func (yttc *YouTubeTalentCreate) sqlSave(ctx context.Context) (*YouTubeTalent, e
 		return nil, err
 	}
 	if _spec.ID.Value != nil {
-		_node.ID = _spec.ID.Value.(string)
+		if id, ok := _spec.ID.Value.(string); ok {
+			_node.ID = id
+		} else {
+			return nil, fmt.Errorf("unexpected YouTubeTalent.ID type: %T", _spec.ID.Value)
+		}
 	}
 	return _node, nil
 }
@@ -276,6 +310,14 @@ func (yttc *YouTubeTalentCreate) createSpec() (*YouTubeTalent, *sqlgraph.CreateS
 		})
 		_node.LastUpdated = value
 	}
+	if value, ok := yttc.mutation.Disabled(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: youtubetalent.FieldDisabled,
+		})
+		_node.Disabled = value
+	}
 	if nodes := yttc.mutation.GuildsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
@@ -295,17 +337,36 @@ func (yttc *YouTubeTalentCreate) createSpec() (*YouTubeTalent, *sqlgraph.CreateS
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
-	if nodes := yttc.mutation.MembersIDs(); len(nodes) > 0 {
+	if nodes := yttc.mutation.RolesIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.M2M,
-			Inverse: true,
-			Table:   youtubetalent.MembersTable,
-			Columns: youtubetalent.MembersPrimaryKey,
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   youtubetalent.RolesTable,
+			Columns: []string{youtubetalent.RolesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeUint64,
-					Column: user.FieldID,
+					Column: guildrole.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := yttc.mutation.MembershipsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: true,
+			Table:   youtubetalent.MembershipsTable,
+			Columns: []string{youtubetalent.MembershipsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: usermembership.FieldID,
 				},
 			},
 		}
@@ -440,7 +501,25 @@ func (u *YouTubeTalentUpsert) UpdateLastUpdated() *YouTubeTalentUpsert {
 	return u
 }
 
-// UpdateNewValues updates the fields using the new values that were set on create except the ID field.
+// SetDisabled sets the "disabled" field.
+func (u *YouTubeTalentUpsert) SetDisabled(v time.Time) *YouTubeTalentUpsert {
+	u.Set(youtubetalent.FieldDisabled, v)
+	return u
+}
+
+// UpdateDisabled sets the "disabled" field to the value that was provided on create.
+func (u *YouTubeTalentUpsert) UpdateDisabled() *YouTubeTalentUpsert {
+	u.SetExcluded(youtubetalent.FieldDisabled)
+	return u
+}
+
+// ClearDisabled clears the value of the "disabled" field.
+func (u *YouTubeTalentUpsert) ClearDisabled() *YouTubeTalentUpsert {
+	u.SetNull(youtubetalent.FieldDisabled)
+	return u
+}
+
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
 //	client.YouTubeTalent.Create().
@@ -571,6 +650,27 @@ func (u *YouTubeTalentUpsertOne) SetLastUpdated(v time.Time) *YouTubeTalentUpser
 func (u *YouTubeTalentUpsertOne) UpdateLastUpdated() *YouTubeTalentUpsertOne {
 	return u.Update(func(s *YouTubeTalentUpsert) {
 		s.UpdateLastUpdated()
+	})
+}
+
+// SetDisabled sets the "disabled" field.
+func (u *YouTubeTalentUpsertOne) SetDisabled(v time.Time) *YouTubeTalentUpsertOne {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.SetDisabled(v)
+	})
+}
+
+// UpdateDisabled sets the "disabled" field to the value that was provided on create.
+func (u *YouTubeTalentUpsertOne) UpdateDisabled() *YouTubeTalentUpsertOne {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.UpdateDisabled()
+	})
+}
+
+// ClearDisabled clears the value of the "disabled" field.
+func (u *YouTubeTalentUpsertOne) ClearDisabled() *YouTubeTalentUpsertOne {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.ClearDisabled()
 	})
 }
 
@@ -737,7 +837,7 @@ type YouTubeTalentUpsertBulk struct {
 	create *YouTubeTalentCreateBulk
 }
 
-// UpdateNewValues updates the fields using the new values that
+// UpdateNewValues updates the mutable fields using the new values that
 // were set on create. Using this option is equivalent to using:
 //
 //	client.YouTubeTalent.Create().
@@ -871,6 +971,27 @@ func (u *YouTubeTalentUpsertBulk) SetLastUpdated(v time.Time) *YouTubeTalentUpse
 func (u *YouTubeTalentUpsertBulk) UpdateLastUpdated() *YouTubeTalentUpsertBulk {
 	return u.Update(func(s *YouTubeTalentUpsert) {
 		s.UpdateLastUpdated()
+	})
+}
+
+// SetDisabled sets the "disabled" field.
+func (u *YouTubeTalentUpsertBulk) SetDisabled(v time.Time) *YouTubeTalentUpsertBulk {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.SetDisabled(v)
+	})
+}
+
+// UpdateDisabled sets the "disabled" field to the value that was provided on create.
+func (u *YouTubeTalentUpsertBulk) UpdateDisabled() *YouTubeTalentUpsertBulk {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.UpdateDisabled()
+	})
+}
+
+// ClearDisabled clears the value of the "disabled" field.
+func (u *YouTubeTalentUpsertBulk) ClearDisabled() *YouTubeTalentUpsertBulk {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.ClearDisabled()
 	})
 }
 

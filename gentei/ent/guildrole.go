@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
 	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
+	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 )
 
 // GuildRole is the model entity for the GuildRole schema.
@@ -26,19 +27,22 @@ type GuildRole struct {
 	LastUpdated time.Time `json:"last_updated,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the GuildRoleQuery when eager-loading is set.
-	Edges       GuildRoleEdges `json:"edges"`
-	guild_roles *uint64
+	Edges                 GuildRoleEdges `json:"edges"`
+	guild_roles           *uint64
+	you_tube_talent_roles *string
 }
 
 // GuildRoleEdges holds the relations/edges for other nodes in the graph.
 type GuildRoleEdges struct {
 	// Guild holds the value of the guild edge.
 	Guild *Guild `json:"guild,omitempty"`
-	// Users holds the value of the users edge.
-	Users []*User `json:"users,omitempty"`
+	// UserMemberships holds the value of the user_memberships edge.
+	UserMemberships []*UserMembership `json:"user_memberships,omitempty"`
+	// Talent holds the value of the talent edge.
+	Talent *YouTubeTalent `json:"talent,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // GuildOrErr returns the Guild value or an error if the edge
@@ -55,13 +59,27 @@ func (e GuildRoleEdges) GuildOrErr() (*Guild, error) {
 	return nil, &NotLoadedError{edge: "guild"}
 }
 
-// UsersOrErr returns the Users value or an error if the edge
+// UserMembershipsOrErr returns the UserMemberships value or an error if the edge
 // was not loaded in eager-loading.
-func (e GuildRoleEdges) UsersOrErr() ([]*User, error) {
+func (e GuildRoleEdges) UserMembershipsOrErr() ([]*UserMembership, error) {
 	if e.loadedTypes[1] {
-		return e.Users, nil
+		return e.UserMemberships, nil
 	}
-	return nil, &NotLoadedError{edge: "users"}
+	return nil, &NotLoadedError{edge: "user_memberships"}
+}
+
+// TalentOrErr returns the Talent value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e GuildRoleEdges) TalentOrErr() (*YouTubeTalent, error) {
+	if e.loadedTypes[2] {
+		if e.Talent == nil {
+			// The edge talent was loaded in eager-loading,
+			// but was not found.
+			return nil, &NotFoundError{label: youtubetalent.Label}
+		}
+		return e.Talent, nil
+	}
+	return nil, &NotLoadedError{edge: "talent"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -77,6 +95,8 @@ func (*GuildRole) scanValues(columns []string) ([]interface{}, error) {
 			values[i] = new(sql.NullTime)
 		case guildrole.ForeignKeys[0]: // guild_roles
 			values[i] = new(sql.NullInt64)
+		case guildrole.ForeignKeys[1]: // you_tube_talent_roles
+			values[i] = new(sql.NullString)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type GuildRole", columns[i])
 		}
@@ -117,6 +137,13 @@ func (gr *GuildRole) assignValues(columns []string, values []interface{}) error 
 				gr.guild_roles = new(uint64)
 				*gr.guild_roles = uint64(value.Int64)
 			}
+		case guildrole.ForeignKeys[1]:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field you_tube_talent_roles", values[i])
+			} else if value.Valid {
+				gr.you_tube_talent_roles = new(string)
+				*gr.you_tube_talent_roles = value.String
+			}
 		}
 	}
 	return nil
@@ -127,9 +154,14 @@ func (gr *GuildRole) QueryGuild() *GuildQuery {
 	return (&GuildRoleClient{config: gr.config}).QueryGuild(gr)
 }
 
-// QueryUsers queries the "users" edge of the GuildRole entity.
-func (gr *GuildRole) QueryUsers() *UserQuery {
-	return (&GuildRoleClient{config: gr.config}).QueryUsers(gr)
+// QueryUserMemberships queries the "user_memberships" edge of the GuildRole entity.
+func (gr *GuildRole) QueryUserMemberships() *UserMembershipQuery {
+	return (&GuildRoleClient{config: gr.config}).QueryUserMemberships(gr)
+}
+
+// QueryTalent queries the "talent" edge of the GuildRole entity.
+func (gr *GuildRole) QueryTalent() *YouTubeTalentQuery {
+	return (&GuildRoleClient{config: gr.config}).QueryTalent(gr)
 }
 
 // Update returns a builder for updating this GuildRole.

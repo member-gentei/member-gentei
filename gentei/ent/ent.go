@@ -11,6 +11,7 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
 	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
+	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 )
 
@@ -32,10 +33,11 @@ type OrderFunc func(*sql.Selector)
 // columnChecker returns a function indicates if the column exists in the given column.
 func columnChecker(table string) func(string) error {
 	checks := map[string]func(string) bool{
-		guild.Table:         guild.ValidColumn,
-		guildrole.Table:     guildrole.ValidColumn,
-		user.Table:          user.ValidColumn,
-		youtubetalent.Table: youtubetalent.ValidColumn,
+		guild.Table:          guild.ValidColumn,
+		guildrole.Table:      guildrole.ValidColumn,
+		user.Table:           user.ValidColumn,
+		usermembership.Table: usermembership.ValidColumn,
+		youtubetalent.Table:  youtubetalent.ValidColumn,
 	}
 	check, ok := checks[table]
 	if !ok {
@@ -147,7 +149,7 @@ func Sum(field string) AggregateFunc {
 	}
 }
 
-// ValidationError returns when validating a field fails.
+// ValidationError returns when validating a field or edge fails.
 type ValidationError struct {
 	Name string // Field or edge name.
 	err  error

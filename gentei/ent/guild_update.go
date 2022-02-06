@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"entgo.io/ent/dialect/sql"
@@ -72,7 +73,7 @@ func (gu *GuildUpdate) SetNillableAuditChannel(u *uint64) *GuildUpdate {
 }
 
 // AddAuditChannel adds u to the "audit_channel" field.
-func (gu *GuildUpdate) AddAuditChannel(u uint64) *GuildUpdate {
+func (gu *GuildUpdate) AddAuditChannel(u int64) *GuildUpdate {
 	gu.mutation.AddAuditChannel(u)
 	return gu
 }
@@ -340,7 +341,7 @@ func (gu *GuildUpdate) ExecX(ctx context.Context) {
 func (gu *GuildUpdate) check() error {
 	if v, ok := gu.mutation.Language(); ok {
 		if err := guild.LanguageValidator(v); err != nil {
-			return &ValidationError{Name: "language", err: fmt.Errorf("ent: validator failed for field \"language\": %w", err)}
+			return &ValidationError{Name: "language", err: fmt.Errorf(`ent: validator failed for field "Guild.language": %w`, err)}
 		}
 	}
 	return nil
@@ -721,7 +722,7 @@ func (guo *GuildUpdateOne) SetNillableAuditChannel(u *uint64) *GuildUpdateOne {
 }
 
 // AddAuditChannel adds u to the "audit_channel" field.
-func (guo *GuildUpdateOne) AddAuditChannel(u uint64) *GuildUpdateOne {
+func (guo *GuildUpdateOne) AddAuditChannel(u int64) *GuildUpdateOne {
 	guo.mutation.AddAuditChannel(u)
 	return guo
 }
@@ -996,7 +997,7 @@ func (guo *GuildUpdateOne) ExecX(ctx context.Context) {
 func (guo *GuildUpdateOne) check() error {
 	if v, ok := guo.mutation.Language(); ok {
 		if err := guild.LanguageValidator(v); err != nil {
-			return &ValidationError{Name: "language", err: fmt.Errorf("ent: validator failed for field \"language\": %w", err)}
+			return &ValidationError{Name: "language", err: fmt.Errorf(`ent: validator failed for field "Guild.language": %w`, err)}
 		}
 	}
 	return nil
@@ -1015,7 +1016,7 @@ func (guo *GuildUpdateOne) sqlSave(ctx context.Context) (_node *Guild, err error
 	}
 	id, ok := guo.mutation.ID()
 	if !ok {
-		return nil, &ValidationError{Name: "ID", err: fmt.Errorf("missing Guild.ID for update")}
+		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "Guild.id" for update`)}
 	}
 	_spec.Node.ID.Value = id
 	if fields := guo.fields; len(fields) > 0 {

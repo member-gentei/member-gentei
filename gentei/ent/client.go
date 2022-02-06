@@ -12,6 +12,7 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
 	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
+	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 
 	"entgo.io/ent/dialect"
@@ -30,6 +31,8 @@ type Client struct {
 	GuildRole *GuildRoleClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// UserMembership is the client for interacting with the UserMembership builders.
+	UserMembership *UserMembershipClient
 	// YouTubeTalent is the client for interacting with the YouTubeTalent builders.
 	YouTubeTalent *YouTubeTalentClient
 }
@@ -48,6 +51,7 @@ func (c *Client) init() {
 	c.Guild = NewGuildClient(c.config)
 	c.GuildRole = NewGuildRoleClient(c.config)
 	c.User = NewUserClient(c.config)
+	c.UserMembership = NewUserMembershipClient(c.config)
 	c.YouTubeTalent = NewYouTubeTalentClient(c.config)
 }
 
@@ -80,12 +84,13 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:           ctx,
-		config:        cfg,
-		Guild:         NewGuildClient(cfg),
-		GuildRole:     NewGuildRoleClient(cfg),
-		User:          NewUserClient(cfg),
-		YouTubeTalent: NewYouTubeTalentClient(cfg),
+		ctx:            ctx,
+		config:         cfg,
+		Guild:          NewGuildClient(cfg),
+		GuildRole:      NewGuildRoleClient(cfg),
+		User:           NewUserClient(cfg),
+		UserMembership: NewUserMembershipClient(cfg),
+		YouTubeTalent:  NewYouTubeTalentClient(cfg),
 	}, nil
 }
 
@@ -103,11 +108,13 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		config:        cfg,
-		Guild:         NewGuildClient(cfg),
-		GuildRole:     NewGuildRoleClient(cfg),
-		User:          NewUserClient(cfg),
-		YouTubeTalent: NewYouTubeTalentClient(cfg),
+		ctx:            ctx,
+		config:         cfg,
+		Guild:          NewGuildClient(cfg),
+		GuildRole:      NewGuildRoleClient(cfg),
+		User:           NewUserClient(cfg),
+		UserMembership: NewUserMembershipClient(cfg),
+		YouTubeTalent:  NewYouTubeTalentClient(cfg),
 	}, nil
 }
 
@@ -140,6 +147,7 @@ func (c *Client) Use(hooks ...Hook) {
 	c.Guild.Use(hooks...)
 	c.GuildRole.Use(hooks...)
 	c.User.Use(hooks...)
+	c.UserMembership.Use(hooks...)
 	c.YouTubeTalent.Use(hooks...)
 }
 
@@ -398,15 +406,31 @@ func (c *GuildRoleClient) QueryGuild(gr *GuildRole) *GuildQuery {
 	return query
 }
 
-// QueryUsers queries the users edge of a GuildRole.
-func (c *GuildRoleClient) QueryUsers(gr *GuildRole) *UserQuery {
-	query := &UserQuery{config: c.config}
+// QueryUserMemberships queries the user_memberships edge of a GuildRole.
+func (c *GuildRoleClient) QueryUserMemberships(gr *GuildRole) *UserMembershipQuery {
+	query := &UserMembershipQuery{config: c.config}
 	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
 		id := gr.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(guildrole.Table, guildrole.FieldID, id),
-			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, guildrole.UsersTable, guildrole.UsersPrimaryKey...),
+			sqlgraph.To(usermembership.Table, usermembership.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, guildrole.UserMembershipsTable, guildrole.UserMembershipsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(gr.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTalent queries the talent edge of a GuildRole.
+func (c *GuildRoleClient) QueryTalent(gr *GuildRole) *YouTubeTalentQuery {
+	query := &YouTubeTalentQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := gr.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(guildrole.Table, guildrole.FieldID, id),
+			sqlgraph.To(youtubetalent.Table, youtubetalent.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, guildrole.TalentTable, guildrole.TalentColumn),
 		)
 		fromV = sqlgraph.Neighbors(gr.driver.Dialect(), step)
 		return fromV, nil
@@ -536,31 +560,15 @@ func (c *UserClient) QueryGuildsAdmin(u *User) *GuildQuery {
 	return query
 }
 
-// QueryRoles queries the roles edge of a User.
-func (c *UserClient) QueryRoles(u *User) *GuildRoleQuery {
-	query := &GuildRoleQuery{config: c.config}
+// QueryMemberships queries the memberships edge of a User.
+func (c *UserClient) QueryMemberships(u *User) *UserMembershipQuery {
+	query := &UserMembershipQuery{config: c.config}
 	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
 		id := u.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, id),
-			sqlgraph.To(guildrole.Table, guildrole.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, user.RolesTable, user.RolesPrimaryKey...),
-		)
-		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
-		return fromV, nil
-	}
-	return query
-}
-
-// QueryYoutubeMemberships queries the youtube_memberships edge of a User.
-func (c *UserClient) QueryYoutubeMemberships(u *User) *YouTubeTalentQuery {
-	query := &YouTubeTalentQuery{config: c.config}
-	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
-		id := u.ID
-		step := sqlgraph.NewStep(
-			sqlgraph.From(user.Table, user.FieldID, id),
-			sqlgraph.To(youtubetalent.Table, youtubetalent.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, user.YoutubeMembershipsTable, user.YoutubeMembershipsPrimaryKey...),
+			sqlgraph.To(usermembership.Table, usermembership.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.MembershipsTable, user.MembershipsColumn),
 		)
 		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
 		return fromV, nil
@@ -571,6 +579,144 @@ func (c *UserClient) QueryYoutubeMemberships(u *User) *YouTubeTalentQuery {
 // Hooks returns the client hooks.
 func (c *UserClient) Hooks() []Hook {
 	return c.hooks.User
+}
+
+// UserMembershipClient is a client for the UserMembership schema.
+type UserMembershipClient struct {
+	config
+}
+
+// NewUserMembershipClient returns a client for the UserMembership from the given config.
+func NewUserMembershipClient(c config) *UserMembershipClient {
+	return &UserMembershipClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `usermembership.Hooks(f(g(h())))`.
+func (c *UserMembershipClient) Use(hooks ...Hook) {
+	c.hooks.UserMembership = append(c.hooks.UserMembership, hooks...)
+}
+
+// Create returns a create builder for UserMembership.
+func (c *UserMembershipClient) Create() *UserMembershipCreate {
+	mutation := newUserMembershipMutation(c.config, OpCreate)
+	return &UserMembershipCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of UserMembership entities.
+func (c *UserMembershipClient) CreateBulk(builders ...*UserMembershipCreate) *UserMembershipCreateBulk {
+	return &UserMembershipCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for UserMembership.
+func (c *UserMembershipClient) Update() *UserMembershipUpdate {
+	mutation := newUserMembershipMutation(c.config, OpUpdate)
+	return &UserMembershipUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *UserMembershipClient) UpdateOne(um *UserMembership) *UserMembershipUpdateOne {
+	mutation := newUserMembershipMutation(c.config, OpUpdateOne, withUserMembership(um))
+	return &UserMembershipUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *UserMembershipClient) UpdateOneID(id int) *UserMembershipUpdateOne {
+	mutation := newUserMembershipMutation(c.config, OpUpdateOne, withUserMembershipID(id))
+	return &UserMembershipUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for UserMembership.
+func (c *UserMembershipClient) Delete() *UserMembershipDelete {
+	mutation := newUserMembershipMutation(c.config, OpDelete)
+	return &UserMembershipDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a delete builder for the given entity.
+func (c *UserMembershipClient) DeleteOne(um *UserMembership) *UserMembershipDeleteOne {
+	return c.DeleteOneID(um.ID)
+}
+
+// DeleteOneID returns a delete builder for the given id.
+func (c *UserMembershipClient) DeleteOneID(id int) *UserMembershipDeleteOne {
+	builder := c.Delete().Where(usermembership.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &UserMembershipDeleteOne{builder}
+}
+
+// Query returns a query builder for UserMembership.
+func (c *UserMembershipClient) Query() *UserMembershipQuery {
+	return &UserMembershipQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a UserMembership entity by its id.
+func (c *UserMembershipClient) Get(ctx context.Context, id int) (*UserMembership, error) {
+	return c.Query().Where(usermembership.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *UserMembershipClient) GetX(ctx context.Context, id int) *UserMembership {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryUser queries the user edge of a UserMembership.
+func (c *UserMembershipClient) QueryUser(um *UserMembership) *UserQuery {
+	query := &UserQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := um.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(usermembership.Table, usermembership.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, usermembership.UserTable, usermembership.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(um.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryYoutubeTalent queries the youtube_talent edge of a UserMembership.
+func (c *UserMembershipClient) QueryYoutubeTalent(um *UserMembership) *YouTubeTalentQuery {
+	query := &YouTubeTalentQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := um.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(usermembership.Table, usermembership.FieldID, id),
+			sqlgraph.To(youtubetalent.Table, youtubetalent.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, usermembership.YoutubeTalentTable, usermembership.YoutubeTalentColumn),
+		)
+		fromV = sqlgraph.Neighbors(um.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryRoles queries the roles edge of a UserMembership.
+func (c *UserMembershipClient) QueryRoles(um *UserMembership) *GuildRoleQuery {
+	query := &GuildRoleQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := um.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(usermembership.Table, usermembership.FieldID, id),
+			sqlgraph.To(guildrole.Table, guildrole.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, usermembership.RolesTable, usermembership.RolesPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(um.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *UserMembershipClient) Hooks() []Hook {
+	return c.hooks.UserMembership
 }
 
 // YouTubeTalentClient is a client for the YouTubeTalent schema.
@@ -674,15 +820,31 @@ func (c *YouTubeTalentClient) QueryGuilds(ytt *YouTubeTalent) *GuildQuery {
 	return query
 }
 
-// QueryMembers queries the members edge of a YouTubeTalent.
-func (c *YouTubeTalentClient) QueryMembers(ytt *YouTubeTalent) *UserQuery {
-	query := &UserQuery{config: c.config}
+// QueryRoles queries the roles edge of a YouTubeTalent.
+func (c *YouTubeTalentClient) QueryRoles(ytt *YouTubeTalent) *GuildRoleQuery {
+	query := &GuildRoleQuery{config: c.config}
 	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
 		id := ytt.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(youtubetalent.Table, youtubetalent.FieldID, id),
-			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, youtubetalent.MembersTable, youtubetalent.MembersPrimaryKey...),
+			sqlgraph.To(guildrole.Table, guildrole.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, youtubetalent.RolesTable, youtubetalent.RolesColumn),
+		)
+		fromV = sqlgraph.Neighbors(ytt.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryMemberships queries the memberships edge of a YouTubeTalent.
+func (c *YouTubeTalentClient) QueryMemberships(ytt *YouTubeTalent) *UserMembershipQuery {
+	query := &UserMembershipQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := ytt.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(youtubetalent.Table, youtubetalent.FieldID, id),
+			sqlgraph.To(usermembership.Table, usermembership.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, youtubetalent.MembershipsTable, youtubetalent.MembershipsColumn),
 		)
 		fromV = sqlgraph.Neighbors(ytt.driver.Dialect(), step)
 		return fromV, nil

@@ -21,10 +21,14 @@ const (
 	FieldLastMembershipVideoIDMiss = "last_membership_video_id_miss"
 	// FieldLastUpdated holds the string denoting the last_updated field in the database.
 	FieldLastUpdated = "last_updated"
+	// FieldDisabled holds the string denoting the disabled field in the database.
+	FieldDisabled = "disabled"
 	// EdgeGuilds holds the string denoting the guilds edge name in mutations.
 	EdgeGuilds = "guilds"
-	// EdgeMembers holds the string denoting the members edge name in mutations.
-	EdgeMembers = "members"
+	// EdgeRoles holds the string denoting the roles edge name in mutations.
+	EdgeRoles = "roles"
+	// EdgeMemberships holds the string denoting the memberships edge name in mutations.
+	EdgeMemberships = "memberships"
 	// Table holds the table name of the youtubetalent in the database.
 	Table = "you_tube_talents"
 	// GuildsTable is the table that holds the guilds relation/edge. The primary key declared below.
@@ -32,11 +36,20 @@ const (
 	// GuildsInverseTable is the table name for the Guild entity.
 	// It exists in this package in order to avoid circular dependency with the "guild" package.
 	GuildsInverseTable = "guilds"
-	// MembersTable is the table that holds the members relation/edge. The primary key declared below.
-	MembersTable = "user_youtube_memberships"
-	// MembersInverseTable is the table name for the User entity.
-	// It exists in this package in order to avoid circular dependency with the "user" package.
-	MembersInverseTable = "users"
+	// RolesTable is the table that holds the roles relation/edge.
+	RolesTable = "guild_roles"
+	// RolesInverseTable is the table name for the GuildRole entity.
+	// It exists in this package in order to avoid circular dependency with the "guildrole" package.
+	RolesInverseTable = "guild_roles"
+	// RolesColumn is the table column denoting the roles relation/edge.
+	RolesColumn = "you_tube_talent_roles"
+	// MembershipsTable is the table that holds the memberships relation/edge.
+	MembershipsTable = "user_memberships"
+	// MembershipsInverseTable is the table name for the UserMembership entity.
+	// It exists in this package in order to avoid circular dependency with the "usermembership" package.
+	MembershipsInverseTable = "user_memberships"
+	// MembershipsColumn is the table column denoting the memberships relation/edge.
+	MembershipsColumn = "user_membership_youtube_talent"
 )
 
 // Columns holds all SQL columns for youtubetalent fields.
@@ -47,15 +60,13 @@ var Columns = []string{
 	FieldMembershipVideoID,
 	FieldLastMembershipVideoIDMiss,
 	FieldLastUpdated,
+	FieldDisabled,
 }
 
 var (
 	// GuildsPrimaryKey and GuildsColumn2 are the table columns denoting the
 	// primary key for the guilds relation (M2M).
 	GuildsPrimaryKey = []string{"you_tube_talent_id", "guild_id"}
-	// MembersPrimaryKey and MembersColumn2 are the table columns denoting the
-	// primary key for the members relation (M2M).
-	MembersPrimaryKey = []string{"user_id", "you_tube_talent_id"}
 )
 
 // ValidColumn reports if the column name is valid (part of the table columns).

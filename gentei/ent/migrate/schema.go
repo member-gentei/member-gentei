@@ -31,6 +31,7 @@ var (
 		{Name: "name", Type: field.TypeString},
 		{Name: "last_updated", Type: field.TypeTime},
 		{Name: "guild_roles", Type: field.TypeUint64, Nullable: true},
+		{Name: "you_tube_talent_roles", Type: field.TypeString, Nullable: true},
 	}
 	// GuildRolesTable holds the schema information for the "guild_roles" table.
 	GuildRolesTable = &schema.Table{
@@ -44,6 +45,12 @@ var (
 				RefColumns: []*schema.Column{GuildsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
+			{
+				Symbol:     "guild_roles_you_tube_talents_roles",
+				Columns:    []*schema.Column{GuildRolesColumns[4]},
+				RefColumns: []*schema.Column{YouTubeTalentsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
 		},
 	}
 	// UsersColumns holds the columns for the "users" table.
@@ -55,13 +62,41 @@ var (
 		{Name: "youtube_id", Type: field.TypeString, Unique: true, Nullable: true},
 		{Name: "youtube_token", Type: field.TypeJSON, Nullable: true},
 		{Name: "discord_token", Type: field.TypeJSON, Nullable: true},
-		{Name: "membership_metadata", Type: field.TypeJSON, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
 		Name:       "users",
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
+	}
+	// UserMembershipsColumns holds the columns for the "user_memberships" table.
+	UserMembershipsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "first_failed", Type: field.TypeTime, Nullable: true},
+		{Name: "last_verified", Type: field.TypeTime},
+		{Name: "fail_count", Type: field.TypeInt, Default: 0},
+		{Name: "user_memberships", Type: field.TypeUint64, Nullable: true},
+		{Name: "user_membership_youtube_talent", Type: field.TypeString, Nullable: true},
+	}
+	// UserMembershipsTable holds the schema information for the "user_memberships" table.
+	UserMembershipsTable = &schema.Table{
+		Name:       "user_memberships",
+		Columns:    UserMembershipsColumns,
+		PrimaryKey: []*schema.Column{UserMembershipsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "user_memberships_users_memberships",
+				Columns:    []*schema.Column{UserMembershipsColumns[4]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "user_memberships_you_tube_talents_youtube_talent",
+				Columns:    []*schema.Column{UserMembershipsColumns[5]},
+				RefColumns: []*schema.Column{YouTubeTalentsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
 	}
 	// YouTubeTalentsColumns holds the columns for the "you_tube_talents" table.
 	YouTubeTalentsColumns = []*schema.Column{
@@ -71,6 +106,7 @@ var (
 		{Name: "membership_video_id", Type: field.TypeString, Nullable: true},
 		{Name: "last_membership_video_id_miss", Type: field.TypeTime, Nullable: true},
 		{Name: "last_updated", Type: field.TypeTime},
+		{Name: "disabled", Type: field.TypeTime, Nullable: true},
 	}
 	// YouTubeTalentsTable holds the schema information for the "you_tube_talents" table.
 	YouTubeTalentsTable = &schema.Table{
@@ -128,52 +164,27 @@ var (
 			},
 		},
 	}
-	// UserRolesColumns holds the columns for the "user_roles" table.
-	UserRolesColumns = []*schema.Column{
-		{Name: "user_id", Type: field.TypeUint64},
+	// UserMembershipRolesColumns holds the columns for the "user_membership_roles" table.
+	UserMembershipRolesColumns = []*schema.Column{
+		{Name: "user_membership_id", Type: field.TypeInt},
 		{Name: "guild_role_id", Type: field.TypeUint64},
 	}
-	// UserRolesTable holds the schema information for the "user_roles" table.
-	UserRolesTable = &schema.Table{
-		Name:       "user_roles",
-		Columns:    UserRolesColumns,
-		PrimaryKey: []*schema.Column{UserRolesColumns[0], UserRolesColumns[1]},
+	// UserMembershipRolesTable holds the schema information for the "user_membership_roles" table.
+	UserMembershipRolesTable = &schema.Table{
+		Name:       "user_membership_roles",
+		Columns:    UserMembershipRolesColumns,
+		PrimaryKey: []*schema.Column{UserMembershipRolesColumns[0], UserMembershipRolesColumns[1]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "user_roles_user_id",
-				Columns:    []*schema.Column{UserRolesColumns[0]},
-				RefColumns: []*schema.Column{UsersColumns[0]},
+				Symbol:     "user_membership_roles_user_membership_id",
+				Columns:    []*schema.Column{UserMembershipRolesColumns[0]},
+				RefColumns: []*schema.Column{UserMembershipsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 			{
-				Symbol:     "user_roles_guild_role_id",
-				Columns:    []*schema.Column{UserRolesColumns[1]},
+				Symbol:     "user_membership_roles_guild_role_id",
+				Columns:    []*schema.Column{UserMembershipRolesColumns[1]},
 				RefColumns: []*schema.Column{GuildRolesColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-		},
-	}
-	// UserYoutubeMembershipsColumns holds the columns for the "user_youtube_memberships" table.
-	UserYoutubeMembershipsColumns = []*schema.Column{
-		{Name: "user_id", Type: field.TypeUint64},
-		{Name: "you_tube_talent_id", Type: field.TypeString},
-	}
-	// UserYoutubeMembershipsTable holds the schema information for the "user_youtube_memberships" table.
-	UserYoutubeMembershipsTable = &schema.Table{
-		Name:       "user_youtube_memberships",
-		Columns:    UserYoutubeMembershipsColumns,
-		PrimaryKey: []*schema.Column{UserYoutubeMembershipsColumns[0], UserYoutubeMembershipsColumns[1]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "user_youtube_memberships_user_id",
-				Columns:    []*schema.Column{UserYoutubeMembershipsColumns[0]},
-				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.Cascade,
-			},
-			{
-				Symbol:     "user_youtube_memberships_you_tube_talent_id",
-				Columns:    []*schema.Column{UserYoutubeMembershipsColumns[1]},
-				RefColumns: []*schema.Column{YouTubeTalentsColumns[0]},
 				OnDelete:   schema.Cascade,
 			},
 		},
@@ -208,25 +219,26 @@ var (
 		GuildsTable,
 		GuildRolesTable,
 		UsersTable,
+		UserMembershipsTable,
 		YouTubeTalentsTable,
 		GuildMembersTable,
 		GuildAdminsTable,
-		UserRolesTable,
-		UserYoutubeMembershipsTable,
+		UserMembershipRolesTable,
 		YouTubeTalentGuildsTable,
 	}
 )
 
 func init() {
 	GuildRolesTable.ForeignKeys[0].RefTable = GuildsTable
+	GuildRolesTable.ForeignKeys[1].RefTable = YouTubeTalentsTable
+	UserMembershipsTable.ForeignKeys[0].RefTable = UsersTable
+	UserMembershipsTable.ForeignKeys[1].RefTable = YouTubeTalentsTable
 	GuildMembersTable.ForeignKeys[0].RefTable = GuildsTable
 	GuildMembersTable.ForeignKeys[1].RefTable = UsersTable
 	GuildAdminsTable.ForeignKeys[0].RefTable = GuildsTable
 	GuildAdminsTable.ForeignKeys[1].RefTable = UsersTable
-	UserRolesTable.ForeignKeys[0].RefTable = UsersTable
-	UserRolesTable.ForeignKeys[1].RefTable = GuildRolesTable
-	UserYoutubeMembershipsTable.ForeignKeys[0].RefTable = UsersTable
-	UserYoutubeMembershipsTable.ForeignKeys[1].RefTable = YouTubeTalentsTable
+	UserMembershipRolesTable.ForeignKeys[0].RefTable = UserMembershipsTable
+	UserMembershipRolesTable.ForeignKeys[1].RefTable = GuildRolesTable
 	YouTubeTalentGuildsTable.ForeignKeys[0].RefTable = YouTubeTalentsTable
 	YouTubeTalentGuildsTable.ForeignKeys[1].RefTable = GuildsTable
 }

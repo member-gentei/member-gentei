@@ -15,7 +15,7 @@ type CheckStaleOptions struct {
 	// StaleThreshold is used in a <= comparison to the last stored membership check time.
 	StaleThreshold time.Duration
 	// MembershipChangeHook gets called whnen a user experiences a change in channel membership.
-	MembershipChangeHook func(userID uint64, newChannelIDs, removedChannelIDs, retainedChannelIDs []string) error
+	MembershipChangeHook func(userID uint64, results *CheckResultSet) error
 }
 
 var DefaultCheckStaleOptions = &CheckStaleOptions{
@@ -48,12 +48,12 @@ func CheckStale(ctx context.Context, db *ent.Client, youtubeConfig *oauth2.Confi
 		}
 		for _, userID := range staleUserIDs {
 			// TODO: https://github.com/member-gentei/member-gentei/issues/92
-			lost, gained, retained, err := CheckForUser(ctx, db, youtubeConfig, userID, nil)
+			results, err := CheckForUser(ctx, db, youtubeConfig, userID, nil)
 			if err != nil {
 				return fmt.Errorf("error checking memberships for user '%d': %w", userID, err)
 			}
-			if options.MembershipChangeHook != nil && (len(lost) > 0 || len(gained) > 0) {
-				err = options.MembershipChangeHook(userID, gained, lost, retained)
+			if options.MembershipChangeHook != nil && (len(results.Lost) > 0 || len(results.Gained) > 0) {
+				err = options.MembershipChangeHook(userID, results)
 				if err != nil {
 					return fmt.Errorf("error calling MembershipChangeHook for user '%d': %w", userID, err)
 				}

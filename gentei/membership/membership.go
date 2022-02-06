@@ -10,8 +10,10 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/apis"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
-	"github.com/member-gentei/member-gentei/gentei/ent/schema"
+	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
+	"github.com/member-gentei/member-gentei/gentei/ent/predicate"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
+	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
@@ -23,12 +25,28 @@ type CheckForUserOptions struct {
 	ChannelIDs []string
 }
 
+type CheckResultSet struct {
+	// Gained contains memberships newly gained.
+	Gained []CheckResult
+	// Retained contains memberships that have been kept and re-validated.
+	Retained []CheckResult
+	// Lost contains memberships newly lost.
+	Lost []CheckResult
+	// Not contains memberships that this user does not have but did not newly lose.
+	Not []CheckResult
+}
+
+type CheckResult struct {
+	ChannelID string
+	Time      time.Time
+}
+
 func CheckForUser(
 	ctx context.Context, db *ent.Client,
 	youtubeConfig *oauth2.Config,
 	userID uint64,
 	options *CheckForUserOptions,
-) (lost []string, gained []string, retained []string, err error) {
+) (results *CheckResultSet, err error) {
 	if options == nil {
 		options = &CheckForUserOptions{}
 	}
@@ -42,7 +60,10 @@ func CheckForUser(
 	)
 	if options.ChannelIDs != nil {
 		talents, err = db.YouTubeTalent.Query().
-			Where(youtubetalent.IDIn(options.ChannelIDs...)).All(ctx)
+			Where(
+				youtubetalent.IDIn(options.ChannelIDs...),
+				youtubetalent.Disabled(time.Time{}),
+			).All(ctx)
 		if err != nil {
 			err = fmt.Errorf("error getting specified channels: %w", err)
 			return
@@ -63,9 +84,9 @@ func CheckForUser(
 		}
 	}
 	var (
-		checkTime             = time.Now()
-		verifiedMemberships   = map[string]time.Time{}
-		verifiedMembershipIDs []string
+		checkTimestamps              = map[string]time.Time{}
+		verifiedMembershipChannelIDs []string
+		nonMemberChannelIDs          []string
 	)
 	for _, talent := range talents {
 		logger := log.With().Str("channelID", talent.ID).Logger()
@@ -106,6 +127,8 @@ func CheckForUser(
 			if errors.As(err, &gErr) {
 				if gErr.Code == 403 {
 					// not a member
+					checkTimestamps[talent.ID] = time.Now()
+					nonMemberChannelIDs = append(nonMemberChannelIDs, talent.ID)
 					continue
 				}
 			}
@@ -114,44 +137,205 @@ func CheckForUser(
 				return
 			}
 		}
-		verifiedMemberships[talent.ID] = time.Now()
-		verifiedMembershipIDs = append(verifiedMembershipIDs, talent.ID)
+		checkTimestamps[talent.ID] = time.Now()
+		verifiedMembershipChannelIDs = append(verifiedMembershipChannelIDs, talent.ID)
 	}
 	// merge in results
-	u, err := db.User.Get(ctx, userID)
+	results = &CheckResultSet{}
+	// 1. get changes
+	// 1a. get lost
+	wasLost := map[string]bool{}
+	lostIDs, err := db.YouTubeTalent.Query().Where(
+		youtubetalent.IDIn(nonMemberChannelIDs...),
+		youtubetalent.Not(youtubetalent.HasMembershipsWith(
+			usermembership.HasUserWith(user.ID(userID)),
+		)),
+	).IDs(ctx)
 	if err != nil {
+		err = fmt.Errorf("error fetching lost membership IDs: %w", err)
 		return
 	}
-	// set Past on newly lost memberships
-	for cid, meta := range u.MembershipMetadata {
-		if verifiedMemberships[cid].IsZero() && !meta.Past {
-			meta.Past = true
-			u.MembershipMetadata[cid] = meta
-			lost = append(lost, cid)
+	for _, cid := range lostIDs {
+		results.Lost = append(results.Lost, CheckResult{
+			ChannelID: cid,
+			Time:      checkTimestamps[cid],
+		})
+		wasLost[cid] = true
+	}
+	// 1b. get gained
+	gainedIDs, err := db.YouTubeTalent.Query().Where(
+		youtubetalent.IDIn(verifiedMembershipChannelIDs...),
+		youtubetalent.Not(youtubetalent.HasMembershipsWith(
+			usermembership.HasUserWith(user.ID(userID)),
+		)),
+	).IDs(ctx)
+	if err != nil {
+		err = fmt.Errorf("error fetching gained membership IDs: %w", err)
+		return
+	}
+	for _, cid := range gainedIDs {
+		results.Gained = append(results.Gained, CheckResult{
+			ChannelID: cid,
+			Time:      checkTimestamps[cid],
+		})
+	}
+	// 2. next, get non-changes
+	// 2a. get retained
+	retainedIDs, err := db.YouTubeTalent.Query().Where(
+		youtubetalent.IDIn(verifiedMembershipChannelIDs...),
+		youtubetalent.HasMembershipsWith(
+			usermembership.HasUserWith(user.ID(userID)),
+		),
+	).IDs(ctx)
+	if err != nil {
+		err = fmt.Errorf("error fetching retained membership IDs: %w", err)
+		return
+	}
+	for _, cid := range retainedIDs {
+		results.Retained = append(results.Retained, CheckResult{
+			ChannelID: cid,
+			Time:      checkTimestamps[cid],
+		})
+	}
+	// 2b. get not (that were checked)
+	for _, cid := range nonMemberChannelIDs {
+		if wasLost[cid] {
+			continue
+		}
+		results.Not = append(results.Not, CheckResult{
+			ChannelID: cid,
+			Time:      checkTimestamps[cid],
+		})
+	}
+	return
+}
+
+// SaveMemberships maintains UserMembership objects.
+func SaveMemberships(
+	ctx context.Context,
+	db *ent.Client,
+	userID uint64,
+	results *CheckResultSet,
+) (err error) {
+	var (
+		eligibleRoleUserPredicates = []predicate.GuildRole{
+			guildrole.HasGuildWith(
+				guild.Or(
+					guild.HasAdminsWith(user.ID(userID)),
+					guild.HasMembersWith(user.ID(userID)),
+				),
+			),
+		}
+	)
+	// create gained
+	for _, c := range results.Gained {
+		var (
+			roleIDsToGrant []uint64
+			logger         = log.With().
+					Uint64("userID", userID).
+					Str("talentID", c.ChannelID).
+					Logger()
+		)
+		roleIDsToGrant, err = db.GuildRole.Query().
+			Where(append(
+				eligibleRoleUserPredicates,
+				guildrole.HasTalentWith(youtubetalent.ID(c.ChannelID)),
+				// "not created yet"
+				guildrole.Not(
+					guildrole.HasUserMembershipsWith(usermembership.HasUserWith(user.ID(userID))),
+				),
+			)...).
+			IDs(ctx)
+		if err != nil {
+			err = fmt.Errorf("error querying for eligible roles to %s: %w", c.ChannelID, err)
+			return
+		}
+		logger.Info().Uints64("roleIDs", roleIDsToGrant).Msg("granting newly gained Discord roles to user")
+		err = db.UserMembership.Create().
+			SetFailCount(0).
+			SetLastVerified(c.Time).
+			SetUserID(userID).
+			SetYoutubeTalentID(c.ChannelID).
+			AddRoleIDs(roleIDsToGrant...).Exec(ctx)
+		if err != nil {
+			err = fmt.Errorf("error creating UserMembership for %s: %w", c.ChannelID, err)
+			return
 		}
 	}
-	// set newly gained memberships
-	if u.MembershipMetadata == nil {
-		u.MembershipMetadata = map[string]schema.MembershipMetadata{}
-	}
-	for cid, verifiedTime := range verifiedMemberships {
-		if u.MembershipMetadata[cid].LastVerified.IsZero() {
-			u.MembershipMetadata[cid] = schema.MembershipMetadata{
-				LastVerified: verifiedTime,
-			}
-			gained = append(gained, cid)
-		} else {
-			meta := u.MembershipMetadata[cid]
-			meta.LastVerified = verifiedTime
-			u.MembershipMetadata[cid] = meta
-			retained = append(retained, cid)
+	// update retained
+	for _, c := range results.Retained {
+		var (
+			count  int
+			logger = log.With().
+				Uint64("userID", userID).
+				Str("talentID", c.ChannelID).
+				Logger()
+		)
+		count, err = db.UserMembership.Update().
+			Where(
+				usermembership.HasYoutubeTalentWith(
+					youtubetalent.ID(c.ChannelID),
+				),
+			).
+			SetLastVerified(c.Time).
+			Save(ctx)
+		if err != nil {
+			err = fmt.Errorf("error updating last verified time for %s: %w", c.ChannelID, err)
+			return
+		}
+		if count > 0 {
+			logger.Info().Int("count", count).Time("lastVerified", c.Time).
+				Msg("updated retained membership")
 		}
 	}
-	err = db.User.UpdateOneID(userID).
-		SetMembershipMetadata(u.MembershipMetadata).
-		SetLastCheck(checkTime).
-		ClearYoutubeMemberships().
-		AddYoutubeMembershipIDs(verifiedMembershipIDs...).
-		Exec(ctx)
+	// update lost
+	for _, c := range results.Lost {
+		var (
+			count  int
+			logger = log.With().
+				Uint64("userID", userID).
+				Str("talentID", c.ChannelID).
+				Logger()
+		)
+		count, err = db.UserMembership.Update().
+			Where(
+				usermembership.HasYoutubeTalentWith(
+					youtubetalent.ID(c.ChannelID),
+				),
+			).
+			SetFirstFailed(c.Time).
+			AddFailCount(1).
+			Save(ctx)
+		if err != nil {
+			err = fmt.Errorf("error setting first failed time for %s: %w", c.ChannelID, err)
+			return
+		}
+		logger.Info().Int("count", count).Time("firstFailed", c.Time).
+			Msg("lost membership")
+	}
+	// clear not
+	for _, c := range results.Lost {
+		var (
+			count  int
+			logger = log.With().
+				Uint64("userID", userID).
+				Str("talentID", c.ChannelID).
+				Logger()
+		)
+		count, err = db.UserMembership.Update().
+			Where(
+				usermembership.HasYoutubeTalentWith(
+					youtubetalent.ID(c.ChannelID),
+				),
+			).
+			AddFailCount(1).
+			Save(ctx)
+		if err != nil {
+			err = fmt.Errorf("error incrementing check failures for %s: %w", c.ChannelID, err)
+			return
+		}
+		logger.Info().Int("count", count).Time("firstFailed", c.Time).
+			Msg("lost membership")
+	}
 	return
 }

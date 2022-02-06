@@ -128,6 +128,13 @@ func LastUpdated(v time.Time) predicate.YouTubeTalent {
 	})
 }
 
+// Disabled applies equality check predicate on the "disabled" field. It's identical to DisabledEQ.
+func Disabled(v time.Time) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldDisabled), v))
+	})
+}
+
 // ChannelNameEQ applies the EQ predicate on the "channel_name" field.
 func ChannelNameEQ(v string) predicate.YouTubeTalent {
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
@@ -641,6 +648,96 @@ func LastUpdatedLTE(v time.Time) predicate.YouTubeTalent {
 	})
 }
 
+// DisabledEQ applies the EQ predicate on the "disabled" field.
+func DisabledEQ(v time.Time) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldDisabled), v))
+	})
+}
+
+// DisabledNEQ applies the NEQ predicate on the "disabled" field.
+func DisabledNEQ(v time.Time) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldDisabled), v))
+	})
+}
+
+// DisabledIn applies the In predicate on the "disabled" field.
+func DisabledIn(vs ...time.Time) predicate.YouTubeTalent {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.In(s.C(FieldDisabled), v...))
+	})
+}
+
+// DisabledNotIn applies the NotIn predicate on the "disabled" field.
+func DisabledNotIn(vs ...time.Time) predicate.YouTubeTalent {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		// if not arguments were provided, append the FALSE constants,
+		// since we can't apply "IN ()". This will make this predicate falsy.
+		if len(v) == 0 {
+			s.Where(sql.False())
+			return
+		}
+		s.Where(sql.NotIn(s.C(FieldDisabled), v...))
+	})
+}
+
+// DisabledGT applies the GT predicate on the "disabled" field.
+func DisabledGT(v time.Time) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldDisabled), v))
+	})
+}
+
+// DisabledGTE applies the GTE predicate on the "disabled" field.
+func DisabledGTE(v time.Time) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldDisabled), v))
+	})
+}
+
+// DisabledLT applies the LT predicate on the "disabled" field.
+func DisabledLT(v time.Time) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldDisabled), v))
+	})
+}
+
+// DisabledLTE applies the LTE predicate on the "disabled" field.
+func DisabledLTE(v time.Time) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldDisabled), v))
+	})
+}
+
+// DisabledIsNil applies the IsNil predicate on the "disabled" field.
+func DisabledIsNil() predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldDisabled)))
+	})
+}
+
+// DisabledNotNil applies the NotNil predicate on the "disabled" field.
+func DisabledNotNil() predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldDisabled)))
+	})
+}
+
 // HasGuilds applies the HasEdge predicate on the "guilds" edge.
 func HasGuilds() predicate.YouTubeTalent {
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
@@ -669,25 +766,53 @@ func HasGuildsWith(preds ...predicate.Guild) predicate.YouTubeTalent {
 	})
 }
 
-// HasMembers applies the HasEdge predicate on the "members" edge.
-func HasMembers() predicate.YouTubeTalent {
+// HasRoles applies the HasEdge predicate on the "roles" edge.
+func HasRoles() predicate.YouTubeTalent {
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(MembersTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, MembersTable, MembersPrimaryKey...),
+			sqlgraph.To(RolesTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, RolesTable, RolesColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
 }
 
-// HasMembersWith applies the HasEdge predicate on the "members" edge with a given conditions (other predicates).
-func HasMembersWith(preds ...predicate.User) predicate.YouTubeTalent {
+// HasRolesWith applies the HasEdge predicate on the "roles" edge with a given conditions (other predicates).
+func HasRolesWith(preds ...predicate.GuildRole) predicate.YouTubeTalent {
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(MembersInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, MembersTable, MembersPrimaryKey...),
+			sqlgraph.To(RolesInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, RolesTable, RolesColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasMemberships applies the HasEdge predicate on the "memberships" edge.
+func HasMemberships() predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(MembershipsTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, MembershipsTable, MembershipsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasMembershipsWith applies the HasEdge predicate on the "memberships" edge with a given conditions (other predicates).
+func HasMembershipsWith(preds ...predicate.UserMembership) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(MembershipsInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, true, MembershipsTable, MembershipsColumn),
 		)
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {

@@ -31,6 +31,9 @@ func (YouTubeTalent) Fields() []ent.Field {
 		field.Time("last_updated").
 			Default(time.Now).
 			Comment("Last time data was fetched"),
+		field.Time("disabled").
+			Optional().
+			Comment("When refresh/membership checks were disabled. Set to zero value to re-enable."),
 	}
 }
 
@@ -38,7 +41,8 @@ func (YouTubeTalent) Fields() []ent.Field {
 func (YouTubeTalent) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("guilds", Guild.Type),
-		edge.From("members", User.Type).
-			Ref("youtube_memberships"),
+		edge.To("roles", GuildRole.Type),
+		edge.From("memberships", UserMembership.Type).
+			Ref("youtube_talent"),
 	}
 }

@@ -32,7 +32,9 @@ func (GuildRole) Edges() []ent.Edge {
 		edge.From("guild", Guild.Type).
 			Ref("roles").
 			Required().Unique(),
-		edge.From("users", User.Type).
+		edge.From("user_memberships", UserMembership.Type).
 			Ref("roles"),
+		edge.From("talent", YouTubeTalent.Type).
+			Ref("roles").Unique(),
 	}
 }

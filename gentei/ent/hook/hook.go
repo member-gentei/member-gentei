@@ -48,6 +48,19 @@ func (f UserFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 	return f(ctx, mv)
 }
 
+// The UserMembershipFunc type is an adapter to allow the use of ordinary
+// function as UserMembership mutator.
+type UserMembershipFunc func(context.Context, *ent.UserMembershipMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f UserMembershipFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.UserMembershipMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserMembershipMutation", m)
+	}
+	return f(ctx, mv)
+}
+
 // The YouTubeTalentFunc type is an adapter to allow the use of ordinary
 // function as YouTubeTalent mutator.
 type YouTubeTalentFunc func(context.Context, *ent.YouTubeTalentMutation) (ent.Value, error)
