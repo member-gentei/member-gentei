@@ -85,7 +85,8 @@ func mustOpenDB(ctx context.Context) *ent.Client {
 		logger.Fatal().Err(err).Msg("error opening SQL database")
 	}
 	var migrateOptions = []schema.MigrateOption{
-		schema.WithAtlas(true),
+		// 8:52PM FTL failed to create schema resources error="sql/schema: postgres: querying \"guild_admins\" columns: pq: unknown function: to_regclass()" engine=postgres
+		schema.WithAtlas(false),
 		migrate.WithDropColumn(true),
 	}
 	if flagDBEngine != "sqlite3" {
