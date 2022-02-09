@@ -51,8 +51,10 @@ func ApplyRole(applyCtx context.Context, session *discordgo.Session, guildID, us
 		var (
 			attempts int
 			err      error
+			ticker   = time.NewTicker(DefaultRetryInterval)
 		)
 		defer cancel()
+		defer ticker.Stop()
 		for attempts = 1; ; attempts++ {
 			var (
 				breakOut bool
@@ -64,7 +66,7 @@ func ApplyRole(applyCtx context.Context, session *discordgo.Session, guildID, us
 				logger.Debug().Msg("role apply timed out/cancelled")
 				err = ctx.Err()
 				breakOut = true
-			default:
+			case <-ticker.C:
 				if attempts > 1 {
 					// check if the last attempt worked
 					var member *discordgo.Member
@@ -89,9 +91,7 @@ func ApplyRole(applyCtx context.Context, session *discordgo.Session, guildID, us
 				if err != nil {
 					logger.Debug().Msg("error attempting to apply role")
 					breakOut = true
-					break
 				}
-				time.Sleep(DefaultRetryInterval)
 			}
 			if breakOut {
 				break

@@ -9,6 +9,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/member-gentei/member-gentei/gentei/bot/roles"
 	"github.com/member-gentei/member-gentei/gentei/ent"
+	"github.com/member-gentei/member-gentei/gentei/membership"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 )
@@ -17,6 +18,7 @@ type DiscordBot struct {
 	session       *discordgo.Session
 	db            *ent.Client
 	rut           *roles.RoleUpdateTracker
+	qch           *membership.QueuedChangeHandler
 	youTubeConfig *oauth2.Config
 }
 
@@ -54,6 +56,10 @@ func (b *DiscordBot) Start(prod, upsertCommands bool) (err error) {
 			b.handleManage(ctx, i)
 		}
 	})
+	// load membership.ChangeHandler
+	qch, changeHandler := membership.NewQueuedChangeHandler(10)
+	membership.HookMembershipChanges(b.db, changeHandler)
+	b.qch = qch
 	if err = b.session.Open(); err != nil {
 		return fmt.Errorf("error opening discordgo session: %w", err)
 	}
