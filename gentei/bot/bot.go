@@ -2,11 +2,14 @@ package bot
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
 
+	"cloud.google.com/go/pubsub"
 	"github.com/bwmarrin/discordgo"
+	"github.com/member-gentei/member-gentei/gentei/async"
 	"github.com/member-gentei/member-gentei/gentei/bot/roles"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/membership"
@@ -15,11 +18,13 @@ import (
 )
 
 type DiscordBot struct {
-	session       *discordgo.Session
-	db            *ent.Client
-	rut           *roles.RoleUpdateTracker
-	qch           *membership.QueuedChangeHandler
-	youTubeConfig *oauth2.Config
+	session *discordgo.Session
+
+	db              *ent.Client
+	rut             *roles.RoleUpdateTracker
+	qch             *membership.QueuedChangeHandler
+	cancelPSApplier context.CancelFunc
+	youTubeConfig   *oauth2.Config
 }
 
 func New(db *ent.Client, token string, youTubeConfig *oauth2.Config) (*DiscordBot, error) {
@@ -63,6 +68,7 @@ func (b *DiscordBot) Start(prod, upsertCommands bool) (err error) {
 	if err = b.session.Open(); err != nil {
 		return fmt.Errorf("error opening discordgo session: %w", err)
 	}
+	// load pubsub
 	// load early access commands
 	if !upsertCommands {
 		log.Info().Msg("skipping command upsert")
@@ -81,7 +87,50 @@ func (b *DiscordBot) Start(prod, upsertCommands bool) (err error) {
 	return nil
 }
 
+func (b *DiscordBot) StartPSApplier(parentCtx context.Context, sub *pubsub.Subscription) {
+	var (
+		pCtx, cancel = context.WithCancel(parentCtx)
+	)
+	b.cancelPSApplier = cancel
+	go func() {
+		defer cancel()
+		err := sub.Receive(pCtx, func(ctx context.Context, m *pubsub.Message) {
+			if typeAttribute := m.Attributes["type"]; typeAttribute != string(async.ApplyMembershipType) {
+				log.Warn().Str("typeAttribute", typeAttribute).Msg("non apply-membership message made it past the filter?")
+				m.Ack()
+				return
+			}
+			var message async.ApplyMembershipPSMessage
+			err := json.Unmarshal(m.Data, &message)
+			if err != nil {
+				log.Warn().Str("data", string(m.Data)).Msg("acking message that cannot be decoded as JSON")
+				m.Ack()
+				return
+			}
+			if message.Gained {
+				err = b.grantMemberships(ctx, b.db, message.UserMembershipID)
+				if err != nil {
+					log.Err(err).Msg("error granting memberships")
+					return
+				}
+			} else {
+				err = b.revokeMemberships(ctx, b.db, message.UserMembershipID)
+				if err != nil {
+					log.Err(err).Msg("error revoking memberships")
+					return
+				}
+			}
+		})
+		if err != nil {
+			log.Err(err).Msg("bot PSApplier crashed?")
+		}
+	}()
+}
+
 func (b *DiscordBot) Close() error {
+	if b.cancelPSApplier != nil {
+		b.cancelPSApplier()
+	}
 	return b.session.Close()
 }
 

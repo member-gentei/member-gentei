@@ -37,6 +37,8 @@ spec:
               value: "649732146530-s4cj4tqo2impojg7ljol2chsuj1us81s.apps.googleusercontent.com"
             - name: GCP_LOG_ID
               value: web
+            - name: PUBSUB_TOPIC
+              value: general
           envFrom:
             - secretRef:
                 name: gentei-db

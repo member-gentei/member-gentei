@@ -10,12 +10,14 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/pubsub"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqljson"
 	"github.com/bwmarrin/discordgo"
 	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/member-gentei/member-gentei/gentei/async"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
 	"github.com/member-gentei/member-gentei/gentei/ent/schema"
@@ -26,7 +28,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-func ServeAPI(db *ent.Client, discordConfig *oauth2.Config, youTubeConfig *oauth2.Config, jwtKey []byte, address string, debug bool) error {
+func ServeAPI(db *ent.Client, discordConfig *oauth2.Config, youTubeConfig *oauth2.Config, topic *pubsub.Topic, jwtKey []byte, address string, debug bool) error {
 	// create a copy of discordConfig that has the enroll endpoint
 	enrollDiscordConfig := *discordConfig
 	enrollDiscordConfig.RedirectURL = strings.Replace(discordConfig.RedirectURL, "login/discord", "app/enroll", 1)
@@ -62,7 +64,7 @@ func ServeAPI(db *ent.Client, discordConfig *oauth2.Config, youTubeConfig *oauth
 	g.Use(middleware.CORSWithConfig(corsConfig))
 	g.POST(
 		"/login/discord",
-		loginDiscord(db, discordConfig, jwtKey, !strings.Contains(address, "localhost:")),
+		loginDiscord(db, discordConfig, jwtKey, topic, !strings.Contains(address, "localhost:")),
 	)
 	loginRequired := g.Group("")
 	loginRequired.Use(middleware.JWTWithConfig(middleware.JWTConfig{
@@ -90,6 +92,7 @@ func loginDiscord(
 	db *ent.Client,
 	discordConfig *oauth2.Config,
 	jwtKey []byte,
+	topic *pubsub.Topic,
 	secureCookie bool,
 ) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -204,6 +207,20 @@ func loginDiscord(
 				Exec(ctx)
 			if err != nil {
 				return err
+			}
+			// the rest can happen later.
+			if topic == nil {
+				log.Warn().Uint64("userID", userID).
+					Msg("async pubsub topic unspecified, would've sent general message")
+			} else {
+				err = async.PublishGeneralMessage(ctx, topic, async.GeneralPSMessage{
+					UserRegistration: &async.UserRegistrationMessage{
+						UserID: json.Number(discordUser.ID),
+					},
+				})
+				if err != nil {
+					return err
+				}
 			}
 		}
 		c.SetCookie(&http.Cookie{

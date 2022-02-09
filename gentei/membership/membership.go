@@ -210,7 +210,7 @@ func CheckForUser(
 	return
 }
 
-// SaveMemberships maintains UserMembership objects.
+// SaveMemberships maintains UserMembership objects, but not its GuildRole edges.
 func SaveMemberships(
 	ctx context.Context,
 	db *ent.Client,
