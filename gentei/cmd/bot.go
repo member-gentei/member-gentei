@@ -38,7 +38,7 @@ var botCmd = &cobra.Command{
 			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientSecret)
 		}
 		if flagPubSubSubscription == "" {
-			log.Fatal().Msgf("env var %s must not be empty", flagPubSubSubscription)
+			log.Fatal().Msgf("env var %s must not be empty", envNamePubSubSubscription)
 		}
 		return nil
 	},
