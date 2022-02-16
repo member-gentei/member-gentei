@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 
+	"cloud.google.com/go/pubsub"
 	"github.com/member-gentei/member-gentei/gentei/bot"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -36,6 +37,9 @@ var botCmd = &cobra.Command{
 		if flagYouTubeClientSecret == "" {
 			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientSecret)
 		}
+		if flagPubSubSubscription == "" {
+			log.Fatal().Msgf("env var %s must not be empty", envNamePubSubSubscription)
+		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -43,6 +47,10 @@ var botCmd = &cobra.Command{
 			ctx = context.Background()
 			db  = mustOpenDB(ctx)
 		)
+		ps, err := pubsub.NewClient(ctx, flagGCPProjectID)
+		if err != nil {
+			log.Fatal().Err(err).Msg("error calling pubsub.NewClient")
+		}
 		genteiBot, err := bot.New(db, flagBotToken, getYouTubeConfig())
 		if err != nil {
 			log.Fatal().Err(err).Msg("error creating bot.DiscordBot")
@@ -51,6 +59,7 @@ var botCmd = &cobra.Command{
 			log.Fatal().Err(err).Msg("error starting bot")
 		}
 		log.Info().Msg("bot started")
+		genteiBot.StartPSApplier(ctx, ps.Subscription(flagPubSubSubscription))
 		defer genteiBot.Close()
 		stop := make(chan os.Signal, 1)
 		signal.Notify(stop, os.Interrupt)

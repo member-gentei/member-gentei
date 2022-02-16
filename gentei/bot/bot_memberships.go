@@ -62,7 +62,7 @@ func (b *DiscordBot) grantMemberships(ctx context.Context, db *ent.Client, userM
 	return err
 }
 
-func (b *DiscordBot) LostMembership(ctx context.Context, db *ent.Client, userMembershipID int) {
+func (b *DiscordBot) revokeMemberships(ctx context.Context, db *ent.Client, userMembershipID int) error {
 	var (
 		logger = log.With().Int("userMembershipID", userMembershipID).Logger()
 	)
@@ -71,8 +71,8 @@ func (b *DiscordBot) LostMembership(ctx context.Context, db *ent.Client, userMem
 		Where(user.HasMembershipsWith(usermembership.ID(userMembershipID))).
 		OnlyID(ctx)
 	if err != nil {
-		logger.Err(err).Msg("localChangeHandler failed to query relevant User object")
-		return
+		logger.Err(err).Msg("failed to query relevant User object")
+		return err
 	}
 	existingRoles, err := db.GuildRole.Query().
 		Where(guildrole.HasUserMembershipsWith(usermembership.ID(userMembershipID))).
@@ -80,8 +80,8 @@ func (b *DiscordBot) LostMembership(ctx context.Context, db *ent.Client, userMem
 		WithTalent().
 		All(ctx)
 	if err != nil {
-		logger.Err(err).Msg("localChangeHandler failed to query existing GuildRole objects")
-		return
+		logger.Err(err).Msg("failed to query existing GuildRole objects")
+		return err
 	}
 	// revoke everything
 	for _, guildRole := range existingRoles {
@@ -96,11 +96,12 @@ func (b *DiscordBot) LostMembership(ctx context.Context, db *ent.Client, userMem
 		)
 		err = b.applyRole(ctx, guildID, roleID, userID, false)
 		if err != nil {
-			roleLogger.Err(err).Msg("localChangeHandler failed to revoke role membership")
+			roleLogger.Err(err).Msg("failed to revoke role membership")
 			continue
 		}
-		roleLogger.Info().Msg("localChangeHandler revoked role membership")
+		roleLogger.Info().Msg("revoked role membership")
 	}
+	return nil
 }
 
 func (b *DiscordBot) grantRole(

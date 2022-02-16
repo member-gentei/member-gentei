@@ -37,6 +37,8 @@ spec:
               value: "649732146530-s4cj4tqo2impojg7ljol2chsuj1us81s.apps.googleusercontent.com"
             - name: GCP_LOG_ID
               value: web
+            - name: PUBSUB_TOPIC
+              value: async
           envFrom:
             - secretRef:
                 name: gentei-db
@@ -64,6 +66,52 @@ spec:
             httpGet:
               path: /healthz
               port: 5000
+      volumes:
+        - name: google-sa
+          secret:
+            secretName: google-sa
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: async
+spec:
+  selector:
+    matchLabels:
+      app: async
+  paused: true
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: async
+    spec:
+      nodeSelector:
+        ignacio.io/cloud: "true"
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: async
+          image: ghcr.io/member-gentei/gentei:latest
+          args:
+            - async
+          env:
+            - name: YOUTUBE_CLIENT_ID
+              value: "649732146530-s4cj4tqo2impojg7ljol2chsuj1us81s.apps.googleusercontent.com"
+            - name: PUBSUB_SUBSCRIPTION
+              value: general
+            - name: PUBSUB_TOPIC
+              value: async
+          envFrom:
+            - secretRef:
+                name: gentei-async
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: google-sa
+              mountPath: /secret/google-sa
+              readOnly: true
       volumes:
         - name: google-sa
           secret:

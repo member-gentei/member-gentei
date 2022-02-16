@@ -24,6 +24,8 @@ const (
 	envNameDiscordClientSecret = "DISCORD_CLIENT_SECRET"
 	envNameYouTubeClientID     = "YOUTUBE_CLIENT_ID"
 	envNameYouTubeClientSecret = "YOUTUBE_CLIENT_SECRET"
+	envNamePubSubTopic         = "PUBSUB_TOPIC"
+	envNamePubSubSubscription  = "PUBSUB_SUBSCRIPTION"
 )
 
 var (
@@ -33,6 +35,8 @@ var (
 	flagOpenDB       string
 	flagVerbose      bool
 
+	flagPubSubSubscription  string
+	flagPubSubTopic         string
 	flagDiscordClientID     string
 	flagDiscordClientSecret string
 	flagYouTubeClientID     string
@@ -49,6 +53,8 @@ var rootCmd = &cobra.Command{
 		flagDBEngine = viper.GetString("engine")
 		flagGCPProjectID = viper.GetString("gcp-project")
 		flagGCPLogID = viper.GetString("gcp-log-id")
+		flagPubSubSubscription = os.Getenv(envNamePubSubSubscription)
+		flagPubSubTopic = os.Getenv(envNamePubSubTopic)
 		flagDiscordClientID = os.Getenv(envNameDiscordClientID)
 		flagDiscordClientSecret = os.Getenv(envNameDiscordClientSecret)
 		flagYouTubeClientID = os.Getenv(envNameYouTubeClientID)

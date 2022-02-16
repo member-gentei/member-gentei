@@ -3,7 +3,9 @@ package cmd
 import (
 	"context"
 	"os"
+	"strings"
 
+	"cloud.google.com/go/pubsub"
 	"github.com/member-gentei/member-gentei/gentei/web"
 	discordoauth "github.com/ravener/discord-oauth2"
 	"github.com/rs/zerolog/log"
@@ -42,6 +44,11 @@ var serveCmd = &cobra.Command{
 		if flagYouTubeClientSecret == "" {
 			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientSecret)
 		}
+		if !strings.HasPrefix(flagServeAddress, "http://localhost") {
+			if flagPubSubTopic == "" {
+				log.Fatal().Msgf("env var %s must not be empty in prod", envNamePubSubTopic)
+			}
+		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
@@ -54,8 +61,17 @@ var serveCmd = &cobra.Command{
 				RedirectURL:  flagServeDiscordRedirectURL,
 			}
 			youTubeConfig = getYouTubeConfig()
+			topic         *pubsub.Topic
 		)
-		err := web.ServeAPI(db, discordConfig, youTubeConfig, serveJWTKey, flagServeAddress, flagVerbose)
+		ps, err := pubsub.NewClient(ctx, flagGCPProjectID)
+		if err != nil {
+			log.Fatal().Err(err).Msg("error calling pubsub.NewClient")
+		}
+		if flagPubSubTopic != "" {
+			topic = ps.Topic(flagPubSubTopic)
+			topic.PublishSettings.CountThreshold = 1
+		}
+		err = web.ServeAPI(db, discordConfig, youTubeConfig, topic, serveJWTKey, flagServeAddress, flagVerbose)
 		if err != nil {
 			log.Fatal().Err(err).Msg("server terminated")
 		}

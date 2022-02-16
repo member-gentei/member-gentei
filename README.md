@@ -8,6 +8,7 @@ _Gentei_ is a web and Discord application that monitors YouTube channel membersh
 - `/gentei`
   - `/gentei/web` - API server @ https://gentei-api.tindabox.net
   - `/gentei/bot` - Discord bot
+  - `/gentei/async` - Asynchronous tasks, up to and including daily membership checks and periodic refreshes.
 
 ## Additional credit
 
