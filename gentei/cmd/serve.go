@@ -44,7 +44,7 @@ var serveCmd = &cobra.Command{
 		if flagYouTubeClientSecret == "" {
 			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientSecret)
 		}
-		if !strings.HasPrefix(flagServeAddress, "http://localhost") {
+		if !strings.HasPrefix(flagServeAddress, "localhost") {
 			if flagPubSubTopic == "" {
 				log.Fatal().Msgf("env var %s must not be empty in prod", envNamePubSubTopic)
 			}

@@ -26,6 +26,31 @@ function AppIndex() {
           </div>
         </div>
       </nav>
+      <section className="section pt-4 pb-0">
+        <div
+          className="message is-info"
+          style={{
+            maxWidth: 640,
+            margin: "auto",
+          }}
+        >
+          <div className="message-header">
+            <p>Soft launch preview</p>
+          </div>
+          <div className="message-body">
+            <p>
+              Missing features and documentation will be slowly turned on over
+              the next couple of weeks. Please see the{" "}
+              <code>#gentei-announce</code> channel in the{" "}
+              <a href="https://discord.gg/xJd9De">
+                Hololive Creators Club Discord
+              </a>{" "}
+              server for updates and instructions - both for users and community
+              admins - while this message visible.
+            </p>
+          </div>
+        </div>
+      </section>
       <Outlet />
       <Footer withYouTubeImage />
     </Fragment>

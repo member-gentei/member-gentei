@@ -12,7 +12,7 @@ export function YouTubeLoginOverlay() {
           <p>
             Please connect your YouTube account below to verify memberships.
           </p>
-          <p>(it's the "Sign in with Google" button)</p>
+          <p>(it's the "Sign in with Google" button below)</p>
         </div>
       </div>
     </div>
