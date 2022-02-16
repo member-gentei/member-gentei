@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch web server",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/gentei/main.go",
+            "envFile": "${workspaceFolder}/.env.local",
+            "buildFlags": "--tags \"json1\"",
+            "args": [
+                "serve",
+                "-v",
+            ]
+        }
+    ]
+}
