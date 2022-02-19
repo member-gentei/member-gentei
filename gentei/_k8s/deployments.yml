@@ -87,8 +87,6 @@ spec:
       labels:
         app: async
     spec:
-      nodeSelector:
-        ignacio.io/cloud: "true"
       terminationGracePeriodSeconds: 5
       containers:
         - name: async
@@ -100,6 +98,8 @@ spec:
               value: /secret/google-sa/google-sa.json
             - name: YOUTUBE_CLIENT_ID
               value: "649732146530-s4cj4tqo2impojg7ljol2chsuj1us81s.apps.googleusercontent.com"
+            - name: GCP_LOG_ID
+              value: web
             - name: PUBSUB_SUBSCRIPTION
               value: general
             - name: PUBSUB_TOPIC
