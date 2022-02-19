@@ -37,8 +37,8 @@ var botCmd = &cobra.Command{
 		if flagYouTubeClientSecret == "" {
 			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientSecret)
 		}
-		if flagPubSubSubscription == "" {
-			log.Fatal().Msgf("env var %s must not be empty", envNamePubSubSubscription)
+		if flagBotProd && flagPubSubSubscription == "" {
+			log.Fatal().Msgf("env var %s must not be empty in prod", envNamePubSubSubscription)
 		}
 		return nil
 	},
@@ -59,7 +59,11 @@ var botCmd = &cobra.Command{
 			log.Fatal().Err(err).Msg("error starting bot")
 		}
 		log.Info().Msg("bot started")
-		genteiBot.StartPSApplier(ctx, ps.Subscription(flagPubSubSubscription))
+		if !flagBotProd {
+			log.Warn().Msg("skipping StartPSApplier in dev")
+		} else {
+			genteiBot.StartPSApplier(ctx, ps.Subscription(flagPubSubSubscription))
+		}
 		defer genteiBot.Close()
 		stop := make(chan os.Signal, 1)
 		signal.Notify(stop, os.Interrupt)
