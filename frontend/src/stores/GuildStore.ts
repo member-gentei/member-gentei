@@ -12,17 +12,11 @@ interface Guild {
   Icon: string;
   TalentIDs?: string[];
   AdminIDs: string[];
-  Settings?: GuildSettings;
-}
-
-interface GuildSettings {
-  RoleMapping: {
-    [channelID: string]:
-      | {
-          ID: string;
-          Name: string;
-        }
-      | undefined;
+  RolesByTalent: {
+    [TalentID: string]: {
+      ID: string;
+      Name: string;
+    };
   };
 }
 

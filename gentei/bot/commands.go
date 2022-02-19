@@ -15,6 +15,7 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
+	"github.com/member-gentei/member-gentei/gentei/membership"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -96,6 +97,8 @@ var (
 // slashResponseFunc should return an error message if error != nil. If not, it's treated as a real error.
 type slashResponseFunc func(logger zerolog.Logger) (*discordgo.WebhookEdit, error)
 
+const mysteriousErrorMessage = "A mysterious error occured, and this bot's author has been notified. Try again later? :("
+
 func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCreate) {
 	b.deferredReply(ctx, i, "info", true, func(logger zerolog.Logger) (*discordgo.WebhookEdit, error) {
 		var response *discordgo.WebhookEdit
@@ -112,15 +115,26 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 			if err != nil {
 				return nil, err
 			}
-			u, err := b.db.User.Get(ctx, userID)
-			if err != nil {
+			u, err := b.db.User.Query().
+				Where(
+					user.ID(userID),
+					user.YoutubeIDNotNil(),
+					user.YoutubeIDNEQ(""),
+				).
+				First(ctx)
+			if ent.IsNotFound(err) {
+				return &discordgo.WebhookEdit{
+					Content: "Please register and link your YouTube account to https://gentei.tindabox.net to check memberships.",
+				}, nil
+			} else if err != nil {
 				return nil, err
 			}
 			if time.Since(u.LastCheck).Minutes() < 1 {
-				return &discordgo.WebhookEdit{
-					Content: "Your membership checks are rate limited to prevent abuse. Please try again in a minute!",
-				}, nil
+				return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
 			}
+			var (
+				logger = log.With().Uint64("userID", userID).Uint64("guildID", guildID).Logger()
+			)
 			talents, err := b.db.YouTubeTalent.Query().
 				Where(youtubetalent.HasGuildsWith(guild.ID(guildID))).
 				All(ctx)
@@ -136,10 +150,49 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 			for i := range talents {
 				talentIDs[i] = talents[i].ID
 			}
-			// results, err := membership.CheckForUser(ctx, b.db, b.youTubeConfig, userID, &membership.CheckForUserOptions{
-			// 	ChannelIDs: talentIDs,
-			// })
+			logger.Debug().Strs("talentIDs", talentIDs).Msg("performing /gentei check")
+			results, err := membership.CheckForUser(ctx, b.db, b.youTubeConfig, userID, &membership.CheckForUserOptions{
+				ChannelIDs: talentIDs,
+			})
+			if err != nil {
+				logger.Err(err).Msg("error checking memberships for user")
+				return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
+			}
 
+			logger.Debug().Interface("results", results).Msg("/gentei check results")
+			err = membership.SaveMemberships(ctx, b.db, userID, results)
+			if err != nil {
+				logger.Err(err).Msg("error saving UserMembership objects for user")
+				return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
+			}
+			// apply changes
+			var (
+				gainedIDs = b.qch.GetGained()
+				lostIDs   = b.qch.GetLost()
+			)
+			for _, gainedID := range gainedIDs {
+				err = b.grantMemberships(ctx, b.db, gainedID)
+				if err != nil {
+					logger.Err(err).Int("gainedID", gainedID).Msg("error granting memberships for user")
+					return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
+				}
+			}
+			for _, lostID := range lostIDs {
+				err = b.revokeMemberships(ctx, b.db, lostID)
+				if err != nil {
+					logger.Err(err).Int("lostID", lostID).Msg("error revoking memberships for user")
+					return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
+				}
+			}
+			embeds, err := commands.CreateMembershipInfoEmbeds(ctx, b.db, userID, guildID, gainedIDs, lostIDs)
+			if err != nil {
+				logger.Err(err).Msg("error creating embeds for reply")
+				return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
+			}
+			response = &discordgo.WebhookEdit{
+				Content: "Discord roles have been applied - see below for details.",
+				Embeds:  embeds,
+			}
 		}
 		return response, nil
 	})
@@ -211,7 +264,7 @@ func (b *DiscordBot) handleManage(ctx context.Context, i *discordgo.InteractionC
 
 // helpers
 
-// deferredReply can only be called once, but it'll process each responseFunc until it gets a WebHookEdit payload to send from one of them as an early termination mechanism
+// deferredReply can only be called once, but it'll process each responseFunc in serial. If it gets a WebHookEdit payload, it sends that and stops processing later responseFuncs.
 func (b *DiscordBot) deferredReply(ctx context.Context, i *discordgo.InteractionCreate, commandName string, ephemeral bool, responseFuncs ...slashResponseFunc) {
 	var (
 		logger = log.With().

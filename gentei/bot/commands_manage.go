@@ -8,7 +8,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/member-gentei/member-gentei/gentei/bot/templates"
 	"github.com/member-gentei/member-gentei/gentei/ent"
-	"github.com/member-gentei/member-gentei/gentei/ent/schema"
+	"github.com/member-gentei/member-gentei/gentei/ent/guild"
+	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 	"github.com/rs/zerolog"
 )
@@ -25,13 +26,17 @@ func (b *DiscordBot) handleManageMap(
 		roleValue = options["role"].RoleValue(nil, "")
 	)
 	role := i.ApplicationCommandData().Resolved.Roles[roleValue.ID]
+	roleID, err := strconv.ParseUint(role.ID, 10, 64)
+	if err != nil {
+		return nil, err
+	}
 	// ensure that the YouTubeTalent exists
 	talent, err := b.db.YouTubeTalent.Query().
 		Where(youtubetalent.ID(channelID)).
 		First(ctx)
 	if ent.IsNotFound(err) {
 		return &discordgo.WebhookEdit{
-			Content: fmt.Sprintf("This is not the ID of a channel we have on file. Please check for a typo in the channel ID or add the channel first through https://gentei.tindabox.net/app/enroll?server=%s", i.GuildID),
+			Content: fmt.Sprintf("Unknown channel - please check for a typo in the channel ID or add the channel first through https://gentei.tindabox.net/app/enroll?server=%s", i.GuildID),
 		}, nil
 	} else if err != nil {
 		return nil, err
@@ -41,53 +46,30 @@ func (b *DiscordBot) handleManageMap(
 	if err != nil {
 		return nil, err
 	}
-	dg, err := b.db.Guild.Get(ctx, guildID)
-	if err != nil {
+	existingRole, err := b.db.GuildRole.Query().
+		WithTalent().
+		Where(guildrole.ID(roleID)).
+		Only(ctx)
+	if err != nil && !ent.IsNotFound(err) {
 		return nil, err
-	}
-	guildSettings := dg.Settings
-	if guildSettings == nil {
-		guildSettings = &schema.GuildSettings{
-			RoleMapping: map[string]schema.GuildSettingsRoleMapping{},
-		}
-	}
-	if guildSettings.RoleMapping == nil {
-		dg.Settings.RoleMapping = map[string]schema.GuildSettingsRoleMapping{}
-	} else {
-		// do not overwrite if
-		// ...this role is mapped to a different talent
-		for existingCid, mapping := range guildSettings.RoleMapping {
-			if mapping.ID == role.ID {
-				existingTalent, err := b.db.YouTubeTalent.Get(ctx, existingCid)
-				if err != nil {
-					return nil, err
-				}
-				return &discordgo.WebhookEdit{
-					Content: templates.MustRender(templates.RoleAlreadyMapped, templates.RoleAlreadyMappedContext{
-						ChannelID:   existingTalent.ID,
-						ChannelName: existingTalent.ChannelName,
-						RoleMention: role.Mention(),
-					}),
-				}, nil
-			}
-		}
-		// ...or nothing changed
-		existingRole, exists := guildSettings.RoleMapping[channelID]
-		if exists && existingRole.ID == role.ID {
+	} else if err == nil {
+		// already mapped
+		if existingRole.Edges.Talent.ID == channelID {
 			return &discordgo.WebhookEdit{
 				Content: fmt.Sprintf("%s is already the role mapped to this YouTube channel.", role.Mention()),
 			}, nil
+		} else {
+			existingTalent := existingRole.Edges.Talent
+			return &discordgo.WebhookEdit{
+				Content: templates.MustRender(templates.RoleAlreadyMapped, templates.RoleAlreadyMappedContext{
+					ChannelID:   existingTalent.ID,
+					ChannelName: existingTalent.ChannelName,
+					RoleMention: role.Mention(),
+				}),
+			}, nil
 		}
 	}
-	guildSettings.RoleMapping[channelID] = schema.GuildSettingsRoleMapping{
-		ID:   role.ID,
-		Name: role.Name,
-	}
 	// verify that we can add and remove ourselves from the role
-	roleID, err := strconv.ParseUint(role.ID, 10, 64)
-	if err != nil {
-		return nil, err
-	}
 	botUserID, err := strconv.ParseUint(b.session.State.User.ID, 10, 64)
 	if err != nil {
 		return nil, err
@@ -111,8 +93,12 @@ func (b *DiscordBot) handleManageMap(
 			}),
 		}, err
 	}
-	err = b.db.Guild.UpdateOneID(guildID).
-		SetSettings(guildSettings).
+	// save
+	err = b.db.GuildRole.Create().
+		SetID(roleID).
+		SetName(role.Name).
+		SetGuildID(guildID).
+		SetTalentID(talent.ID).
 		Exec(ctx)
 	if err != nil {
 		return nil, err
@@ -141,59 +127,53 @@ func (b *DiscordBot) handleManageUnmap(
 	// by YouTube channel ID
 	if cidVal, exists := options["youtube-channel-id"]; exists {
 		youtubeID := cidVal.StringValue()
-		dg, err := b.db.Guild.Get(ctx, guildID)
-		if err != nil {
-			return nil, err
-		}
-		if dg.Settings == nil || dg.Settings.RoleMapping == nil || dg.Settings.RoleMapping[youtubeID].ID == "" {
+		dg, err := b.db.Guild.Query().
+			WithRoles().
+			Where(
+				guild.ID(guildID),
+				guild.HasYoutubeTalentsWith(youtubetalent.ID(youtubeID)),
+			).
+			First(ctx)
+		if ent.IsNotFound(err) {
 			return &discordgo.WebhookEdit{
 				Content: fmt.Sprintf("There is no role mapping in this Discord server to unmap for the specified YouTube channel (`%s`).", youtubeID),
 			}, nil
-		}
-		settings := dg.Settings
-		roleID := settings.RoleMapping[youtubeID].ID
-		delete(settings.RoleMapping, youtubeID)
-		err = b.db.Guild.UpdateOneID(guildID).
-			SetSettings(settings).
-			Exec(ctx)
-		if err != nil {
+		} else if err != nil {
 			return nil, err
 		}
-		return &discordgo.WebhookEdit{
-			Content: fmt.Sprintf("<@&%s> has been unmapped.", roleID),
-		}, nil
+		for _, role := range dg.Edges.Roles {
+			if role.Edges.Talent.ID == youtubeID {
+				err = b.db.GuildRole.DeleteOne(role).Exec(ctx)
+				if err != nil {
+					return nil, err
+				}
+				return &discordgo.WebhookEdit{
+					Content: fmt.Sprintf("<@&%d> has been unmapped.", role.ID),
+				}, nil
+			}
+		}
+		return nil, fmt.Errorf("mysterious fallthrough case on unmap")
 	}
 	if roleOption, exists := options["role"]; exists {
 		roleValue := roleOption.RoleValue(nil, "")
 		role := i.ApplicationCommandData().Resolved.Roles[roleValue.ID]
-		dg, err := b.db.Guild.Get(ctx, guildID)
+		roleID, err := strconv.ParseUint(role.ID, 10, 64)
 		if err != nil {
 			return nil, err
 		}
-		var (
-			settings = dg.Settings
-			talentID string
-		)
-		if settings.RoleMapping == nil {
-			settings.RoleMapping = map[string]schema.GuildSettingsRoleMapping{}
-		}
-		for key, mapping := range settings.RoleMapping {
-			if mapping.ID == role.ID {
-				talentID = key
-				break
-			}
-		}
-		if talentID == "" {
-			return &discordgo.WebhookEdit{
-				Content: fmt.Sprintf("%s is not currently mapped to a YouTube talent.", role.Mention()),
-			}, nil
-		}
-		delete(settings.RoleMapping, talentID)
-		err = b.db.Guild.UpdateOneID(guildID).
-			SetSettings(settings).
+		count, err := b.db.GuildRole.Delete().
+			Where(
+				guildrole.HasGuildWith(guild.ID(guildID)),
+				guildrole.ID(roleID),
+			).
 			Exec(ctx)
 		if err != nil {
 			return nil, err
+		}
+		if count == 0 {
+			return &discordgo.WebhookEdit{
+				Content: fmt.Sprintf("%s is not currently mapped to a YouTube talent.", role.Mention()),
+			}, nil
 		}
 		return &discordgo.WebhookEdit{
 			Content: fmt.Sprintf("%s has been unmapped.", role.Mention()),

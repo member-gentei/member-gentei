@@ -100,20 +100,20 @@ function DiscordServerWithRolesInner({ id }: DiscordServerRoleProps) {
   const guild = guildStore.guild!;
   const serverURL = `https://discord.com/channels/${id}`;
   let membershipNode;
-  let memberships = Object.entries(
-    guildStore.guild?.Settings?.RoleMapping || {}
-  ).map(([k, v]) => {
-    const talentID = k;
-    const meta = (userStore.user?.Memberships || {})[k];
-    return (
-      <RoleMembership
-        key={`${id}-${talentID}`}
-        talent={talentStore.talentsByID[talentID]}
-        roleName={v!.Name}
-        verifyTime={meta?.LastVerified}
-      />
-    );
-  });
+  let memberships = Object.entries(guildStore.guild?.RolesByTalent || {}).map(
+    ([k, v]) => {
+      const talentID = k;
+      const meta = (userStore.user?.Memberships || {})[k];
+      return (
+        <RoleMembership
+          key={`${id}-${talentID}`}
+          talent={talentStore.talentsByID[talentID]}
+          roleName={v!.Name}
+          verifyTime={meta?.LastVerified}
+        />
+      );
+    }
+  );
   if (memberships.length === 0) {
     membershipNode = (
       <p className="content">

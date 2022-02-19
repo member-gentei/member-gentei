@@ -33,7 +33,7 @@ func (YouTubeTalent) Fields() []ent.Field {
 			Comment("Last time data was fetched"),
 		field.Time("disabled").
 			Optional().
-			Comment("When refresh/membership checks were disabled. Set to zero value to re-enable."),
+			Comment("When refresh/membership checks were disabled. Set to zero/nil to re-enable."),
 	}
 }
 

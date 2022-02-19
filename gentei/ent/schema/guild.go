@@ -12,9 +12,6 @@ import (
 // GuildSettings contains customization options for a server.
 type GuildSettings struct {
 	MaxStale time.Duration
-
-	// RoleMapping key is the YouTubeTalent's ID.
-	RoleMapping map[string]GuildSettingsRoleMapping
 }
 
 type GuildSettingsRoleMapping struct {
