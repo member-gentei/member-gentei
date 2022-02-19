@@ -720,7 +720,7 @@ func patchGuild(db *ent.Client) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, patchGuildErrorResponse{
 				Error: patchGuildErrorResponseError{
 					Talents: map[string]string{
-						nmpErr.ChannelID: "memberships not open",
+						nmpErr.ChannelID: "memberships not open or there are no members-only videos",
 					},
 				},
 			})
