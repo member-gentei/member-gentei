@@ -125,6 +125,6 @@ func init() {
 	persistent.String("gcp-log-id", "dev", "GCP log ID")
 	persistent.StringVar(&flagYouTubeRedirectURL, "youtube-redirect-url", "http://localhost:3000/login/youtube", "")
 	viper.BindPFlags(persistent)
-	viper.EnvKeyReplacer(strings.NewReplacer("-", "_"))
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
 }
