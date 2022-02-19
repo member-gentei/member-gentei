@@ -389,15 +389,13 @@ func meResponseFromUser(user *ent.User) (meResponse, error) {
 	if len(user.Edges.Memberships) > 0 {
 		memberships = make(map[string]meResponseMembership, len(user.Edges.Memberships))
 		for _, membership := range user.Edges.Memberships {
-			guildRoles, err := membership.Edges.RolesOrErr()
+			talent, err := membership.Edges.YoutubeTalentOrErr()
 			if err != nil {
 				return meResponse{}, err
 			}
-			for _, guildRole := range guildRoles {
-				roleID := strconv.FormatUint(guildRole.ID, 10)
-				memberships[roleID] = meResponseMembership{
-					LastVerified: membership.LastVerified.Unix(),
-				}
+			memberships[talent.ID] = meResponseMembership{
+				LastVerified: membership.LastVerified.Unix(),
+				Failed:       !membership.FirstFailed.IsZero(),
 			}
 		}
 	}
@@ -428,6 +426,7 @@ func getMe(db *ent.Client) echo.HandlerFunc {
 		u, err := db.User.Query().
 			WithGuilds().
 			WithGuildsAdmin().
+			WithMemberships(func(umq *ent.UserMembershipQuery) { umq.WithYoutubeTalent() }).
 			Where(user.ID(userID)).
 			First(ctx)
 		if ent.IsNotFound(err) {

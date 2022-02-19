@@ -15,7 +15,7 @@ interface State {
       [talentID: string]:
         | {
             LastVerified: number;
-            Past: boolean;
+            Failed: boolean;
           }
         | undefined;
     };

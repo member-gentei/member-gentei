@@ -109,7 +109,7 @@ function DiscordServerWithRolesInner({ id }: DiscordServerRoleProps) {
           key={`${id}-${talentID}`}
           talent={talentStore.talentsByID[talentID]}
           roleName={v!.Name}
-          verifyTime={meta?.LastVerified}
+          verifyTime={meta?.Failed ? 0 : meta?.LastVerified}
         />
       );
     }
