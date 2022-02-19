@@ -62,7 +62,10 @@ func CheckForUser(
 		talents, err = db.YouTubeTalent.Query().
 			Where(
 				youtubetalent.IDIn(options.ChannelIDs...),
-				youtubetalent.Disabled(time.Time{}),
+				youtubetalent.Or(
+					youtubetalent.Disabled(time.Time{}),
+					youtubetalent.DisabledIsNil(),
+				),
 			).All(ctx)
 		if err != nil {
 			err = fmt.Errorf("error getting specified channels: %w", err)

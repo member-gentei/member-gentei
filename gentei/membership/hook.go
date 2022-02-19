@@ -15,7 +15,7 @@ type ChangeHandler interface {
 
 // HookMembershipChanges uses ent hooks to listen to relevant changes to UserMembership ents.
 func HookMembershipChanges(db *ent.Client, handler ChangeHandler) {
-	db.Use(
+	db.UserMembership.Use(
 		hook.On(
 			func(next ent.Mutator) ent.Mutator {
 				return createPostUserMembershipFunc(next, handler)

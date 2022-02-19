@@ -113,7 +113,6 @@ func parseAndSaveGuild(ctx context.Context, db *ent.Client, userID uint64, guild
 		Name:      embed.Name,
 		Icon:      embed.Icon,
 		TalentIDs: talentIDs,
-		Settings:  dg.Settings,
 	}, nil
 }
 
@@ -190,13 +189,21 @@ func makeGuildResponse(dg *ent.Guild) guildResponse {
 	for _, id := range dg.AdminSnowflakes {
 		adminIDs = append(adminIDs, strconv.FormatUint(id, 10))
 	}
+	roleInfoMap := map[string]roleInfo{}
+	for _, role := range dg.Edges.Roles {
+		roleID := strconv.FormatUint(role.ID, 10)
+		roleInfoMap[role.Edges.Talent.ID] = roleInfo{
+			Name: role.Name,
+			ID:   roleID,
+		}
+	}
 	return guildResponse{
-		ID:        strconv.FormatUint(dg.ID, 10),
-		Name:      dg.Name,
-		Icon:      dg.IconHash,
-		TalentIDs: talentIDs,
-		AdminIDs:  adminIDs,
-		Settings:  dg.Settings,
+		ID:            strconv.FormatUint(dg.ID, 10),
+		Name:          dg.Name,
+		Icon:          dg.IconHash,
+		TalentIDs:     talentIDs,
+		AdminIDs:      adminIDs,
+		RolesByTalent: roleInfoMap,
 	}
 }
 

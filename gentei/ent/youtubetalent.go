@@ -33,7 +33,7 @@ type YouTubeTalent struct {
 	// Last time data was fetched
 	LastUpdated time.Time `json:"last_updated,omitempty"`
 	// Disabled holds the value of the "disabled" field.
-	// When refresh/membership checks were disabled. Set to zero value to re-enable.
+	// When refresh/membership checks were disabled. Set to zero/nil to re-enable.
 	Disabled time.Time `json:"disabled,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the YouTubeTalentQuery when eager-loading is set.

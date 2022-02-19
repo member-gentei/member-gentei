@@ -62,7 +62,7 @@ func (b *DiscordBot) Start(prod, upsertCommands bool) (err error) {
 		}
 	})
 	// load membership.ChangeHandler
-	qch, changeHandler := membership.NewQueuedChangeHandler(10)
+	qch, changeHandler := membership.NewQueuedChangeHandler(20)
 	membership.HookMembershipChanges(b.db, changeHandler)
 	b.qch = qch
 	if err = b.session.Open(); err != nil {

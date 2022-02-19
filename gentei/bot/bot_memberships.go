@@ -123,16 +123,16 @@ func (b *DiscordBot) grantRole(
 	)
 	err := b.applyRole(ctx, guildID, roleID, userID, true)
 	if err != nil {
-		roleLogger.Err(err).Msg("localChangeHandler failed to grant role membership")
+		roleLogger.Err(err).Msg("failed to grant role membership")
 		return err
 	}
-	roleLogger.Info().Msg("localChangeHandler granted newly verified membership")
+	roleLogger.Info().Msg("granted newly verified membership")
 	if addEdgeUserMembershipID != 0 {
 		err = db.GuildRole.UpdateOneID(guildRole.ID).
 			AddUserMembershipIDs(addEdgeUserMembershipID).
 			Exec(ctx)
 		if err != nil {
-			roleLogger.Err(err).Msg("localChangeHandler failed to add UserMembership <-> GuildRole")
+			roleLogger.Err(err).Msg("failed to add UserMembership <-> GuildRole edge")
 			return err
 		}
 	}

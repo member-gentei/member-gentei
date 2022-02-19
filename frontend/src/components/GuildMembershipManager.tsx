@@ -14,7 +14,7 @@ export default function GuildMembershipManager({
 }: GuildMembershipManagerProps) {
   const [state] = useGuild();
   const guild = state.guild!;
-  const roleMapping = (guild.Settings?.RoleMapping || {})[talentID];
+  const roleMapping = (guild.RolesByTalent || {})[talentID];
   let statusNode;
   let roleNode;
   if (roleMapping === undefined) {

@@ -20,7 +20,7 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/async"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
-	"github.com/member-gentei/member-gentei/gentei/ent/schema"
+	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 	"github.com/rs/zerolog/log"
@@ -528,12 +528,17 @@ type enrollGuildData struct {
 }
 
 type guildResponse struct {
-	ID        string
-	Name      string
-	Icon      string
-	TalentIDs []string `json:",omitempty"`
-	AdminIDs  []string
-	Settings  *schema.GuildSettings `json:",omitempty"`
+	ID            string
+	Name          string
+	Icon          string
+	TalentIDs     []string `json:",omitempty"`
+	AdminIDs      []string
+	RolesByTalent map[string]roleInfo
+}
+
+type roleInfo struct {
+	ID   string
+	Name string
 }
 
 func enrollGuild(db *ent.Client, discordConfig *oauth2.Config) echo.HandlerFunc {
@@ -632,6 +637,7 @@ func getGuild(db *ent.Client) echo.HandlerFunc {
 		// only return the guild if the user has some association with it
 		dg, err := db.Guild.Query().
 			WithYoutubeTalents().
+			WithRoles(func(grq *ent.GuildRoleQuery) { grq.WithTalent() }).
 			WithAdmins().
 			Where(
 				guild.ID(data.ID),
@@ -654,9 +660,8 @@ func getGuild(db *ent.Client) echo.HandlerFunc {
 }
 
 type patchGuildData struct {
-	ID       uint64                `param:"id"`
-	Talents  []string              `json:"talents"`
-	Settings *schema.GuildSettings `json:"settings"`
+	ID      uint64   `param:"id"`
+	Talents []string `json:"talents"`
 }
 
 type patchGuildErrorResponse struct {
@@ -687,7 +692,6 @@ func patchGuild(db *ent.Client) echo.HandlerFunc {
 		}
 		// only allow PATCH if the user is an admin
 		isAdmin, err := db.Guild.Query().
-			WithAdmins().
 			Where(
 				guild.ID(data.ID),
 				guild.HasAdminsWith(user.ID(userID)),
@@ -727,31 +731,45 @@ func patchGuild(db *ent.Client) echo.HandlerFunc {
 		}
 		dg, err := db.Guild.Query().
 			WithYoutubeTalents().
+			WithRoles(func(grq *ent.GuildRoleQuery) { grq.WithTalent() }).
 			Where(guild.ID(data.ID)).
 			First(ctx)
 		if err != nil {
 			return err
 		}
-		// remove role mappings for removed talents
-		if dg.Settings != nil && dg.Settings.RoleMapping != nil {
-			var specifiedTalentMap = make(map[string]bool, len(data.Talents))
-			for _, talentID := range data.Talents {
-				specifiedTalentMap[talentID] = true
+		// remove talents and any associated roles
+		var (
+			existingTalentMap = make(map[string]uint64, len(dg.Edges.Roles))
+			missingTalentIDs  []string
+		)
+		for _, role := range dg.Edges.Roles {
+			existingTalentMap[role.Edges.Talent.ID] = role.ID
+		}
+		for _, talent := range dg.Edges.YoutubeTalents {
+			existingTalentMap[talent.ID] = 1
+		}
+		for _, talentID := range data.Talents {
+			if existingTalentMap[talentID] == 0 {
+				missingTalentIDs = append(missingTalentIDs, talentID)
 			}
-			roleMapping := dg.Settings.RoleMapping
-			for key := range dg.Settings.RoleMapping {
-				if !specifiedTalentMap[key] {
-					delete(roleMapping, key)
-				}
+		}
+		if len(missingTalentIDs) > 0 {
+			update := db.Guild.UpdateOneID(data.ID).
+				RemoveYoutubeTalentIDs(missingTalentIDs...)
+			removeRoleIDs, err := db.Guild.QueryRoles(dg).
+				Where(guildrole.HasTalentWith(
+					youtubetalent.IDIn(missingTalentIDs...),
+				)).
+				IDs(ctx)
+			if err != nil {
+				return err
 			}
-			if len(roleMapping) != len(dg.Settings.RoleMapping) {
-				dg.Settings.RoleMapping = roleMapping
-				err = db.Guild.UpdateOneID(data.ID).
-					SetSettings(dg.Settings).
-					Exec(ctx)
-				if err != nil {
-					return err
-				}
+			if len(removeRoleIDs) > 0 {
+				update = update.RemoveRoleIDs(removeRoleIDs...)
+			}
+			err = update.Exec(ctx)
+			if err != nil {
+				return err
 			}
 		}
 		return c.JSON(http.StatusOK, makeGuildResponse(dg))
