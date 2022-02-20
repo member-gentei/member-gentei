@@ -119,3 +119,54 @@ spec:
         - name: google-sa
           secret:
             secretName: google-sa
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bot
+spec:
+  selector:
+    matchLabels:
+      app: bot
+  replicas: 1
+  paused: true
+  template:
+    metadata:
+      labels:
+        app: bot
+    spec:
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: bot
+          image: ghcr.io/member-gentei/gentei:latest
+          args:
+            - bot
+          env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /secret/google-sa/google-sa.json
+            - name: YOUTUBE_CLIENT_ID
+              value: "649732146530-s4cj4tqo2impojg7ljol2chsuj1us81s.apps.googleusercontent.com"
+            - name: GCP_LOG_ID
+              value: bot
+            - name: PUBSUB_SUBSCRIPTION
+              value: bot-apply-membership
+            - name: PUBSUB_TOPIC
+              value: async
+          envFrom:
+            - secretRef:
+                name: gentei-async
+            - secretRef:
+                name: gentei-bot
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: google-sa
+              mountPath: /secret/bot-google-sa
+              readOnly: true
+      volumes:
+        - name: google-sa
+          secret:
+            secretName: google-sa
