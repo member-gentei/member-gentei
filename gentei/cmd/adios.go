@@ -101,9 +101,9 @@ func init() {
 
 	var err error
 	adiosMessageTemplate, err = mustache.ParseString(strings.TrimSpace(`
-Hello! Gentei v2 is coming soon, and to prepare for its soft launch today, this bot will be leaving all servers that it was previously invited to. 
+Hello! v2 of Gentei, the fully automatic YouTube membership role assignment bot, is coming soon, and to prepare for its soft launch today, this bot will be leaving all servers that it was previously invited to. 
 
-The YouTube API issue that disabled Gentei for months last year has been fixed, so we've taken this opportunity to rewrite the bot to use /gentei slash commands and rewrite the site to make self-enrollment and self-management possible! Please visit https://gentei.tindabox.net if you're interested in participating in the soft launch - otherwise, please keep your eyes peeled a week or two from now when Gentei regains feature parity.
+The YouTube API issue that disabled Gentei for months last year has been fixed, so we've taken this opportunity to rewrite the bot to use /gentei slash commands and rewrite the site to make self-enrollment and self-management possible! Please visit https://gentei.tindabox.net if you're interested in participating in the soft launch - otherwise, please keep your eyes peeled a week or two from now when v2 regains feature parity with.
 
 This message is being sent to you because this bot has determined that you are the owner of the following servers:
 {{#serverNames}}
