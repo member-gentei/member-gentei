@@ -1,8 +1,9 @@
 resources:
-- deployments.yml
+  - cronjobs.yml
+  - deployments.yml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
-- name: ghcr.io/member-gentei/gentei
-  newName: ghcr.io/member-gentei/gentei
-  newTag: latest
+  - name: ghcr.io/member-gentei/gentei
+    newName: ghcr.io/member-gentei/gentei
+    newTag: latest

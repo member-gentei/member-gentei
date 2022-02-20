@@ -1,0 +1,47 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: checks
+spec:
+  jobTemplate:
+    metadata:
+      labels:
+        app: checks
+    spec:
+      parallelism: 1
+      template:
+        metadata:
+          labels:
+            app: checks
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: checks
+              image: ghcr.io/member-gentei/gentei:latest
+              args:
+                - check
+              env:
+                - name: GOOGLE_APPLICATION_CREDENTIALS
+                  value: /secret/google-sa/google-sa.json
+                - name: YOUTUBE_CLIENT_ID
+                  value: "649732146530-s4cj4tqo2impojg7ljol2chsuj1us81s.apps.googleusercontent.com"
+                - name: GCP_LOG_ID
+                  value: checks
+                - name: PUBSUB_TOPIC
+                  value: async
+              envFrom:
+                - secretRef:
+                    name: gentei-async
+              volumeMounts:
+                - name: google-sa
+                  mountPath: /secret/google-sa
+                  readOnly: true
+              resources:
+                limits:
+                  memory: "256Mi"
+                  cpu: "500m"
+          volumes:
+            - name: google-sa
+              secret:
+                secretName: google-sa
+  schedule: "0 13 * * *"
