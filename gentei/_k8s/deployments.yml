@@ -163,9 +163,9 @@ spec:
               cpu: "500m"
           volumeMounts:
             - name: google-sa
-              mountPath: /secret/bot-google-sa
+              mountPath: /secret/google-sa
               readOnly: true
       volumes:
         - name: google-sa
           secret:
-            secretName: google-sa
+            secretName: bot-google-sa
