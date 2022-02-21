@@ -141,6 +141,7 @@ spec:
           image: ghcr.io/member-gentei/gentei:latest
           args:
             - bot
+            - "--prod"
           env:
             - name: GOOGLE_APPLICATION_CREDENTIALS
               value: /secret/google-sa/google-sa.json
