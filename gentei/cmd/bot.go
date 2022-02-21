@@ -26,11 +26,14 @@ var (
 var botCmd = &cobra.Command{
 	Use:   "bot",
 	Short: "Runs the Discord bot",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		flagBotToken = os.Getenv(envNameDiscordBotToken)
 		if flagBotToken == "" {
 			return fmt.Errorf("must specify env var '%s'", envNameDiscordBotToken)
 		}
+		return nil
+	},
+	PreRunE: func(cmd *cobra.Command, args []string) error {
 		if flagYouTubeClientID == "" {
 			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientID)
 		}
@@ -55,7 +58,7 @@ var botCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal().Err(err).Msg("error creating bot.DiscordBot")
 		}
-		if err = genteiBot.Start(flagBotProd, flagUpsertCommands); err != nil {
+		if err = genteiBot.Start(flagBotProd); err != nil {
 			log.Fatal().Err(err).Msg("error starting bot")
 		}
 		log.Info().Msg("bot started")
@@ -75,6 +78,5 @@ var botCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(botCmd)
 	flags := botCmd.Flags()
-	flags.BoolVar(&flagBotProd, "prod", false, "pushes global commands")
-	flags.BoolVar(&flagUpsertCommands, "upsert-commands", false, "push new commands")
+	flags.BoolVar(&flagBotProd, "prod", false, "listens to pubsub, among other things")
 }

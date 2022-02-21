@@ -41,7 +41,7 @@ func New(db *ent.Client, token string, youTubeConfig *oauth2.Config) (*DiscordBo
 	}, nil
 }
 
-func (b *DiscordBot) Start(prod, upsertCommands bool) (err error) {
+func (b *DiscordBot) Start(prod bool) (err error) {
 	// register handlers on bot start
 	b.session.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		var (
@@ -67,22 +67,6 @@ func (b *DiscordBot) Start(prod, upsertCommands bool) (err error) {
 	b.qch = qch
 	if err = b.session.Open(); err != nil {
 		return fmt.Errorf("error opening discordgo session: %w", err)
-	}
-	// load pubsub
-	// load early access commands
-	if !upsertCommands {
-		log.Info().Msg("skipping command upsert")
-		return nil
-	}
-	for _, guildID := range earlyAccessGuilds {
-		log.Info().Str("guildID", guildID).Msg("loading early access command")
-		_, err = b.session.ApplicationCommandCreate(b.session.State.User.ID, guildID, earlyAccessCommand)
-		if err != nil {
-			return fmt.Errorf("error loading early access command to guild '%s': %w", guildID, err)
-		}
-	}
-	if globalCommand.Name == "" {
-		return nil
 	}
 	return nil
 }
