@@ -4,6 +4,7 @@ package bot
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -21,9 +22,10 @@ import (
 )
 
 const (
-	eaCommandName        = "ea-gentei"
-	eaCommandDescription = "Gentei membership management (early access/dev)"
-	prodCommandName      = "gentei"
+	eaCommandName          = "ea-gentei"
+	eaCommandDescription   = "Gentei membership management (early access/dev)"
+	prodCommandName        = "gentei"
+	prodCommandDescription = "Gentei membership management"
 )
 
 var (
@@ -91,8 +93,91 @@ var (
 			},
 		},
 	}
-	globalCommand = &discordgo.ApplicationCommand{}
+	globalCommand = &discordgo.ApplicationCommand{
+		Name:        prodCommandName,
+		Description: prodCommandDescription,
+		Options: []*discordgo.ApplicationCommandOption{
+			{
+				Name:        "info",
+				Description: "Show server and/or membership info",
+				Type:        discordgo.ApplicationCommandOptionSubCommand,
+			},
+			{
+				Name:        "check",
+				Description: "Check membership eligiblity.",
+				Type:        discordgo.ApplicationCommandOptionSubCommand,
+			},
+			{
+				Name:        "manage",
+				Description: "Admin-only: manage memberships",
+				Type:        discordgo.ApplicationCommandOptionSubCommandGroup,
+				Options: []*discordgo.ApplicationCommandOption{
+					{
+						Name:        "map",
+						Description: "Change role mapping of a channel -> Discord role.",
+						Type:        discordgo.ApplicationCommandOptionSubCommand,
+						Options: []*discordgo.ApplicationCommandOption{
+							{
+								Name:        "youtube-channel-id",
+								Description: "The YouTube channel ID whose memberships should be monitored. (e.g. UCAL_ZudIZXhCDrniD4ZQobQ)",
+								Type:        discordgo.ApplicationCommandOptionString,
+								Required:    true,
+							},
+							{
+								Name:        "role",
+								Description: "The Discord role for members of this YouTube channel",
+								Type:        discordgo.ApplicationCommandOptionRole,
+								Required:    true,
+							},
+						},
+					},
+					{
+						Name:        "unmap",
+						Description: "Remove role mapping by referencing either the YouTube channel or Discord role.",
+						Type:        discordgo.ApplicationCommandOptionSubCommand,
+						Options: []*discordgo.ApplicationCommandOption{
+							{
+								Name:        "youtube-channel-id",
+								Description: "The YouTube channel ID whose memberships we should stop monitoring. (e.g. UCAL_ZudIZXhCDrniD4ZQobQ)",
+								Type:        discordgo.ApplicationCommandOptionString,
+							},
+							{
+								Name:        "role",
+								Description: "The Discord role for members of a YouTube channel",
+								Type:        discordgo.ApplicationCommandOptionRole,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 )
+
+func (b *DiscordBot) PushCommands(global, earlyAccess bool) error {
+	if earlyAccess {
+		for _, guildID := range earlyAccessGuilds {
+			log.Info().Str("guildID", guildID).Msg("loading early access command")
+			_, err := b.session.ApplicationCommandCreate(b.session.State.User.ID, guildID, earlyAccessCommand)
+			if err != nil {
+				return fmt.Errorf("error loading early access command to guild '%s': %w", guildID, err)
+			}
+		}
+	}
+	if global {
+		log.Info().Msg("pushed global command - new command set will be available in 1~2 hours")
+		pushed, err := b.session.ApplicationCommandBulkOverwrite(b.session.State.User.ID, "", []*discordgo.ApplicationCommand{globalCommand})
+		if err != nil {
+			return fmt.Errorf("error loading global command: %w", err)
+		}
+		var versions []string
+		for _, cmd := range pushed {
+			versions = append(versions, cmd.Version)
+		}
+		log.Info().Strs("versions", versions).Msg("push global command")
+	}
+	return nil
+}
 
 // slashResponseFunc should return an error message if error != nil. If not, it's treated as a real error.
 type slashResponseFunc func(logger zerolog.Logger) (*discordgo.WebhookEdit, error)
