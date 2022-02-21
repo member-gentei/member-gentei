@@ -17,9 +17,8 @@ const (
 )
 
 var (
-	flagBotToken       string
-	flagBotProd        bool
-	flagUpsertCommands bool
+	flagBotToken string
+	flagBotProd  bool
 )
 
 // botCmd represents the bot command
@@ -27,6 +26,7 @@ var botCmd = &cobra.Command{
 	Use:   "bot",
 	Short: "Runs the Discord bot",
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		rootCmd.PersistentPreRun(cmd, args)
 		flagBotToken = os.Getenv(envNameDiscordBotToken)
 		if flagBotToken == "" {
 			return fmt.Errorf("must specify env var '%s'", envNameDiscordBotToken)
