@@ -107,6 +107,8 @@ spec:
           envFrom:
             - secretRef:
                 name: gentei-async
+            - secretRef:
+                name: gentei-db
           resources:
             limits:
               memory: "256Mi"
@@ -158,6 +160,8 @@ spec:
                 name: gentei-async
             - secretRef:
                 name: gentei-bot
+            - secretRef:
+                name: gentei-db
           resources:
             limits:
               memory: "256Mi"
