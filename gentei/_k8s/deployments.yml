@@ -130,7 +130,6 @@ spec:
     matchLabels:
       app: bot
   replicas: 1
-  paused: true
   template:
     metadata:
       labels:
