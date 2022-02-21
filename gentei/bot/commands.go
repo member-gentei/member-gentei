@@ -155,18 +155,23 @@ var (
 )
 
 func (b *DiscordBot) PushCommands(global, earlyAccess bool) error {
+	// get self - we might not have started a websocket
+	self, err := b.session.User("@me")
+	if err != nil {
+		return fmt.Errorf("error getting @me: %w", err)
+	}
 	if earlyAccess {
 		for _, guildID := range earlyAccessGuilds {
 			log.Info().Str("guildID", guildID).Msg("loading early access command")
-			_, err := b.session.ApplicationCommandCreate(b.session.State.User.ID, guildID, earlyAccessCommand)
+			_, err := b.session.ApplicationCommandCreate(self.ID, guildID, earlyAccessCommand)
 			if err != nil {
 				return fmt.Errorf("error loading early access command to guild '%s': %w", guildID, err)
 			}
 		}
 	}
 	if global {
-		log.Info().Msg("pushed global command - new command set will be available in 1~2 hours")
-		pushed, err := b.session.ApplicationCommandBulkOverwrite(b.session.State.User.ID, "", []*discordgo.ApplicationCommand{globalCommand})
+		log.Info().Msg("pushing global command - new command set will be available in 1~2 hours")
+		pushed, err := b.session.ApplicationCommandBulkOverwrite(self.ID, "", []*discordgo.ApplicationCommand{globalCommand})
 		if err != nil {
 			return fmt.Errorf("error loading global command: %w", err)
 		}

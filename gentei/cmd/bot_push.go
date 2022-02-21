@@ -19,7 +19,7 @@ var botPushCmd = &cobra.Command{
 	Use:   "push",
 	Short: "Pushes new commands, global or otherwise.",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if !(flagPushEA && flagPushGlobal) {
+		if !(flagPushEA || flagPushGlobal) {
 			return errors.New("must specify at least one of --early-access and --global")
 		}
 		return nil
