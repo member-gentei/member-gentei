@@ -66,6 +66,7 @@ func ListenGeneral(
 				log.Err(err).Uint64("userID", userID).Msg("error processing user registration")
 			} else {
 				m.Ack()
+				return
 			}
 		}
 		m.Nack()
