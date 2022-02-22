@@ -26,8 +26,8 @@ func PublishGeneralMessage(ctx context.Context, topic *pubsub.Topic, message Gen
 	return err
 }
 
-// ProcessUserRegistration really only checks memberships and triggers changes. One day it might do something else?
-func ProcessUserRegistration(ctx context.Context, db *ent.Client, youTubeConfig *oauth2.Config, userID uint64) error {
+// ProcessYouTubeRegistration really only checks memberships and triggers changes. One day it might do something else?
+func ProcessYouTubeRegistration(ctx context.Context, db *ent.Client, youTubeConfig *oauth2.Config, userID uint64) error {
 	crs, err := membership.CheckForUser(ctx, db, youTubeConfig, userID, nil)
 	if err != nil {
 		return fmt.Errorf("error checking memberships for user: %w", err)

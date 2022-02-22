@@ -64,7 +64,7 @@ func ServeAPI(db *ent.Client, discordConfig *oauth2.Config, youTubeConfig *oauth
 	g.Use(middleware.CORSWithConfig(corsConfig))
 	g.POST(
 		"/login/discord",
-		loginDiscord(db, discordConfig, jwtKey, topic, !strings.Contains(address, "localhost:")),
+		loginDiscord(db, discordConfig, jwtKey, !strings.Contains(address, "localhost:")),
 	)
 	loginRequired := g.Group("")
 	loginRequired.Use(middleware.JWTWithConfig(middleware.JWTConfig{
@@ -72,7 +72,7 @@ func ServeAPI(db *ent.Client, discordConfig *oauth2.Config, youTubeConfig *oauth
 		SigningKey:  jwtKey,
 		Claims:      &jwt.StandardClaims{},
 	}))
-	loginRequired.POST("/login/youtube", loginYouTube(db, youTubeConfig))
+	loginRequired.POST("/login/youtube", loginYouTube(db, youTubeConfig, topic))
 	loginRequired.POST("/logout", logout())
 	loginRequired.GET("/me", getMe(db))
 	loginRequired.DELETE("/me/youtube", deleteYouTube(db))
@@ -92,7 +92,6 @@ func loginDiscord(
 	db *ent.Client,
 	discordConfig *oauth2.Config,
 	jwtKey []byte,
-	topic *pubsub.Topic,
 	secureCookie bool,
 ) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -208,20 +207,6 @@ func loginDiscord(
 			if err != nil {
 				return err
 			}
-			// the rest can happen later.
-			if topic == nil {
-				log.Warn().Uint64("userID", userID).
-					Msg("async pubsub topic unspecified, would've sent general message")
-			} else {
-				err = async.PublishGeneralMessage(ctx, topic, async.GeneralPSMessage{
-					UserRegistration: &async.UserRegistrationMessage{
-						UserID: json.Number(discordUser.ID),
-					},
-				})
-				if err != nil {
-					return err
-				}
-			}
 		}
 		c.SetCookie(&http.Cookie{
 			Name:     "token",
@@ -270,7 +255,7 @@ type loginYouTubeResponse struct {
 	ChannelID string
 }
 
-func loginYouTube(db *ent.Client, youtubeConfig *oauth2.Config) echo.HandlerFunc {
+func loginYouTube(db *ent.Client, youtubeConfig *oauth2.Config, topic *pubsub.Topic) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var (
 			ctx     = c.Request().Context()
@@ -336,6 +321,19 @@ func loginYouTube(db *ent.Client, youtubeConfig *oauth2.Config) echo.HandlerFunc
 			Exec(ctx)
 		if err != nil {
 			return err
+		}
+		if topic == nil {
+			log.Warn().Uint64("userID", userID).
+				Msg("async pubsub topic unspecified, would've sent YouTubeRegistration message")
+		} else {
+			err = async.PublishGeneralMessage(ctx, topic, async.GeneralPSMessage{
+				YouTubeRegistration: &async.YouTubeRegistrationMessage{
+					UserID: json.Number(claims.Id),
+				},
+			})
+			if err != nil {
+				return err
+			}
 		}
 		return c.JSON(http.StatusOK, loginYouTubeResponse{
 			ChannelID: userChannelID,

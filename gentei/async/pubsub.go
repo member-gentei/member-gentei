@@ -22,7 +22,7 @@ const (
 )
 
 type GeneralPSMessage struct {
-	UserRegistration *UserRegistrationMessage `json:",omitempty"`
+	YouTubeRegistration *YouTubeRegistrationMessage `json:",omitempty"`
 }
 
 type ApplyMembershipPSMessage struct {
@@ -30,7 +30,7 @@ type ApplyMembershipPSMessage struct {
 	Gained           bool
 }
 
-type UserRegistrationMessage struct {
+type YouTubeRegistrationMessage struct {
 	UserID json.Number
 }
 
@@ -54,20 +54,19 @@ func ListenGeneral(
 			m.Ack()
 			return
 		}
-		if message.UserRegistration != nil {
-			userID, err := strconv.ParseUint(message.UserRegistration.UserID.String(), 10, 64)
+		if message.YouTubeRegistration != nil {
+			userID, err := strconv.ParseUint(message.YouTubeRegistration.UserID.String(), 10, 64)
 			if err != nil {
 				log.Err(err).
-					Str("unparsedUserID", message.UserRegistration.UserID.String()).
+					Str("unparsedUserID", message.YouTubeRegistration.UserID.String()).
 					Msg("error decoding UserID as uint64")
 				return
 			}
-			if err := ProcessUserRegistration(ctx, db, youTubeConfig, userID); err != nil {
+			if err := ProcessYouTubeRegistration(ctx, db, youTubeConfig, userID); err != nil {
 				log.Err(err).Uint64("userID", userID).Msg("error processing user registration")
 			} else {
 				m.Ack()
 			}
-			return
 		}
 		m.Nack()
 		log.Warn().Str("data", string(m.Data)).Msg("nacking unhandled message - is this mid-deploy?")
