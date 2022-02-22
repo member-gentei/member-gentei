@@ -15,8 +15,8 @@ type ApplyRoleResult struct {
 }
 
 var (
-	DefaultTimeout       = time.Second * 10
-	DefaultRetryInterval = time.Second * 2
+	DefaultTimeout       = time.Second * 30
+	DefaultRetryInterval = time.Millisecond * 1500
 )
 
 // ApplyRole starts a retry loop to try to apply a role before a specified deadline.
