@@ -7,7 +7,7 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/ent"
 )
 
-func GetGuildInfoEmbeds(dg *ent.Guild, adminView bool) []*discordgo.MessageEmbed {
+func GetGuildInfoEmbeds(dg *ent.Guild) []*discordgo.MessageEmbed {
 	var (
 		embeds          []*discordgo.MessageEmbed
 		rolesByTalentID = map[string]*ent.GuildRole{}
@@ -25,13 +25,9 @@ func GetGuildInfoEmbeds(dg *ent.Guild, adminView bool) []*discordgo.MessageEmbed
 			},
 		}
 		var membershipRoleValue string
-		if dg.Settings != nil {
-			role, found := rolesByTalentID[talent.ID]
-			if found {
-				membershipRoleValue = fmt.Sprintf("<@&%d>", role.ID)
-			} else {
-				membershipRoleValue = "⛔ Not yet configured"
-			}
+		role, found := rolesByTalentID[talent.ID]
+		if found {
+			membershipRoleValue = fmt.Sprintf("<@&%d>", role.ID)
 		} else {
 			membershipRoleValue = "⛔ Not yet configured"
 		}

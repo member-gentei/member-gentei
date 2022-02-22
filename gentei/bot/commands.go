@@ -296,29 +296,21 @@ func (b *DiscordBot) handleInfo(ctx context.Context, i *discordgo.InteractionCre
 			// TODO
 		} else {
 			// fetch guild info + user-relevant info
-			userID, err := strconv.ParseUint(i.Member.User.ID, 10, 64)
-			if err != nil {
-				return nil, err
-			}
 			guildID, err := strconv.ParseUint(i.GuildID, 10, 64)
 			if err != nil {
 				return nil, err
 			}
-			isThisUser := func(uq *ent.UserQuery) {
-				uq.Where(user.ID(userID))
-			}
 			dg, err := b.db.Guild.Query().
+				WithRoles(func(grq *ent.GuildRoleQuery) { grq.WithTalent() }).
 				WithYoutubeTalents().
-				WithAdmins(isThisUser).
-				WithMembers(isThisUser).
 				Where(guild.ID(guildID)).
-				First(ctx)
+				Only(ctx)
 			if err != nil {
 				return nil, err
 			}
 			response = &discordgo.WebhookEdit{
 				Content: "Here's how this server is configured.",
-				Embeds:  commands.GetGuildInfoEmbeds(dg, len(dg.Edges.Admins) > 0),
+				Embeds:  commands.GetGuildInfoEmbeds(dg),
 			}
 		}
 		return response, nil
