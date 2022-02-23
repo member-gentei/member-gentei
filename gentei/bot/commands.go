@@ -14,7 +14,9 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/bot/commands"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
+	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
+	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 	"github.com/member-gentei/member-gentei/gentei/membership"
 	"github.com/rs/zerolog"
@@ -240,6 +242,24 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 			for i := range talents {
 				talentIDs[i] = talents[i].ID
 			}
+			// add an User <-> Guild edge if they don't already have one
+			isGuildMember, err := b.db.Guild.Query().
+				Where(
+					guild.ID(guildID),
+					guild.HasMembersWith(user.ID(userID)),
+				).
+				Exist(ctx)
+			if err != nil {
+				return nil, err
+			}
+			if !isGuildMember {
+				err = b.db.Guild.UpdateOneID(guildID).
+					AddMemberIDs(userID).
+					Exec(ctx)
+				if err != nil {
+					return nil, err
+				}
+			}
 			logger.Debug().Strs("talentIDs", talentIDs).Msg("performing /gentei check")
 			results, err := membership.CheckForUser(ctx, b.db, b.youTubeConfig, userID, &membership.CheckForUserOptions{
 				ChannelIDs: talentIDs,
@@ -248,33 +268,37 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 				logger.Err(err).Msg("error checking memberships for user")
 				return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
 			}
-
 			logger.Debug().Interface("results", results).Msg("/gentei check results")
 			err = membership.SaveMemberships(ctx, b.db, userID, results)
 			if err != nil {
 				logger.Err(err).Msg("error saving UserMembership objects for user")
 				return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
 			}
-			// apply changes
-			var (
-				gainedIDs = b.qch.GetGained()
-				lostIDs   = b.qch.GetLost()
-			)
-			for _, gainedID := range gainedIDs {
-				err = b.grantMemberships(ctx, b.db, gainedID)
+			// apply all managed roles for this server only
+			roles, err := b.db.GuildRole.Query().
+				WithUserMemberships(func(umq *ent.UserMembershipQuery) {
+					umq.Where(usermembership.HasUserWith(user.ID(userID)))
+				}).
+				Where(
+					guildrole.HasGuildWith(guild.ID(guildID)),
+					guildrole.HasTalentWith(youtubetalent.IDIn(talentIDs...)),
+				).
+				All(ctx)
+			if err != nil {
+				logger.Err(err).Msg("error querying for GuildRoles during check")
+			}
+			for _, role := range roles {
+				shouldHaveRole := len(role.Edges.UserMemberships) > 0
+				logger.Debug().
+					Uint64("roleID", role.ID).
+					Bool("shouldHaveRole", shouldHaveRole).
+					Msg("check: applying role")
+				err = b.applyRole(ctx, guildID, role.ID, userID, shouldHaveRole)
 				if err != nil {
-					logger.Err(err).Int("gainedID", gainedID).Msg("error granting memberships for user")
-					return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
+					logger.Err(err).Msg("error applying role during check")
 				}
 			}
-			for _, lostID := range lostIDs {
-				err = b.revokeMemberships(ctx, b.db, lostID)
-				if err != nil {
-					logger.Err(err).Int("lostID", lostID).Msg("error revoking memberships for user")
-					return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
-				}
-			}
-			embeds, err := commands.CreateMembershipInfoEmbeds(ctx, b.db, userID, guildID, gainedIDs, lostIDs)
+			embeds, err := commands.CreateMembershipInfoEmbeds(ctx, b.db, userID, guildID)
 			if err != nil {
 				logger.Err(err).Msg("error creating embeds for reply")
 				return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil

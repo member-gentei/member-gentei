@@ -78,7 +78,7 @@ func ApplyRole(applyCtx context.Context, session *discordgo.Session, guildID, us
 					}
 					for _, role := range member.Roles {
 						if role == roleIDStr {
-							logger.Debug().Msg("query informed succesful role apply")
+							logger.Info().Msg("query informed succesful role apply")
 							breakOut = true
 							break
 						}

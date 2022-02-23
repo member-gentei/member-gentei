@@ -128,6 +128,7 @@ func CheckForUser(
 		if err != nil {
 			var gErr *googleapi.Error
 			if errors.As(err, &gErr) {
+				logger.Debug().Interface("gErr", gErr).Msg("membership check encountered googleapi.Error")
 				if gErr.Code == 403 {
 					// not a member
 					checkTimestamps[talent.ID] = time.Now()
@@ -136,7 +137,7 @@ func CheckForUser(
 				}
 			}
 			if !strings.HasSuffix(err.Error(), "commentsDisabled") {
-				log.Err(err).Msg("actual error fetching comments for membership check video")
+				logger.Err(err).Msg("actual error fetching comments for membership check video")
 				return
 			}
 		}
@@ -220,52 +221,7 @@ func SaveMemberships(
 	userID uint64,
 	results *CheckResultSet,
 ) (err error) {
-	var (
-		eligibleRoleUserPredicates = []predicate.GuildRole{
-			guildrole.HasGuildWith(
-				guild.Or(
-					guild.HasAdminsWith(user.ID(userID)),
-					guild.HasMembersWith(user.ID(userID)),
-				),
-			),
-		}
-	)
-	// create gained
-	for _, c := range results.Gained {
-		var (
-			roleIDsToGrant []uint64
-			logger         = log.With().
-					Uint64("userID", userID).
-					Str("talentID", c.ChannelID).
-					Logger()
-		)
-		roleIDsToGrant, err = db.GuildRole.Query().
-			Where(append(
-				eligibleRoleUserPredicates,
-				guildrole.HasTalentWith(youtubetalent.ID(c.ChannelID)),
-				// "not created yet"
-				guildrole.Not(
-					guildrole.HasUserMembershipsWith(usermembership.HasUserWith(user.ID(userID))),
-				),
-			)...).
-			IDs(ctx)
-		if err != nil {
-			err = fmt.Errorf("error querying for eligible roles to %s: %w", c.ChannelID, err)
-			return
-		}
-		logger.Info().Uints64("roleIDs", roleIDsToGrant).Msg("granting newly gained Discord roles to user")
-		err = db.UserMembership.Create().
-			SetFailCount(0).
-			SetLastVerified(c.Time).
-			SetUserID(userID).
-			SetYoutubeTalentID(c.ChannelID).
-			AddRoleIDs(roleIDsToGrant...).Exec(ctx)
-		if err != nil {
-			err = fmt.Errorf("error creating UserMembership for %s: %w", c.ChannelID, err)
-			return
-		}
-	}
-	// update retained
+	// upsert retained
 	for _, c := range results.Retained {
 		var (
 			count  int
@@ -279,6 +235,7 @@ func SaveMemberships(
 				usermembership.HasYoutubeTalentWith(
 					youtubetalent.ID(c.ChannelID),
 				),
+				usermembership.HasUserWith(user.ID(userID)),
 			).
 			SetLastVerified(c.Time).
 			Save(ctx)
@@ -289,6 +246,17 @@ func SaveMemberships(
 		if count > 0 {
 			logger.Info().Int("count", count).Time("lastVerified", c.Time).
 				Msg("updated retained membership")
+		}
+		err = createMissingUserMemberships(ctx, db, userID, c)
+		if err != nil {
+			return err
+		}
+	}
+	// create gained
+	for _, c := range results.Gained {
+		err = createMissingUserMemberships(ctx, db, userID, c)
+		if err != nil {
+			return err
 		}
 	}
 	// update lost
@@ -305,6 +273,7 @@ func SaveMemberships(
 				usermembership.HasYoutubeTalentWith(
 					youtubetalent.ID(c.ChannelID),
 				),
+				usermembership.HasUserWith(user.ID(userID)),
 			).
 			SetFirstFailed(c.Time).
 			AddFailCount(1).
@@ -317,7 +286,7 @@ func SaveMemberships(
 			Msg("lost membership")
 	}
 	// clear not
-	for _, c := range results.Lost {
+	for _, c := range results.Not {
 		var (
 			count  int
 			logger = log.With().
@@ -337,8 +306,48 @@ func SaveMemberships(
 			err = fmt.Errorf("error incrementing check failures for %s: %w", c.ChannelID, err)
 			return
 		}
-		logger.Info().Int("count", count).Time("firstFailed", c.Time).
-			Msg("lost membership")
+		logger.Debug().Int("count", count).Time("firstFailed", c.Time).
+			Msg("incremented non-membership")
 	}
 	return
+}
+
+func createMissingUserMemberships(ctx context.Context, db *ent.Client, userID uint64, c CheckResult) error {
+	var (
+		logger = log.With().
+			Uint64("userID", userID).
+			Str("talentID", c.ChannelID).
+			Logger()
+		missingRolePredicates = []predicate.GuildRole{
+			guildrole.HasGuildWith(
+				guild.Or(
+					guild.HasAdminsWith(user.ID(userID)),
+					guild.HasMembersWith(user.ID(userID)),
+				),
+			),
+			guildrole.HasTalentWith(youtubetalent.ID(c.ChannelID)),
+			// "not created yet"
+			guildrole.Not(
+				guildrole.HasUserMembershipsWith(usermembership.HasUserWith(user.ID(userID))),
+			),
+		}
+		roleIDsToGrant []uint64
+	)
+	roleIDsToGrant, err := db.GuildRole.Query().
+		Where(missingRolePredicates...).
+		IDs(ctx)
+	if err != nil {
+		return fmt.Errorf("error querying for eligible roles to %s: %w", c.ChannelID, err)
+	}
+	logger.Info().Uints64("roleIDs", roleIDsToGrant).Msg("granting newly gained Discord roles to user")
+	err = db.UserMembership.Create().
+		SetFailCount(0).
+		SetLastVerified(c.Time).
+		SetUserID(userID).
+		SetYoutubeTalentID(c.ChannelID).
+		AddRoleIDs(roleIDsToGrant...).Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("error creating UserMembership for %s: %w", c.ChannelID, err)
+	}
+	return nil
 }

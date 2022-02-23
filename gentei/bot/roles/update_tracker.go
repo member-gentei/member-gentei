@@ -13,7 +13,7 @@ type RoleUpdateTracker struct {
 	trackHooks map[string]RoleUpdateTrackFunc
 }
 
-type RoleUpdateTrackFunc func(*discordgo.GuildMemberUpdate) (remove bool)
+type RoleUpdateTrackFunc func(*discordgo.GuildMemberUpdate) (removeHook bool)
 
 // TrackHook executes a function on GUILD_MEMBER_UPDATE.
 func (r *RoleUpdateTracker) TrackHook(guildID, userID string, trackFunc RoleUpdateTrackFunc) {

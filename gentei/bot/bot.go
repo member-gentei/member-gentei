@@ -12,7 +12,6 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/async"
 	"github.com/member-gentei/member-gentei/gentei/bot/roles"
 	"github.com/member-gentei/member-gentei/gentei/ent"
-	"github.com/member-gentei/member-gentei/gentei/membership"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 )
@@ -22,7 +21,6 @@ type DiscordBot struct {
 
 	db              *ent.Client
 	rut             *roles.RoleUpdateTracker
-	qch             *membership.QueuedChangeHandler
 	cancelPSApplier context.CancelFunc
 	youTubeConfig   *oauth2.Config
 }
@@ -61,10 +59,8 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 			b.handleManage(ctx, i)
 		}
 	})
-	// load membership.ChangeHandler
-	qch, changeHandler := membership.NewQueuedChangeHandler(20)
-	membership.HookMembershipChanges(b.db, changeHandler)
-	b.qch = qch
+	// register intents (new for v8 gateway)
+	b.session.Identify.Intents = discordgo.IntentsGuilds | discordgo.IntentsGuildMembers
 	if err = b.session.Open(); err != nil {
 		return fmt.Errorf("error opening discordgo session: %w", err)
 	}
@@ -104,6 +100,7 @@ func (b *DiscordBot) StartPSApplier(parentCtx context.Context, sub *pubsub.Subsc
 					return
 				}
 			}
+			m.Ack()
 		})
 		if err != nil {
 			log.Err(err).Msg("bot PSApplier crashed?")
@@ -120,13 +117,32 @@ func (b *DiscordBot) Close() error {
 
 func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint64, add bool) error {
 	var (
-		applyCtx, cancelApplyCtx = context.WithCancel(ctx)
-		guildIDStr               = strconv.FormatUint(guildID, 10)
-		roleIDStr                = strconv.FormatUint(roleID, 10)
-		userIDStr                = strconv.FormatUint(userID, 10)
+		guildIDStr = strconv.FormatUint(guildID, 10)
+		roleIDStr  = strconv.FormatUint(roleID, 10)
+		userIDStr  = strconv.FormatUint(userID, 10)
 	)
-	b.rut.TrackHook(guildIDStr, userIDStr, func(gmu *discordgo.GuildMemberUpdate) (remove bool) {
+	// first, check if we even need to do this
+	member, err := b.session.GuildMember(guildIDStr, userIDStr)
+	if err != nil {
+		return fmt.Errorf("error calling GuildMember: %w", err)
+	}
+	var roleExists bool
+	for _, existingRoleID := range member.Roles {
+		if existingRoleID == roleIDStr {
+			roleExists = true
+			break
+		}
+	}
+	if (roleExists && add) || (!roleExists && !add) {
+		log.Debug().Msg("no change required")
+		return nil
+	}
+	var (
+		applyCtx, cancelApplyCtx = context.WithCancel(ctx)
+	)
+	b.rut.TrackHook(guildIDStr, userIDStr, func(gmu *discordgo.GuildMemberUpdate) (removeHook bool) {
 		if add {
+			// check this update for the target role that should exist
 			for _, roleID := range gmu.Roles {
 				if roleID == roleIDStr {
 					cancelApplyCtx()
@@ -134,6 +150,7 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 				}
 			}
 		} else {
+			// check that the role does not exist
 			for _, roleID := range gmu.Roles {
 				if roleID == roleIDStr {
 					return false
@@ -145,7 +162,7 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 		return
 	})
 	result := <-roles.ApplyRole(applyCtx, b.session, guildID, userID, roleID, add)
-	err := result.Error
+	err = result.Error
 	if errors.Is(err, context.Canceled) {
 		err = nil
 	}
