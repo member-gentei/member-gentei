@@ -15,7 +15,7 @@ import (
 )
 
 // CreateMembershipInfoEmbeds creates a []*discordgo.MessageEmbed that describes the user's current role grants on a server.
-func CreateMembershipInfoEmbeds(ctx context.Context, db *ent.Client, userID, guildID uint64, gainedIDs, lostIDs []int) ([]*discordgo.MessageEmbed, error) {
+func CreateMembershipInfoEmbeds(ctx context.Context, db *ent.Client, userID, guildID uint64) ([]*discordgo.MessageEmbed, error) {
 	guildRoles, err := db.GuildRole.Query().
 		WithTalent().
 		Where(
