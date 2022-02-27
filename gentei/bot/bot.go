@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/bwmarrin/discordgo"
@@ -58,6 +59,45 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 			b.handleInfo(ctx, i)
 		case "manage":
 			b.handleManage(ctx, i)
+		}
+	})
+	// guild metadata updates
+	b.session.AddHandler(func(s *discordgo.Session, gc *discordgo.GuildCreate) {
+		guildID, err := strconv.ParseUint(gc.ID, 10, 64)
+		if err != nil {
+			log.Err(err).Str("unparsedGuildID", gc.ID).Msg("error parsing joined guild ID as uint64")
+			return
+		}
+		log.Info().Uint64("guildID", guildID).Msg("joined Guild")
+		// update Guild info in ~5s to avoid clashing with first time registration
+		go func() {
+			<-time.NewTimer(time.Second * 5).C
+			err = b.db.Guild.UpdateOneID(guildID).
+				SetName(gc.Name).
+				SetIconHash(gc.Icon).
+				Exec(context.Background())
+			if err != nil {
+				log.Err(err).Uint64("guildID", guildID).Msg("error updating on GUILD_CREATE")
+				return
+			}
+		}()
+	})
+	b.session.AddHandler(func(s *discordgo.Session, gu *discordgo.GuildUpdate) {
+		guildID, err := strconv.ParseUint(gu.ID, 10, 64)
+		if err != nil {
+			log.Err(err).Str("unparsedGuildID", gu.ID).Msg("error parsing joined guild ID as uint64")
+			return
+		}
+		logger := log.With().Uint64("guildID", guildID).Logger()
+		// update if guild and info exists
+		err = b.db.Guild.UpdateOneID(guildID).
+			SetName(gu.Name).
+			SetIconHash(gu.Icon).
+			Exec(context.Background())
+		if ent.IsNotFound(err) {
+			logger.Warn().Msg("got update for Guild not in database")
+		} else if err != nil {
+			logger.Err(err).Msg("error updating GUILD_UPDATE")
 		}
 	})
 	// register intents (new for v8 gateway)
