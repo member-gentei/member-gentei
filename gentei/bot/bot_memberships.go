@@ -17,7 +17,7 @@ import (
 // grantMemberships makes the edges of userMembershipID authoritative.
 //
 // Because we don't know the failure modes of role application yet, we mask all apply errors so we can deduce it from logs + alerts.
-func (b *DiscordBot) grantMemberships(ctx context.Context, db *ent.Client, userMembershipID int) error {
+func (b *DiscordBot) grantMemberships(ctx context.Context, db *ent.Client, userMembershipID int, reason string) error {
 	var (
 		logger = log.With().Int("userMembershipID", userMembershipID).Logger()
 	)
@@ -51,18 +51,18 @@ func (b *DiscordBot) grantMemberships(ctx context.Context, db *ent.Client, userM
 		return err
 	}
 	for _, guildRole := range guildRoles {
-		err := b.grantRole(ctx, db, logger, userID, guildRole, userMembershipID)
+		err := b.grantRole(ctx, db, logger, userID, guildRole, userMembershipID, reason)
 		_ = err
 	}
 	// re-apply existing roles
 	for _, guildRole := range existingRoles {
-		err := b.grantRole(ctx, db, logger, userID, guildRole, 0)
+		err := b.grantRole(ctx, db, logger, userID, guildRole, 0, reason)
 		_ = err
 	}
 	return err
 }
 
-func (b *DiscordBot) revokeMemberships(ctx context.Context, db *ent.Client, userMembershipID int) error {
+func (b *DiscordBot) revokeMemberships(ctx context.Context, db *ent.Client, userMembershipID int, reason string) error {
 	var (
 		logger = log.With().Int("userMembershipID", userMembershipID).Logger()
 	)
@@ -92,12 +92,12 @@ func (b *DiscordBot) revokeMemberships(ctx context.Context, db *ent.Client, user
 					Str("talentID", guildRole.Edges.Talent.ID).
 					Logger()
 		)
-		b.revokeMembership(ctx, roleLogger, guildID, roleID, userID)
+		b.revokeMembership(ctx, roleLogger, guildID, roleID, userID, reason)
 	}
 	return nil
 }
 
-func (b *DiscordBot) revokeMembershipsByUserID(ctx context.Context, userID uint64) error {
+func (b *DiscordBot) revokeMembershipsByUserID(ctx context.Context, userID uint64, reason string) error {
 	guildRoles, err := b.db.GuildRole.Query().
 		WithGuild().
 		WithTalent().
@@ -120,19 +120,19 @@ func (b *DiscordBot) revokeMembershipsByUserID(ctx context.Context, userID uint6
 				Str("talentID", guildRole.Edges.Talent.ID).
 				Logger()
 		)
-		b.revokeMembership(ctx, logger, guildID, roleID, userID)
+		b.revokeMembership(ctx, logger, guildID, roleID, userID, reason)
 	}
 	return nil
 }
 
-func (b *DiscordBot) revokeMembership(ctx context.Context, baseLogger zerolog.Logger, guildID, roleID, userID uint64) {
+func (b *DiscordBot) revokeMembership(ctx context.Context, baseLogger zerolog.Logger, guildID, roleID, userID uint64, reason string) {
 	var (
 		logger = baseLogger.With().
 			Uint64("guildID", guildID).
 			Uint64("roleID", roleID).
 			Logger()
 	)
-	err := b.applyRole(ctx, guildID, roleID, userID, false)
+	err := b.applyRole(ctx, guildID, roleID, userID, false, reason)
 	if err != nil {
 		logger.Err(err).Msg("failed to revoke role membership")
 	} else {
@@ -147,6 +147,7 @@ func (b *DiscordBot) grantRole(
 	userID uint64,
 	guildRole *ent.GuildRole,
 	addEdgeUserMembershipID int,
+	reason string,
 ) error {
 	var (
 		guildID    = guildRole.Edges.Guild.ID
@@ -157,7 +158,7 @@ func (b *DiscordBot) grantRole(
 				Str("talentID", guildRole.Edges.Talent.ID).
 				Logger()
 	)
-	err := b.applyRole(ctx, guildID, roleID, userID, true)
+	err := b.applyRole(ctx, guildID, roleID, userID, true, reason)
 	if err != nil {
 		roleLogger.Err(err).Msg("failed to grant role membership")
 		return err

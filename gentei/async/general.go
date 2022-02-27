@@ -26,12 +26,13 @@ func PublishApplyMembershipMessage(ctx context.Context, topic *pubsub.Topic, mes
 }
 
 // ProcessYouTubeRegistration really only checks memberships and triggers changes. One day it might do something else?
-func ProcessYouTubeRegistration(ctx context.Context, db *ent.Client, youTubeConfig *oauth2.Config, userID uint64) error {
+func ProcessYouTubeRegistration(ctx context.Context, db *ent.Client, youTubeConfig *oauth2.Config, userID uint64, setChangeReason func(string)) error {
 	crs, err := membership.CheckForUser(ctx, db, youTubeConfig, userID, nil)
 	if err != nil {
 		return fmt.Errorf("error checking memberships for user: %w", err)
 	}
 	lastCheckTime := time.Now()
+	setChangeReason("new user / YouTube channel change")
 	err = membership.SaveMemberships(ctx, db, userID, crs)
 	if err != nil {
 		return fmt.Errorf("error saving memberships for user: %w", err)

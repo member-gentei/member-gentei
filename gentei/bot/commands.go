@@ -311,7 +311,7 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 					Uint64("roleID", role.ID).
 					Bool("shouldHaveRole", shouldHaveRole).
 					Msg("check: applying role")
-				err = b.applyRole(ctx, guildID, role.ID, userID, shouldHaveRole)
+				err = b.applyRole(ctx, guildID, role.ID, userID, shouldHaveRole, "/gentei check (on-demand)")
 				if err != nil {
 					logger.Err(err).Msg("error applying role during check")
 				}

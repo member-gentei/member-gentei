@@ -11,6 +11,7 @@ import (
 type ChangeHandler interface {
 	GainedMembership(userMembershipID int)
 	LostMembership(userMembershipID int)
+	SetChangeReason(reason string)
 }
 
 // HookMembershipChanges uses ent hooks to listen to relevant changes to UserMembership ents.
