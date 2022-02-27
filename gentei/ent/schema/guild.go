@@ -14,13 +14,6 @@ type GuildSettings struct {
 	MaxStale time.Duration
 }
 
-type GuildSettingsRoleMapping struct {
-	// Discord Role ID
-	ID string
-	// Last seen Discord role name
-	Name string
-}
-
 // Guild holds the schema definition for the Guild entity.
 type Guild struct {
 	ent.Schema

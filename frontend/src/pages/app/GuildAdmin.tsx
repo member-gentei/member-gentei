@@ -76,6 +76,26 @@ function GuildAdminInner({ guildID }: GuildAdminInnerProps) {
                 </Fragment>
               ))}
             </dd>
+            <dt>Audit log channel ID and link</dt>
+            <dd>
+              {guild.AuditLogChannelID ? (
+                <a
+                  href={`${guildURL}/${guild.AuditLogChannelID}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Open channel in a new tab"
+                >
+                  {guild.AuditLogChannelID}
+                </a>
+              ) : (
+                <code>- (none)</code>
+              )}
+
+              <p className="help">
+                To change, use{" "}
+                <code>/gentei manage audit-log channel:#channel</code>
+              </p>
+            </dd>
           </dl>
           <p>
             For other information and nicely formatted{" "}
