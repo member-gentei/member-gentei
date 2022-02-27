@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"strconv"
+	"time"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/member-gentei/member-gentei/gentei/ent"
@@ -22,6 +23,8 @@ const (
 )
 
 type GeneralPSMessage struct {
+	// TODO: remove next week.
+	UserRegistration    interface{}
 	YouTubeRegistration *YouTubeRegistrationMessage `json:",omitempty"`
 }
 
@@ -33,6 +36,11 @@ type ApplyMembershipPSMessage struct {
 type YouTubeRegistrationMessage struct {
 	UserID json.Number
 }
+
+var (
+	trashUserRegistrationMessageDeadline time.Time
+	trashUserRegistrationHours           = 24 * 7.0
+)
 
 // ListenGeneral polls a pubsub subscription for GeneralType messages.
 func ListenGeneral(
@@ -54,6 +62,10 @@ func ListenGeneral(
 			m.Ack()
 			return
 		}
+		if message.UserRegistration != nil && time.Since(trashUserRegistrationMessageDeadline).Hours() < trashUserRegistrationHours {
+			m.Ack()
+			return
+		}
 		if message.YouTubeRegistration != nil {
 			userID, err := strconv.ParseUint(message.YouTubeRegistration.UserID.String(), 10, 64)
 			if err != nil {
@@ -72,4 +84,12 @@ func ListenGeneral(
 		m.Nack()
 		log.Warn().Str("data", string(m.Data)).Msg("nacking unhandled message - is this mid-deploy?")
 	})
+}
+
+func init() {
+	var err error
+	trashUserRegistrationMessageDeadline, err = time.Parse(time.UnixDate, "Sun Feb 27 15:50:06 UTC 2022")
+	if err != nil {
+		panic(err)
+	}
 }
