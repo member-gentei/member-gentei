@@ -68,7 +68,11 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 			log.Err(err).Str("unparsedGuildID", gc.ID).Msg("error parsing joined guild ID as uint64")
 			return
 		}
-		log.Info().Uint64("guildID", guildID).Msg("joined Guild")
+		logger := log.With().
+			Uint64("guildID", guildID).
+			Str("guildName", gc.Name).
+			Logger()
+		logger.Info().Msg("joined Guild")
 		// update Guild info in ~5s to avoid clashing with first time registration
 		go func() {
 			<-time.NewTimer(time.Second * 5).C
@@ -77,7 +81,7 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 				SetIconHash(gc.Icon).
 				Exec(context.Background())
 			if err != nil {
-				log.Err(err).Uint64("guildID", guildID).Msg("error updating on GUILD_CREATE")
+				logger.Err(err).Msg("error updating on GUILD_CREATE")
 				return
 			}
 		}()
@@ -88,7 +92,10 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 			log.Err(err).Str("unparsedGuildID", gu.ID).Msg("error parsing joined guild ID as uint64")
 			return
 		}
-		logger := log.With().Uint64("guildID", guildID).Logger()
+		logger := log.With().
+			Uint64("guildID", guildID).
+			Str("guildName", gu.Name).
+			Logger()
 		// update if guild and info exists
 		err = b.db.Guild.UpdateOneID(guildID).
 			SetName(gu.Name).
@@ -98,6 +105,8 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 			logger.Warn().Msg("got update for Guild not in database")
 		} else if err != nil {
 			logger.Err(err).Msg("error updating GUILD_UPDATE")
+		} else {
+			logger.Info().Msg("updated Guild")
 		}
 	})
 	// register intents (new for v8 gateway)
