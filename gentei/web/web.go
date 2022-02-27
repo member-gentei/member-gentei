@@ -76,7 +76,7 @@ func ServeAPI(db *ent.Client, discordConfig *oauth2.Config, youTubeConfig *oauth
 	loginRequired.POST("/logout", logout())
 	loginRequired.GET("/me", getMe(db))
 	loginRequired.DELETE("/me/youtube", deleteYouTube(db))
-	loginRequired.DELETE("/me", deleteMe(db))
+	loginRequired.DELETE("/me", deleteMe(db, topic))
 	loginRequired.POST("/enroll-guild", enrollGuild(db, &enrollDiscordConfig))
 	loginRequired.GET("/guild/:id", getGuild(db))
 	loginRequired.PATCH("/guild/:id", patchGuild(db))
@@ -481,37 +481,16 @@ func deleteYouTube(db *ent.Client) echo.HandlerFunc {
 	}
 }
 
-func deleteMe(db *ent.Client) echo.HandlerFunc {
+func deleteMe(db *ent.Client, topic *pubsub.Topic) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var (
 			ctx     = c.Request().Context()
 			jwtUser = c.Get("user").(*jwt.Token)
 			claims  = jwtUser.Claims.(*jwt.StandardClaims)
 		)
-		userID, err := strconv.ParseUint(claims.Id, 10, 64)
-		if err != nil {
-			return err
-		}
-		// revoke tokens
-		u, err := db.User.Get(ctx, userID)
-		if err != nil {
-			return err
-		}
-		if u.DiscordToken != nil {
-			err = revokeDiscordToken(ctx, u.DiscordToken)
-			if err != nil {
-				log.Err(err).Uint64("userID", userID).Msg("error revoking Discord token, proceeding to delete")
-			}
-			err = nil
-		}
-		if u.YoutubeToken != nil {
-			err = revokeYouTubeToken(ctx, u.YoutubeToken)
-			if err != nil {
-				log.Err(err).Uint64("userID", userID).Msg("error revoking YouTube token, proceeding to delete")
-			}
-			err = nil
-		}
-		err = db.User.DeleteOneID(userID).Exec(ctx)
+		err := async.PublishGeneralMessage(ctx, topic, async.GeneralPSMessage{
+			UserDelete: json.Number(claims.Id),
+		})
 		if err != nil {
 			return err
 		}

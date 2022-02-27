@@ -11,6 +11,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/member-gentei/member-gentei/gentei/async"
 	"github.com/member-gentei/member-gentei/gentei/bot/roles"
+	"github.com/member-gentei/member-gentei/gentei/bot/templates"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
@@ -87,7 +88,46 @@ func (b *DiscordBot) StartPSApplier(parentCtx context.Context, sub *pubsub.Subsc
 				m.Ack()
 				return
 			}
-			if message.Gained {
+			if message.DeleteUserID != "" {
+				var (
+					userIDStr   = message.DeleteUserID.String()
+					userID, err = strconv.ParseUint(message.DeleteUserID.String(), 10, 64)
+				)
+				if err != nil {
+					log.Err(err).
+						Str("unparsedUserID", userIDStr).
+						Msg("error decoding UserID as uint64")
+					m.Ack()
+				}
+				logger := log.With().Uint64("userID", userID).Logger()
+				err = b.revokeMembershipsByUserID(ctx, userID)
+				if err != nil {
+					logger.Err(err).Msg("error revoking all memberships before deletion")
+					return
+				}
+				// now actually delete the user
+				err = b.db.User.DeleteOneID(userID).Exec(ctx)
+				if err != nil {
+					return
+				}
+				m.Ack()
+				// best-effort attempt at sending the user deletion DM
+				ch, err := b.session.UserChannelCreate(userIDStr)
+				if err != nil {
+					logger.Err(err).Msg("error creating UserChannel to inform of deletion")
+					return
+				}
+				msg, err := b.session.ChannelMessageSend(ch.ID, templates.PlaintextUserDeleted)
+				if err != nil {
+					logger.Err(err).
+						Msg("error sending deletion confirmation message")
+				} else {
+					logger.Info().
+						Interface("messageMetadata", msg).
+						Msg("sent deletion confirmation message")
+				}
+				return
+			} else if message.Gained {
 				err = b.grantMemberships(ctx, b.db, message.UserMembershipID)
 				if err != nil {
 					log.Err(err).Msg("error granting memberships")
