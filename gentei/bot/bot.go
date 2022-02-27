@@ -80,7 +80,14 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 				SetName(gc.Name).
 				SetIconHash(gc.Icon).
 				Exec(context.Background())
-			if err != nil {
+			if ent.IsNotFound(err) {
+				logger.Err(err).Msg("guild mentioned in GUILD_CREATE does not have a database entry, leaving guild")
+				err = b.session.GuildLeave(gc.ID)
+				if err != nil {
+					logger.Err(err).Msg("error leaving guild")
+				}
+				return
+			} else if err != nil {
 				logger.Err(err).Msg("error updating on GUILD_CREATE")
 				return
 			}
