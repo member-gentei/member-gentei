@@ -111,12 +111,30 @@ var (
 			},
 			{
 				Name:        "manage",
-				Description: "Admin-only: manage memberships",
+				Description: "Admin-only: manage memberships and server settings",
 				Type:        discordgo.ApplicationCommandOptionSubCommandGroup,
 				Options: []*discordgo.ApplicationCommandOption{
 					{
+						Name:        "audit-log",
+						Description: "Set/change audit log settings.",
+						Type:        discordgo.ApplicationCommandOptionSubCommand,
+						Options: []*discordgo.ApplicationCommandOption{
+							{
+								Name:        "channel",
+								Description: "The Discord channel to recieve audit logs.",
+								Type:        discordgo.ApplicationCommandOptionChannel,
+								Required:    true,
+							},
+						},
+					},
+					{
+						Name:        "unset-audit-log",
+						Description: "Stops audit logs from being sent.",
+						Type:        discordgo.ApplicationCommandOptionSubCommand,
+					},
+					{
 						Name:        "map",
-						Description: "Change role mapping of a channel -> Discord role.",
+						Description: "Set/change role mapping of a channel -> Discord role.",
 						Type:        discordgo.ApplicationCommandOptionSubCommand,
 						Options: []*discordgo.ApplicationCommandOption{
 							{
@@ -365,6 +383,10 @@ func (b *DiscordBot) handleManage(ctx context.Context, i *discordgo.InteractionC
 			manageCmd := i.ApplicationCommandData().Options[0]
 			subcommand := manageCmd.Options[0]
 			switch subcommand.Name {
+			case "audit-log":
+				return b.handleManageAuditLog(ctx, logger, i, subcommand)
+			case "unset-audit-log":
+				return b.handleManageUnsetAuditLog(ctx, logger, i, subcommand)
 			case "map":
 				return b.handleManageMap(ctx, logger, i, subcommand)
 			case "unmap":

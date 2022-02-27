@@ -14,6 +14,82 @@ import (
 	"github.com/rs/zerolog"
 )
 
+func (b *DiscordBot) handleManageAuditLog(
+	ctx context.Context,
+	logger zerolog.Logger,
+	i *discordgo.InteractionCreate,
+	cmd *discordgo.ApplicationCommandInteractionDataOption,
+) (*discordgo.WebhookEdit, error) {
+	var (
+		options              = subcommandOptionsMap(cmd)
+		targetChannel        = options["channel"].ChannelValue(b.session)
+		targetChannelID, err = strconv.ParseUint(targetChannel.ID, 10, 64)
+	)
+	if err != nil {
+		return nil, err
+	}
+	guildID, _, err := getMessageAttributionIDs(i)
+	if err != nil {
+		return nil, err
+	}
+	// check if anything changed
+	dg, err := b.db.Guild.Get(ctx, guildID)
+	if err != nil {
+		return nil, err
+	}
+	if dg.AuditChannel == targetChannelID {
+		return &discordgo.WebhookEdit{
+			Content: fmt.Sprintf("%s is already the configured audit log channel for this Discord server.", targetChannel.Mention()),
+		}, nil
+	}
+	// test that we can actually send messages to this channel
+	_, err = b.session.ChannelMessageSend(targetChannel.ID, ":wave: checking that this bot has permissions to send messages to this channel. Feel free to delete this message.")
+	if err != nil {
+		logger.Info().Err(err).Msg("error sending test message to audit log channel")
+		return nil, err
+	}
+	err = b.db.Guild.UpdateOneID(dg.ID).
+		SetAuditChannel(targetChannelID).
+		Exec(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error setting Guild.AuditChannel: %w", err)
+	}
+	return &discordgo.WebhookEdit{
+		Content: fmt.Sprintf("Role changes performed by this bot will now be posted to %s.", targetChannel.Mention()),
+	}, nil
+}
+
+func (b *DiscordBot) handleManageUnsetAuditLog(
+	ctx context.Context,
+	logger zerolog.Logger,
+	i *discordgo.InteractionCreate,
+	cmd *discordgo.ApplicationCommandInteractionDataOption,
+) (*discordgo.WebhookEdit, error) {
+	guildID, _, err := getMessageAttributionIDs(i)
+	if err != nil {
+		return nil, err
+	}
+	// check if anything changed
+	dg, err := b.db.Guild.Get(ctx, guildID)
+	if err != nil {
+		return nil, err
+	}
+	if dg.AuditChannel == 0 {
+		return &discordgo.WebhookEdit{
+			Content: "No audit log channel is configured for this server.",
+		}, nil
+	}
+	err = b.db.Guild.UpdateOneID(dg.ID).
+		SetAuditChannel(0).
+		Exec(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error unsetting audit log channel: %w", err)
+	}
+	return &discordgo.WebhookEdit{
+		Content: fmt.Sprintf("<#%d> will no longer receive audit log messages.", dg.AuditChannel),
+	}, nil
+}
+
 func (b *DiscordBot) handleManageMap(
 	ctx context.Context,
 	logger zerolog.Logger,
