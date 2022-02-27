@@ -39,3 +39,8 @@ func MustRender(data string, context ...interface{}) string {
 	}
 	return rendered
 }
+
+// plaintext messages
+
+//go:embed user_deleted.md
+var PlaintextUserDeleted string

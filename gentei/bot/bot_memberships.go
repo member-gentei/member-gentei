@@ -89,19 +89,55 @@ func (b *DiscordBot) revokeMemberships(ctx context.Context, db *ent.Client, user
 			guildID    = guildRole.Edges.Guild.ID
 			roleID     = guildRole.ID
 			roleLogger = logger.With().
-					Uint64("guildID", guildID).
-					Uint64("roleID", roleID).
 					Str("talentID", guildRole.Edges.Talent.ID).
 					Logger()
 		)
-		err = b.applyRole(ctx, guildID, roleID, userID, false)
-		if err != nil {
-			roleLogger.Err(err).Msg("failed to revoke role membership")
-			continue
-		}
-		roleLogger.Info().Msg("revoked role membership")
+		b.revokeMembership(ctx, roleLogger, guildID, roleID, userID)
 	}
 	return nil
+}
+
+func (b *DiscordBot) revokeMembershipsByUserID(ctx context.Context, userID uint64) error {
+	guildRoles, err := b.db.GuildRole.Query().
+		WithGuild().
+		WithTalent().
+		Where(
+			guildrole.HasUserMembershipsWith(
+				usermembership.HasUserWith(user.ID(userID)),
+			),
+		).
+		All(ctx)
+	if err != nil {
+		log.Err(err).Uint64("userID", userID).
+			Msg("failed to query existing GuildRole objects for wide revoke")
+		return err
+	}
+	for _, guildRole := range guildRoles {
+		var (
+			guildID = guildRole.Edges.Guild.ID
+			roleID  = guildRole.ID
+			logger  = log.With().
+				Str("talentID", guildRole.Edges.Talent.ID).
+				Logger()
+		)
+		b.revokeMembership(ctx, logger, guildID, roleID, userID)
+	}
+	return nil
+}
+
+func (b *DiscordBot) revokeMembership(ctx context.Context, baseLogger zerolog.Logger, guildID, roleID, userID uint64) {
+	var (
+		logger = baseLogger.With().
+			Uint64("guildID", guildID).
+			Uint64("roleID", roleID).
+			Logger()
+	)
+	err := b.applyRole(ctx, guildID, roleID, userID, false)
+	if err != nil {
+		logger.Err(err).Msg("failed to revoke role membership")
+	} else {
+		logger.Info().Msg("revoked role membership")
+	}
 }
 
 func (b *DiscordBot) grantRole(

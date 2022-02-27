@@ -35,11 +35,10 @@ func createPostUserMembershipFunc(next ent.Mutator, handler ChangeHandler) hook.
 			affectedIDs []int
 			op          = m.Op()
 		)
-		switch {
-		case op.Is(ent.OpCreate | ent.OpUpdateOne):
+		if op.Is(ent.OpCreate) || op.Is(ent.OpUpdateOne) {
 			umID, _ := m.ID()
 			affectedIDs = []int{umID}
-		case op.Is(ent.OpUpdate):
+		} else if op.Is(ent.OpUpdate) {
 			affectedIDs, _ = m.IDs(ctx)
 		}
 		for _, userMembershipID := range affectedIDs {

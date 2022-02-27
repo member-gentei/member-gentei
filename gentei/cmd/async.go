@@ -42,14 +42,14 @@ var asyncCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal().Err(err).Msg("error calling pubsub.NewClient")
 		}
-		topic := ps.Topic(flagPubSubTopic)
-		defer topic.Flush()
-		membership.HookMembershipChanges(db, async.NewPubSubMembershipChangeHandler(ctx, topic))
+		botTopic := ps.Topic(flagPubSubTopic)
+		defer botTopic.Flush()
+		membership.HookMembershipChanges(db, async.NewPubSubMembershipChangeHandler(ctx, botTopic))
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			log.Info().Str("subscription", flagPubSubSubscription).Msg("listening to general pubsub subscription")
-			err = async.ListenGeneral(ctx, db, getYouTubeConfig(), ps.Subscription(flagPubSubSubscription))
+			err = async.ListenGeneral(ctx, db, getYouTubeConfig(), ps.Subscription(flagPubSubSubscription), botTopic)
 			if err != nil {
 				log.Fatal().Err(err).Msg("error calling async.ListenGeneral")
 			}

@@ -24,16 +24,23 @@ const (
 
 type GeneralPSMessage struct {
 	// TODO: remove next week.
-	UserRegistration    interface{}
+	UserRegistration    interface{}                 `json:",omitempty"`
+	UserDelete          json.Number                 `json:",omitempty"`
 	YouTubeRegistration *YouTubeRegistrationMessage `json:",omitempty"`
 }
 
 type ApplyMembershipPSMessage struct {
 	UserMembershipID int
 	Gained           bool
+
+	DeleteUserID json.Number `json:",omitempty"`
 }
 
 type YouTubeRegistrationMessage struct {
+	UserID json.Number
+}
+
+type UserDeleteMessage struct {
 	UserID json.Number
 }
 
@@ -48,6 +55,7 @@ func ListenGeneral(
 	db *ent.Client,
 	youTubeConfig *oauth2.Config,
 	subscription *pubsub.Subscription,
+	botTopic *pubsub.Topic,
 ) error {
 	return subscription.Receive(parentCtx, func(ctx context.Context, m *pubsub.Message) {
 		if typeAttribute := m.Attributes["type"]; typeAttribute != string(GeneralType) {
@@ -72,6 +80,7 @@ func ListenGeneral(
 				log.Err(err).
 					Str("unparsedUserID", message.YouTubeRegistration.UserID.String()).
 					Msg("error decoding UserID as uint64")
+				m.Ack()
 				return
 			}
 			if err := ProcessYouTubeRegistration(ctx, db, youTubeConfig, userID); err != nil {
@@ -81,9 +90,40 @@ func ListenGeneral(
 				return
 			}
 		}
+		if message.UserDelete.String() != "" {
+			userID, err := strconv.ParseUint(message.UserDelete.String(), 10, 64)
+			if err != nil {
+				log.Err(err).
+					Str("unparsedUserID", message.YouTubeRegistration.UserID.String()).
+					Msg("error decoding UserID as uint64")
+				m.Ack()
+				return
+			}
+			if err = ProcessUserDelete(ctx, db, botTopic, userID); err != nil {
+				log.Err(err).Uint64("userID", userID).Msg("error processing user deletion")
+			} else {
+				m.Ack()
+				return
+			}
+		}
 		m.Nack()
 		log.Warn().Str("data", string(m.Data)).Msg("nacking unhandled message - is this mid-deploy?")
 	})
+}
+
+func publishPubSubMessage(ctx context.Context, topic *pubsub.Topic, messageType PSMessageType, message interface{}) error {
+	marshalled, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+	pr := topic.Publish(ctx, &pubsub.Message{
+		Attributes: map[string]string{
+			"type": string(messageType),
+		},
+		Data: marshalled,
+	})
+	_, err = pr.Get(ctx)
+	return err
 }
 
 func init() {
