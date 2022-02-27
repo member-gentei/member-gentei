@@ -332,9 +332,19 @@ func (b *DiscordBot) handleInfo(ctx context.Context, i *discordgo.InteractionCre
 			if err != nil {
 				return nil, err
 			}
-			response = &discordgo.WebhookEdit{
-				Content: "Here's how this server is configured.",
-				Embeds:  commands.GetGuildInfoEmbeds(dg),
+			var (
+				embeds = commands.GetGuildInfoEmbeds(dg)
+			)
+			if len(embeds) > 10 {
+				response = &discordgo.WebhookEdit{
+					Content: fmt.Sprintf("Due to technical Discord limitations, we can only show 10 of the %d memberships configured for this server. Please go to https://gentei.tindabox.net/app to view membership info for the rest.", len(embeds)),
+					Embeds:  embeds[:10],
+				}
+			} else {
+				response = &discordgo.WebhookEdit{
+					Content: "Here's how this server is configured.",
+					Embeds:  embeds,
+				}
 			}
 		}
 		return response, nil
