@@ -24,79 +24,41 @@ import (
 )
 
 const (
-	eaCommandName          = "ea-gentei"
-	eaCommandDescription   = "Gentei membership management (early access/dev)"
-	prodCommandName        = "gentei"
+	commandName            = "gentei"
+	eaCommandDescription   = "Gentei membership management (early access)"
 	prodCommandDescription = "Gentei membership management"
 )
 
 var (
 	// TODO: maybe not hardcode this
 	earlyAccessGuilds = []string{
-		"929085334430556240",
 		"497603499190779914",
 	}
 	earlyAccessCommand = &discordgo.ApplicationCommand{
-		Name:        eaCommandName,
+		Name:        commandName,
 		Description: eaCommandDescription,
 		Options: []*discordgo.ApplicationCommandOption{
-			{
-				Name:        "info",
-				Description: "Show server and/or membership info",
-				Type:        discordgo.ApplicationCommandOptionSubCommand,
-			},
+			// info
+			globalCommand.Options[0],
+			// check
+			globalCommand.Options[1],
 			{
 				Name:        "manage",
 				Description: "Admin-only: manage memberships",
 				Type:        discordgo.ApplicationCommandOptionSubCommandGroup,
 				Options: []*discordgo.ApplicationCommandOption{
-					{
-						Name:        "map",
-						Description: "Change role mapping of a channel -> Discord role.",
-						Type:        discordgo.ApplicationCommandOptionSubCommand,
-						Options: []*discordgo.ApplicationCommandOption{
-							{
-								Name:        "youtube-channel-id",
-								Description: "The YouTube channel ID whose memberships should be monitored. (e.g. UCAL_ZudIZXhCDrniD4ZQobQ)",
-								Type:        discordgo.ApplicationCommandOptionString,
-								Required:    true,
-							},
-							{
-								Name:        "role",
-								Description: "The Discord role for members of this YouTube channel",
-								Type:        discordgo.ApplicationCommandOptionRole,
-								Required:    true,
-							},
-						},
-					},
-					{
-						Name:        "unmap",
-						Description: "Remove role mapping by referencing either the YouTube channel or Discord role.",
-						Type:        discordgo.ApplicationCommandOptionSubCommand,
-						Options: []*discordgo.ApplicationCommandOption{
-							{
-								Name:        "youtube-channel-id",
-								Description: "The YouTube channel ID whose memberships we should stop monitoring. (e.g. UCAL_ZudIZXhCDrniD4ZQobQ)",
-								Type:        discordgo.ApplicationCommandOptionString,
-							},
-							{
-								Name:        "role",
-								Description: "The Discord role for members of a YouTube channel",
-								Type:        discordgo.ApplicationCommandOptionRole,
-							},
-						},
-					},
+					// audit
+					globalCommand.Options[2].Options[0],
+					// map
+					globalCommand.Options[2].Options[1],
+					// unmap
+					globalCommand.Options[2].Options[2],
 				},
-			},
-			{
-				Name:        "check",
-				Description: "Check membership eligiblity.",
-				Type:        discordgo.ApplicationCommandOptionSubCommand,
 			},
 		},
 	}
 	globalCommand = &discordgo.ApplicationCommand{
-		Name:        prodCommandName,
+		Name:        commandName,
 		Description: prodCommandDescription,
 		Options: []*discordgo.ApplicationCommandOption{
 			{
@@ -111,12 +73,30 @@ var (
 			},
 			{
 				Name:        "manage",
-				Description: "Admin-only: manage memberships",
+				Description: "Admin-only: manage memberships and server settings",
 				Type:        discordgo.ApplicationCommandOptionSubCommandGroup,
 				Options: []*discordgo.ApplicationCommandOption{
 					{
+						Name:        "audit-set",
+						Description: "Set/change role management audit log settings.",
+						Type:        discordgo.ApplicationCommandOptionSubCommand,
+						Options: []*discordgo.ApplicationCommandOption{
+							{
+								Name:        "channel",
+								Description: "The Discord channel to recieve audit logs.",
+								Type:        discordgo.ApplicationCommandOptionChannel,
+								Required:    true,
+							},
+						},
+					},
+					{
+						Name:        "audit-off",
+						Description: "Turns off role management audit logs.",
+						Type:        discordgo.ApplicationCommandOptionSubCommand,
+					},
+					{
 						Name:        "map",
-						Description: "Change role mapping of a channel -> Discord role.",
+						Description: "Set/change role mapping of a channel -> Discord role.",
 						Type:        discordgo.ApplicationCommandOptionSubCommand,
 						Options: []*discordgo.ApplicationCommandOption{
 							{
@@ -182,6 +162,43 @@ func (b *DiscordBot) PushCommands(global, earlyAccess bool) error {
 			versions = append(versions, cmd.Version)
 		}
 		log.Info().Strs("versions", versions).Msg("push global command")
+	}
+	return nil
+}
+
+func (b *DiscordBot) ClearCommands(global, earlyAccess bool) error {
+	// get self - we might not have started a websocket
+	self, err := b.session.User("@me")
+	if err != nil {
+		return fmt.Errorf("error getting @me: %w", err)
+	}
+	if global {
+		globalCommands, err := b.session.ApplicationCommands(self.ID, "")
+		if err != nil {
+			return fmt.Errorf("error getting global commands: %w", err)
+		}
+		for _, c := range globalCommands {
+			err = b.session.ApplicationCommandDelete(c.ApplicationID, "", c.ID)
+			if err != nil {
+				return fmt.Errorf("error deleting global command: %w", err)
+			}
+			log.Info().Msg("cleared global command - it should take effect very soon")
+		}
+	}
+	if earlyAccess {
+		for _, guildID := range earlyAccessGuilds {
+			guildCommands, err := b.session.ApplicationCommands(self.ID, guildID)
+			if err != nil {
+				return fmt.Errorf("error getting commands for guild '%s': %w", guildID, err)
+			}
+			for _, c := range guildCommands {
+				err = b.session.ApplicationCommandDelete(c.ApplicationID, guildID, c.ID)
+				if err != nil {
+					return fmt.Errorf("error deleting guild command: %w", err)
+				}
+			}
+			log.Info().Str("guildID", guildID).Msg("cleared guild command")
+		}
 	}
 	return nil
 }
@@ -293,7 +310,7 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 					Uint64("roleID", role.ID).
 					Bool("shouldHaveRole", shouldHaveRole).
 					Msg("check: applying role")
-				err = b.applyRole(ctx, guildID, role.ID, userID, shouldHaveRole)
+				err = b.applyRole(ctx, guildID, role.ID, userID, shouldHaveRole, "/gentei check (on-demand)")
 				if err != nil {
 					logger.Err(err).Msg("error applying role during check")
 				}
@@ -365,6 +382,10 @@ func (b *DiscordBot) handleManage(ctx context.Context, i *discordgo.InteractionC
 			manageCmd := i.ApplicationCommandData().Options[0]
 			subcommand := manageCmd.Options[0]
 			switch subcommand.Name {
+			case "audit-set":
+				return b.handleManageAuditSet(ctx, logger, i, subcommand)
+			case "audit-off":
+				return b.handleManageAuditOff(ctx, logger, i, subcommand)
 			case "map":
 				return b.handleManageMap(ctx, logger, i, subcommand)
 			case "unmap":

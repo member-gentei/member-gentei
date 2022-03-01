@@ -156,7 +156,7 @@ func (b *DiscordBot) StartPSApplier(parentCtx context.Context, sub *pubsub.Subsc
 					m.Ack()
 				}
 				logger := log.With().Uint64("userID", userID).Logger()
-				err = b.revokeMembershipsByUserID(ctx, userID)
+				err = b.revokeMembershipsByUserID(ctx, userID, message.Reason)
 				if err != nil {
 					logger.Err(err).Msg("error revoking all memberships before deletion")
 					return
@@ -184,13 +184,13 @@ func (b *DiscordBot) StartPSApplier(parentCtx context.Context, sub *pubsub.Subsc
 				}
 				return
 			} else if message.Gained {
-				err = b.grantMemberships(ctx, b.db, message.UserMembershipID)
+				err = b.grantMemberships(ctx, b.db, message.UserMembershipID, message.Reason)
 				if err != nil {
 					log.Err(err).Msg("error granting memberships")
 					return
 				}
 			} else {
-				err = b.revokeMemberships(ctx, b.db, message.UserMembershipID)
+				err = b.revokeMemberships(ctx, b.db, message.UserMembershipID, message.Reason)
 				if err != nil {
 					log.Err(err).Msg("error revoking memberships")
 					return
@@ -211,7 +211,7 @@ func (b *DiscordBot) Close() error {
 	return b.session.Close()
 }
 
-func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint64, add bool) error {
+func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint64, add bool, auditReason string) error {
 	var (
 		guildIDStr = strconv.FormatUint(guildID, 10)
 		roleIDStr  = strconv.FormatUint(roleID, 10)
@@ -261,6 +261,9 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 	err = result.Error
 	if errors.Is(err, context.Canceled) {
 		err = nil
+	}
+	if err == nil {
+		b.auditLog(ctx, guildID, userID, roleID, add, auditReason)
 	}
 	log.Err(err).
 		Uint64("guildID", guildID).Uint64("userID", userID).Uint64("roleID", roleID).

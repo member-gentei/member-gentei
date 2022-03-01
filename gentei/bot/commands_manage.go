@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -13,6 +14,89 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 	"github.com/rs/zerolog"
 )
+
+func (b *DiscordBot) handleManageAuditSet(
+	ctx context.Context,
+	logger zerolog.Logger,
+	i *discordgo.InteractionCreate,
+	cmd *discordgo.ApplicationCommandInteractionDataOption,
+) (*discordgo.WebhookEdit, error) {
+	var (
+		options              = subcommandOptionsMap(cmd)
+		targetChannel        = options["channel"].ChannelValue(b.session)
+		targetChannelID, err = strconv.ParseUint(targetChannel.ID, 10, 64)
+	)
+	if err != nil {
+		return nil, err
+	}
+	guildID, _, err := getMessageAttributionIDs(i)
+	if err != nil {
+		return nil, err
+	}
+	// check if anything changed
+	dg, err := b.db.Guild.Get(ctx, guildID)
+	if err != nil {
+		return nil, err
+	}
+	if dg.AuditChannel == targetChannelID {
+		return &discordgo.WebhookEdit{
+			Content: fmt.Sprintf("%s is already the configured audit log channel for this Discord server.", targetChannel.Mention()),
+		}, nil
+	}
+	// test that we can actually send messages to this channel
+	_, err = b.session.ChannelMessageSend(targetChannel.ID, ":wave: checking that this bot has permissions to send messages to this channel. Feel free to delete this message.")
+	if err != nil {
+		var restErr *discordgo.RESTError
+		if errors.As(err, &restErr) {
+			if restErr.Message != nil && restErr.Message.Code == discordgo.ErrCodeMissingAccess {
+				return &discordgo.WebhookEdit{
+					Content: "We don't have permission to send messages to that test channel. Please re-run this command after granting the bot permission to do so.",
+				}, nil
+			}
+		}
+		return nil, err
+	}
+	err = b.db.Guild.UpdateOneID(dg.ID).
+		SetAuditChannel(targetChannelID).
+		Exec(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error setting Guild.AuditChannel: %w", err)
+	}
+	return &discordgo.WebhookEdit{
+		Content: fmt.Sprintf("Role changes performed by this bot will now be posted to %s.", targetChannel.Mention()),
+	}, nil
+}
+
+func (b *DiscordBot) handleManageAuditOff(
+	ctx context.Context,
+	logger zerolog.Logger,
+	i *discordgo.InteractionCreate,
+	cmd *discordgo.ApplicationCommandInteractionDataOption,
+) (*discordgo.WebhookEdit, error) {
+	guildID, _, err := getMessageAttributionIDs(i)
+	if err != nil {
+		return nil, err
+	}
+	// check if anything changed
+	dg, err := b.db.Guild.Get(ctx, guildID)
+	if err != nil {
+		return nil, err
+	}
+	if dg.AuditChannel == 0 {
+		return &discordgo.WebhookEdit{
+			Content: "No audit log channel is configured for this server.",
+		}, nil
+	}
+	err = b.db.Guild.UpdateOneID(dg.ID).
+		SetAuditChannel(0).
+		Exec(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error unsetting audit log channel: %w", err)
+	}
+	return &discordgo.WebhookEdit{
+		Content: fmt.Sprintf("<#%d> will no longer receive audit log messages.", dg.AuditChannel),
+	}, nil
+}
 
 func (b *DiscordBot) handleManageMap(
 	ctx context.Context,
@@ -75,7 +159,7 @@ func (b *DiscordBot) handleManageMap(
 		return nil, err
 	}
 	// add and remove self from role to make sure it works
-	err = b.applyRole(ctx, guildID, roleID, botUserID, true)
+	err = b.applyRole(ctx, guildID, roleID, botUserID, true, "role permissions test")
 	if err != nil {
 		return &discordgo.WebhookEdit{
 			Content: templates.MustRender(templates.RolePermissionFailure, templates.RolePermissionFailureContext{
@@ -84,7 +168,7 @@ func (b *DiscordBot) handleManageMap(
 			}),
 		}, err
 	}
-	err = b.applyRole(ctx, guildID, roleID, botUserID, false)
+	err = b.applyRole(ctx, guildID, roleID, botUserID, false, "role permissions test")
 	if err != nil {
 		return &discordgo.WebhookEdit{
 			Content: templates.MustRender(templates.RolePermissionFailure, templates.RolePermissionFailureContext{

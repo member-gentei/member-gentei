@@ -508,8 +508,11 @@ type guildResponse struct {
 	Name          string
 	Icon          string
 	TalentIDs     []string `json:",omitempty"`
-	AdminIDs      []string
 	RolesByTalent map[string]roleInfo
+
+	// admin-only fields
+	AdminIDs          []string `json:",omitempty"`
+	AuditLogChannelID string   `json:",omitempty"`
 }
 
 type roleInfo struct {
@@ -631,7 +634,10 @@ func getGuild(db *ent.Client) echo.HandlerFunc {
 		for i := range dg.Edges.YoutubeTalents {
 			talentIDs[i] = dg.Edges.YoutubeTalents[i].ID
 		}
-		return c.JSON(http.StatusOK, makeGuildResponse(dg))
+		return c.JSON(
+			http.StatusOK,
+			makeGuildResponse(dg, isServerAdmin(dg, userID)),
+		)
 	}
 }
 
@@ -748,7 +754,7 @@ func patchGuild(db *ent.Client) echo.HandlerFunc {
 				return err
 			}
 		}
-		return c.JSON(http.StatusOK, makeGuildResponse(dg))
+		return c.JSON(http.StatusOK, makeGuildResponse(dg, true))
 	}
 }
 

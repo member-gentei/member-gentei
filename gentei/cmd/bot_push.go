@@ -12,6 +12,7 @@ import (
 var (
 	flagPushEA     bool
 	flagPushGlobal bool
+	flagPushClear  bool
 )
 
 // botPushCmd represents the push command
@@ -33,9 +34,16 @@ var botPushCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal().Err(err).Msg("error creating Discord bot")
 		}
-		err = dgBot.PushCommands(flagPushGlobal, flagPushEA)
-		if err != nil {
-			log.Fatal().Err(err).Msg("error pushing commands")
+		if flagPushClear {
+			err = dgBot.ClearCommands(flagPushGlobal, flagPushEA)
+			if err != nil {
+				log.Fatal().Err(err).Msg("error clearing commands")
+			}
+		} else {
+			err = dgBot.PushCommands(flagPushGlobal, flagPushEA)
+			if err != nil {
+				log.Fatal().Err(err).Msg("error pushing commands")
+			}
 		}
 	},
 }
@@ -45,4 +53,5 @@ func init() {
 	flags := botPushCmd.Flags()
 	flags.BoolVar(&flagPushEA, "early-access", false, "push early access commands")
 	flags.BoolVar(&flagPushGlobal, "global", false, "push global/prod commands")
+	flags.BoolVar(&flagPushClear, "clear", false, "clear commands")
 }

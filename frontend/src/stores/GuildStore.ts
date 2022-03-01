@@ -18,6 +18,7 @@ interface Guild {
       Name: string;
     };
   };
+  AuditLogChannelID?: string;
 }
 
 interface patchGuildError {

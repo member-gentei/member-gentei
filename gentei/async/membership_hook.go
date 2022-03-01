@@ -10,9 +10,15 @@ import (
 )
 
 type psMembershipChangeHandler struct {
-	ctx   context.Context
-	topic *pubsub.Topic
+	ctx    context.Context
+	topic  *pubsub.Topic
+	reason string
+
 	membership.ChangeHandler
+}
+
+func (p *psMembershipChangeHandler) SetChangeReason(reason string) {
+	p.reason = reason
 }
 
 func (p *psMembershipChangeHandler) GainedMembership(userMembershipID int) {
@@ -20,6 +26,7 @@ func (p *psMembershipChangeHandler) GainedMembership(userMembershipID int) {
 		ApplyMembershipPSMessage{
 			UserMembershipID: userMembershipID,
 			Gained:           true,
+			Reason:           p.reason,
 		},
 	)
 }
@@ -28,6 +35,7 @@ func (p *psMembershipChangeHandler) LostMembership(userMembershipID int) {
 		ApplyMembershipPSMessage{
 			UserMembershipID: userMembershipID,
 			Gained:           false,
+			Reason:           p.reason,
 		},
 	)
 }

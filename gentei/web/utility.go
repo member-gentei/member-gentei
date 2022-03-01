@@ -172,7 +172,7 @@ func createOrAssociateTalentsToGuild(ctx context.Context, db *ent.Client, guildI
 	return nil
 }
 
-func makeGuildResponse(dg *ent.Guild) guildResponse {
+func makeGuildResponse(dg *ent.Guild, adminView bool) guildResponse {
 	var talentIDs []string
 	if len(dg.Edges.YoutubeTalents) > 0 {
 		talentIDs = make([]string, 0, len(dg.Edges.YoutubeTalents))
@@ -180,9 +180,17 @@ func makeGuildResponse(dg *ent.Guild) guildResponse {
 			talentIDs = append(talentIDs, t.ID)
 		}
 	}
-	var adminIDs []string
-	for _, id := range dg.AdminSnowflakes {
-		adminIDs = append(adminIDs, strconv.FormatUint(id, 10))
+	var (
+		adminIDs          []string
+		auditLogChannelID string
+	)
+	if adminView {
+		for _, id := range dg.AdminSnowflakes {
+			adminIDs = append(adminIDs, strconv.FormatUint(id, 10))
+		}
+		if dg.AuditChannel != 0 {
+			auditLogChannelID = strconv.FormatUint(dg.AuditChannel, 10)
+		}
 	}
 	roleInfoMap := map[string]roleInfo{}
 	for _, role := range dg.Edges.Roles {
@@ -193,12 +201,13 @@ func makeGuildResponse(dg *ent.Guild) guildResponse {
 		}
 	}
 	return guildResponse{
-		ID:            strconv.FormatUint(dg.ID, 10),
-		Name:          dg.Name,
-		Icon:          dg.IconHash,
-		TalentIDs:     talentIDs,
-		AdminIDs:      adminIDs,
-		RolesByTalent: roleInfoMap,
+		ID:                strconv.FormatUint(dg.ID, 10),
+		Name:              dg.Name,
+		Icon:              dg.IconHash,
+		TalentIDs:         talentIDs,
+		RolesByTalent:     roleInfoMap,
+		AdminIDs:          adminIDs,
+		AuditLogChannelID: auditLogChannelID,
 	}
 }
 
@@ -216,4 +225,13 @@ func getChannelIDForYouTubeToken(ctx context.Context, ts oauth2.TokenSource) (st
 		return "", err
 	}
 	return clr.Items[0].Id, nil
+}
+
+func isServerAdmin(dg *ent.Guild, userID uint64) bool {
+	for _, id := range dg.AdminSnowflakes {
+		if id == userID {
+			return true
+		}
+	}
+	return false
 }

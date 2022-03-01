@@ -118,7 +118,7 @@ function AdminServerSnippetInner({ guildID }: AdminServerSnippetProps) {
                 </td>
               </tr>
               <tr>
-                <th>Memberships</th>
+                <th>Membership roles</th>
                 <td>{Object.keys(guild.RolesByTalent).length}</td>
               </tr>
             </tbody>

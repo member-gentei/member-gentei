@@ -32,6 +32,7 @@ type GeneralPSMessage struct {
 type ApplyMembershipPSMessage struct {
 	UserMembershipID int
 	Gained           bool
+	Reason           string
 
 	DeleteUserID json.Number `json:",omitempty"`
 }
@@ -56,6 +57,7 @@ func ListenGeneral(
 	youTubeConfig *oauth2.Config,
 	subscription *pubsub.Subscription,
 	botTopic *pubsub.Topic,
+	setChangeReason func(string),
 ) error {
 	return subscription.Receive(parentCtx, func(ctx context.Context, m *pubsub.Message) {
 		if typeAttribute := m.Attributes["type"]; typeAttribute != string(GeneralType) {
@@ -83,7 +85,7 @@ func ListenGeneral(
 				m.Ack()
 				return
 			}
-			if err := ProcessYouTubeRegistration(ctx, db, youTubeConfig, userID); err != nil {
+			if err := ProcessYouTubeRegistration(ctx, db, youTubeConfig, userID, setChangeReason); err != nil {
 				log.Err(err).Uint64("userID", userID).Msg("error processing user registration")
 			} else {
 				m.Ack()
