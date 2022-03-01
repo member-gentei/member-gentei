@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -92,7 +93,10 @@ func CheckForUser(
 		nonMemberChannelIDs          []string
 	)
 	for _, talent := range talents {
-		logger := log.With().Str("channelID", talent.ID).Logger()
+		logger := log.With().
+			Str("userID", strconv.FormatUint(userID, 10)).
+			Str("channelID", talent.ID).
+			Logger()
 		logger.Debug().Msg("checking membership for channel")
 		// if we don't have a membership video ID for this talent, try to get one using a possibly eligible user every ~24 hours
 		if talent.MembershipVideoID == "" {
