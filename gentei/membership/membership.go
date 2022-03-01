@@ -125,6 +125,7 @@ func CheckForUser(
 		_, err = svc.CommentThreads.
 			List([]string{"id"}).
 			VideoId(talent.MembershipVideoID).Do()
+		logger.Info().Str("videoID", talent.MembershipVideoID).Msg("CommentThreads.List")
 		if err != nil {
 			var gErr *googleapi.Error
 			if errors.As(err, &gErr) {
