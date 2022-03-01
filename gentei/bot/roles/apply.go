@@ -33,8 +33,12 @@ func ApplyRole(applyCtx context.Context, session *discordgo.Session, guildID, us
 		roleIDStr  = strconv.FormatUint(roleID, 10)
 		userIDStr  = strconv.FormatUint(userID, 10)
 		resultChan = make(chan ApplyRoleResult, 1)
-		baseLogger = log.With().Uint64("guildID", guildID).Uint64("userID", userID).Uint64("roleID", roleID).Logger()
-		applyRole  func() error
+		baseLogger = log.With().
+				Str("guildID", strconv.FormatUint(guildID, 10)).
+				Str("userID", strconv.FormatUint(userID, 10)).
+				Str("roleID", strconv.FormatUint(roleID, 10)).
+				Logger()
+		applyRole func() error
 	)
 	if add {
 		applyRole = func() error {

@@ -20,7 +20,11 @@ var (
 func (b *DiscordBot) auditLog(ctx context.Context, guildID, userID, roleID uint64, add bool, reason string) {
 	// TODO: cache the audit log channel ID heavily
 	var (
-		logger    = log.With().Uint64("guildID", guildID).Uint64("userID", userID).Uint64("roleID", roleID).Logger()
+		logger = log.With().
+			Str("guildID", strconv.FormatUint(guildID, 10)).
+			Str("userID", strconv.FormatUint(userID, 10)).
+			Str("roleID", strconv.FormatUint(roleID, 10)).
+			Logger()
 		avatarURL string
 	)
 	dg, err := b.db.Guild.Query().
@@ -46,7 +50,7 @@ func (b *DiscordBot) auditLog(ctx context.Context, guildID, userID, roleID uint6
 		avatarURL = dgUser.AvatarURL("")
 	}
 	// send audit log message
-	logger = logger.With().Uint64("auditChannel", dg.AuditChannel).Logger()
+	logger = logger.With().Str("auditChannel", strconv.FormatUint(dg.AuditChannel, 10)).Logger()
 	_, err = b.session.ChannelMessageSendEmbed(
 		strconv.FormatUint(dg.AuditChannel, 10),
 		commands.CreateAuditLogEmbed(userID, avatarURL, roleID, reason, add),

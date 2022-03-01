@@ -87,13 +87,14 @@ func ListenGeneral(
 				m.Ack()
 				return
 			}
+			logger := log.With().Str("userID", strconv.FormatUint(userID, 10)).Logger()
 			if err := ProcessYouTubeRegistration(ctx, db, youTubeConfig, userID, setChangeReason); err != nil {
 				if errors.Is(err, apis.ErrNoYouTubeTokenForUser) {
-					log.Warn().Err(err).Uint64("userID", userID).Msg("acking YouTube registration with errors")
+					logger.Warn().Err(err).Msg("acking YouTube registration with errors")
 					m.Ack()
 					return
 				}
-				log.Err(err).Uint64("userID", userID).Msg("error processing YouTube registration")
+				logger.Err(err).Msg("error processing YouTube registration")
 			} else {
 				m.Ack()
 				return
@@ -109,7 +110,7 @@ func ListenGeneral(
 				return
 			}
 			if err = ProcessUserDelete(ctx, db, botTopic, userID); err != nil {
-				log.Err(err).Uint64("userID", userID).Msg("error processing user deletion")
+				log.Err(err).Str("userID", strconv.FormatUint(userID, 10)).Msg("error processing user deletion")
 			} else {
 				m.Ack()
 				return

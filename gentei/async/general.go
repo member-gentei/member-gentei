@@ -37,7 +37,7 @@ func ProcessYouTubeRegistration(ctx context.Context, db *ent.Client, youTubeConf
 	if err != nil {
 		return fmt.Errorf("error saving memberships for user: %w", err)
 	}
-	log.Info().Uint64("userID", userID).Time("lastCheck", lastCheckTime).Msg("setting last check time")
+	log.Info().Str("userID", strconv.FormatUint(userID, 10)).Time("lastCheck", lastCheckTime).Msg("setting last check time")
 	err = db.User.UpdateOneID(userID).
 		SetLastCheck(time.Now()).
 		Exec(ctx)
@@ -50,6 +50,7 @@ func ProcessYouTubeRegistration(ctx context.Context, db *ent.Client, youTubeConf
 // ProcessUserDelete revokes tokens and tells the bot to delete the user.
 // The bot has to delete the user because it'll communicate the final role removals + user deletion, and at that point why have the async queue require another message?
 func ProcessUserDelete(ctx context.Context, db *ent.Client, topic *pubsub.Topic, userID uint64) error {
+	logger := log.With().Str("userID", strconv.FormatUint(userID, 10)).Logger()
 	// revoke tokens
 	u, err := db.User.Get(ctx, userID)
 	if err != nil {
@@ -58,14 +59,14 @@ func ProcessUserDelete(ctx context.Context, db *ent.Client, topic *pubsub.Topic,
 	if u.DiscordToken != nil {
 		err = revokeDiscordToken(ctx, u.DiscordToken)
 		if err != nil {
-			log.Err(err).Uint64("userID", userID).Msg("error revoking Discord token, proceeding to delete")
+			logger.Err(err).Msg("error revoking Discord token, proceeding to delete")
 		}
 		err = nil
 	}
 	if u.YoutubeToken != nil {
 		err = revokeYouTubeToken(ctx, u.YoutubeToken)
 		if err != nil {
-			log.Err(err).Uint64("userID", userID).Msg("error revoking YouTube token, proceeding to delete")
+			logger.Err(err).Msg("error revoking YouTube token, proceeding to delete")
 		}
 		err = nil
 	}

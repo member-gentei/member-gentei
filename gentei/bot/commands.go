@@ -242,7 +242,10 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 				return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
 			}
 			var (
-				logger = log.With().Uint64("userID", userID).Uint64("guildID", guildID).Logger()
+				logger = log.With().
+					Str("userID", strconv.FormatUint(userID, 10)).
+					Str("guildID", strconv.FormatUint(guildID, 10)).
+					Logger()
 			)
 			talents, err := b.db.YouTubeTalent.Query().
 				Where(youtubetalent.HasGuildsWith(guild.ID(guildID))).
@@ -307,7 +310,7 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 			for _, role := range roles {
 				shouldHaveRole := len(role.Edges.UserMemberships) > 0
 				logger.Debug().
-					Uint64("roleID", role.ID).
+					Str("roleID", strconv.FormatUint(role.ID, 10)).
 					Bool("shouldHaveRole", shouldHaveRole).
 					Msg("check: applying role")
 				err = b.applyRole(ctx, guildID, role.ID, userID, shouldHaveRole, "/gentei check (on-demand)")
