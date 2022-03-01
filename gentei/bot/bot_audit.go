@@ -49,7 +49,7 @@ func (b *DiscordBot) auditLog(ctx context.Context, guildID, userID, roleID uint6
 	logger = logger.With().Uint64("auditChannel", dg.AuditChannel).Logger()
 	_, err = b.session.ChannelMessageSendEmbed(
 		strconv.FormatUint(dg.AuditChannel, 10),
-		commands.CreateAuditLogEmbed(userID, avatarURL, reason, add),
+		commands.CreateAuditLogEmbed(userID, avatarURL, roleID, reason, add),
 	)
 	// TODO: nag admins instead of me about things not working
 	if err != nil && lastAuditLogNagTimes[dg.AuditChannel].Before(time.Now().Add(-time.Duration(time.Hour*24))) {

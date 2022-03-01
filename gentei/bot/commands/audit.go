@@ -11,6 +11,7 @@ import (
 // CreateAuditLogEmbed creates the embed used for audit log messages.
 func CreateAuditLogEmbed(
 	userID uint64, userAvatarURL string,
+	roleID uint64,
 	reason string,
 	add bool,
 ) *discordgo.MessageEmbed {
@@ -21,10 +22,10 @@ func CreateAuditLogEmbed(
 	)
 	if add {
 		color = 0x00bd00
-		action = "Add role"
+		action = fmt.Sprintf("Grant <@&%d>", roleID)
 	} else {
 		color = 0xbd0000
-		action = "Remove role"
+		action = fmt.Sprintf("Revoke <@&%d>", roleID)
 	}
 	embed := &discordgo.MessageEmbed{
 		Color: color,

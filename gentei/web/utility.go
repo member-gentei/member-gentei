@@ -188,7 +188,7 @@ func makeGuildResponse(dg *ent.Guild, adminView bool) guildResponse {
 		for _, id := range dg.AdminSnowflakes {
 			adminIDs = append(adminIDs, strconv.FormatUint(id, 10))
 		}
-		if dg.Settings != nil {
+		if dg.AuditChannel != 0 {
 			auditLogChannelID = strconv.FormatUint(dg.AuditChannel, 10)
 		}
 	}

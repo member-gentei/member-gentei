@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -14,7 +15,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (b *DiscordBot) handleManageAuditLog(
+func (b *DiscordBot) handleManageAuditSet(
 	ctx context.Context,
 	logger zerolog.Logger,
 	i *discordgo.InteractionCreate,
@@ -45,7 +46,14 @@ func (b *DiscordBot) handleManageAuditLog(
 	// test that we can actually send messages to this channel
 	_, err = b.session.ChannelMessageSend(targetChannel.ID, ":wave: checking that this bot has permissions to send messages to this channel. Feel free to delete this message.")
 	if err != nil {
-		logger.Info().Err(err).Msg("error sending test message to audit log channel")
+		var restErr *discordgo.RESTError
+		if errors.As(err, &restErr) {
+			if restErr.Message != nil && restErr.Message.Code == discordgo.ErrCodeMissingAccess {
+				return &discordgo.WebhookEdit{
+					Content: "We don't have permission to send messages to that test channel. Please re-run this command after granting the bot permission to do so.",
+				}, nil
+			}
+		}
 		return nil, err
 	}
 	err = b.db.Guild.UpdateOneID(dg.ID).
@@ -59,7 +67,7 @@ func (b *DiscordBot) handleManageAuditLog(
 	}, nil
 }
 
-func (b *DiscordBot) handleManageUnsetAuditLog(
+func (b *DiscordBot) handleManageAuditOff(
 	ctx context.Context,
 	logger zerolog.Logger,
 	i *discordgo.InteractionCreate,
