@@ -5,10 +5,12 @@ package async
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strconv"
 	"time"
 
 	"cloud.google.com/go/pubsub"
+	"github.com/member-gentei/member-gentei/gentei/apis"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
@@ -86,7 +88,12 @@ func ListenGeneral(
 				return
 			}
 			if err := ProcessYouTubeRegistration(ctx, db, youTubeConfig, userID, setChangeReason); err != nil {
-				log.Err(err).Uint64("userID", userID).Msg("error processing user registration")
+				if errors.Is(err, apis.ErrNoYouTubeTokenForUser) {
+					log.Warn().Err(err).Uint64("userID", userID).Msg("acking YouTube registration with errors")
+					m.Ack()
+					return
+				}
+				log.Err(err).Uint64("userID", userID).Msg("error processing YouTube registration")
 			} else {
 				m.Ack()
 				return
