@@ -135,6 +135,11 @@ func CheckForUser(
 			if errors.As(err, &gErr) {
 				logger.Debug().Interface("gErr", gErr).Msg("membership check encountered googleapi.Error")
 				if gErr.Code == 403 {
+					if apis.IsCommentsDisabledErr(gErr) {
+						// if comments are disabled on this video, we need to select a new video.
+						err = gErr
+						return
+					}
 					// not a member
 					checkTimestamps[talent.ID] = time.Now()
 					nonMemberChannelIDs = append(nonMemberChannelIDs, talent.ID)

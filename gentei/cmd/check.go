@@ -32,11 +32,18 @@ var checkCmd = &cobra.Command{
 			db       = mustOpenDB(ctx)
 			ytConfig = getYouTubeConfig()
 			results  *membership.CheckResultSet
+			options  *membership.CheckForUserOptions
 			err      error
 		)
+		for _, chID := range flagCheckChannelIDs {
+			if options == nil {
+				options = &membership.CheckForUserOptions{}
+			}
+			options.ChannelIDs = append(options.ChannelIDs, chID)
+		}
 		if flagCheckUserID != 0 {
 			// check single user ID
-			results, err = membership.CheckForUser(ctx, db, ytConfig, flagCheckUserID, nil)
+			results, err = membership.CheckForUser(ctx, db, ytConfig, flagCheckUserID, options)
 			if err != nil {
 				log.Fatal().Err(err).Msg("error checking memberships for user")
 			}

@@ -110,6 +110,17 @@ func SelectRandomMembersOnlyVideoID(ctx context.Context, svc *youtube.Service, c
 	return ilr.Items[mustRandInt(len(ilr.Items))].Snippet.ResourceId.VideoId, nil
 }
 
+func IsCommentsDisabledErr(err *googleapi.Error) bool {
+	if err.Code == 403 {
+		for _, item := range err.Errors {
+			if item.Reason == "commentsDisabled" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func mustRandInt(max int) int {
 	i, err := randInt(max)
 	if err != nil {
