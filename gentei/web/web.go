@@ -271,7 +271,9 @@ func loginYouTube(db *ent.Client, youtubeConfig *oauth2.Config, topic *pubsub.To
 		if err != nil {
 			return err
 		}
-		logger := log.With().Uint64("userID", userID).Logger()
+		logger := log.With().
+			Str("userID", claims.Id).
+			Logger()
 		token, err := youtubeConfig.Exchange(ctx, data.Code)
 		var (
 			retErr *oauth2.RetrieveError
@@ -323,7 +325,8 @@ func loginYouTube(db *ent.Client, youtubeConfig *oauth2.Config, topic *pubsub.To
 			return err
 		}
 		if topic == nil {
-			log.Warn().Uint64("userID", userID).
+			log.Warn().
+				Str("userID", claims.Id).
 				Msg("async pubsub topic unspecified, would've sent YouTubeRegistration message")
 		} else {
 			err = async.PublishGeneralMessage(ctx, topic, async.GeneralPSMessage{

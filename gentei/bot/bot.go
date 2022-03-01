@@ -69,7 +69,7 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 			return
 		}
 		logger := log.With().
-			Uint64("guildID", guildID).
+			Str("guildID", strconv.FormatUint(guildID, 10)).
 			Str("guildName", gc.Name).
 			Logger()
 		logger.Info().Msg("joined Guild")
@@ -100,7 +100,7 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 			return
 		}
 		logger := log.With().
-			Uint64("guildID", guildID).
+			Str("guildID", strconv.FormatUint(guildID, 10)).
 			Str("guildName", gu.Name).
 			Logger()
 		// update if guild and info exists
@@ -155,7 +155,7 @@ func (b *DiscordBot) StartPSApplier(parentCtx context.Context, sub *pubsub.Subsc
 						Msg("error decoding UserID as uint64")
 					m.Ack()
 				}
-				logger := log.With().Uint64("userID", userID).Logger()
+				logger := log.With().Str("userID", strconv.FormatUint(userID, 10)).Logger()
 				err = b.revokeMembershipsByUserID(ctx, userID, message.Reason)
 				if err != nil {
 					logger.Err(err).Msg("error revoking all memberships before deletion")
@@ -266,7 +266,7 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 		b.auditLog(ctx, guildID, userID, roleID, add, auditReason)
 	}
 	log.Err(err).
-		Uint64("guildID", guildID).Uint64("userID", userID).Uint64("roleID", roleID).
+		Str("guildID", strconv.FormatUint(guildID, 10)).Str("userID", strconv.FormatUint(userID, 10)).Str("roleID", strconv.FormatUint(roleID, 10)).
 		Int("attempts", result.Attempts).
 		Msg("role apply attempt finished")
 	return err

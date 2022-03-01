@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
@@ -108,7 +109,7 @@ func (b *DiscordBot) revokeMembershipsByUserID(ctx context.Context, userID uint6
 		).
 		All(ctx)
 	if err != nil {
-		log.Err(err).Uint64("userID", userID).
+		log.Err(err).Str("userID", strconv.FormatUint(userID, 10)).
 			Msg("failed to query existing GuildRole objects for wide revoke")
 		return err
 	}
@@ -128,8 +129,8 @@ func (b *DiscordBot) revokeMembershipsByUserID(ctx context.Context, userID uint6
 func (b *DiscordBot) revokeMembership(ctx context.Context, baseLogger zerolog.Logger, guildID, roleID, userID uint64, reason string) {
 	var (
 		logger = baseLogger.With().
-			Uint64("guildID", guildID).
-			Uint64("roleID", roleID).
+			Str("guildID", strconv.FormatUint(guildID, 10)).
+			Str("roleID", strconv.FormatUint(roleID, 10)).
 			Logger()
 	)
 	err := b.applyRole(ctx, guildID, roleID, userID, false, reason)
@@ -153,8 +154,8 @@ func (b *DiscordBot) grantRole(
 		guildID    = guildRole.Edges.Guild.ID
 		roleID     = guildRole.ID
 		roleLogger = logger.With().
-				Uint64("guildID", guildID).
-				Uint64("roleID", roleID).
+				Str("guildID", strconv.FormatUint(guildID, 10)).
+				Str("roleID", strconv.FormatUint(roleID, 10)).
 				Str("talentID", guildRole.Edges.Talent.ID).
 				Logger()
 	)

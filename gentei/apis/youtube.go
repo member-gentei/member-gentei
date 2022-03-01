@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -66,7 +67,7 @@ func refreshingTokenSourceNotify(ctx context.Context, db *ent.Client, userID uin
 	if u.YoutubeToken == nil {
 		return nil, ErrNoYouTubeTokenForUser
 	}
-	logger := log.With().Uint64("userID", userID).Logger()
+	logger := log.With().Str("userID", strconv.FormatUint(userID, 10)).Logger()
 	notify := tokensource.NewNotifyHook(ctx, config, u.YoutubeToken, func(token *oauth2.Token) error {
 		logger.Debug().Msg("YouTube token for user refreshed")
 		return db.User.UpdateOneID(userID).
