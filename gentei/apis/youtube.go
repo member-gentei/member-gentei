@@ -2,17 +2,17 @@ package apis
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
+	irand "math/rand"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/member-gentei/member-gentei/gentei/ent"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/googleapi"
@@ -92,22 +92,70 @@ func scavengeRetrieveError(err error) (*oauth2.RetrieveError, bool) {
 	return nil, false
 }
 
-// SelectRandomMembersOnlyVideoID chooses a random members-only video. Used to populate initial members-only video checks.
-func SelectRandomMembersOnlyVideoID(ctx context.Context, svc *youtube.Service, channelID string) (string, error) {
+var (
+	errStopPagination = errors.New("pls stop")
+)
+
+// SelectRandomMembersOnlyVideoID chooses a random members-only video that has comments enabled.
+func SelectRandomMembersOnlyVideoID(
+	ctx context.Context,
+	logger zerolog.Logger,
+	svc *youtube.Service,
+	channelID string,
+) (string, error) {
 	membersOnlyPlaylistID := fmt.Sprintf("UUMO%s", channelID[2:])
-	ilr, err := svc.PlaylistItems.List([]string{"snippet"}).
-		PlaylistId(membersOnlyPlaylistID).Do()
-	if err != nil {
+	var (
+		membersOnlyVideoID string
+	)
+	err := svc.PlaylistItems.List([]string{"snippet"}).
+		PlaylistId(membersOnlyPlaylistID).
+		MaxResults(50).
+		Pages(ctx, func(pilr *youtube.PlaylistItemListResponse) error {
+			if len(pilr.Items) == 0 {
+				return ErrNoMembersOnlyVideos
+			}
+			// shuffle the current page
+			irand.Shuffle(len(pilr.Items), func(i, j int) {
+				pilr.Items[i], pilr.Items[j] = pilr.Items[j], pilr.Items[i]
+			})
+			for _, item := range pilr.Items {
+				videoID := item.Snippet.ResourceId.VideoId
+				// perform membership check
+				_, ctlErr := svc.CommentThreads.
+					List([]string{"id"}).
+					VideoId(videoID).Do()
+				vidLogger := logger.With().Str("videoID", videoID).Bool("selectVideoID", true).Logger()
+				vidLogger.Info().Msg("CommentThreads.List")
+				if ctlErr != nil {
+					var gErr *googleapi.Error
+					if errors.As(ctlErr, &gErr) {
+						if IsCommentsDisabledErr(gErr) {
+							vidLogger.Info().Msg("comments disabled on video")
+							continue
+						}
+						if gErr.Code == 403 {
+							// this is fine! we just don't have permissions on this video.
+							membersOnlyVideoID = videoID
+							return errStopPagination
+						}
+					}
+					vidLogger.Err(ctlErr).Msg("error checking members-only video validity")
+					return ctlErr
+				}
+
+			}
+			return nil
+		})
+	if errors.Is(err, errStopPagination) {
+		err = nil
+	} else if err != nil {
 		var gErr *googleapi.Error
 		if errors.As(err, &gErr) && gErr.Code == 404 {
 			return "", ErrNoMembersOnlyVideos
 		}
 		return "", err
 	}
-	if len(ilr.Items) == 0 {
-		return "", ErrNoMembersOnlyVideos
-	}
-	return ilr.Items[mustRandInt(len(ilr.Items))].Snippet.ResourceId.VideoId, nil
+	return membersOnlyVideoID, nil
 }
 
 func IsCommentsDisabledErr(err *googleapi.Error) bool {
@@ -119,26 +167,4 @@ func IsCommentsDisabledErr(err *googleapi.Error) bool {
 		}
 	}
 	return false
-}
-
-func mustRandInt(max int) int {
-	i, err := randInt(max)
-	if err != nil {
-		panic(err)
-	}
-	return i
-}
-
-func randInt(max int) (int, error) {
-	if max == 0 {
-		return -1, errors.New("max must be > 0")
-	}
-	if max == 1 {
-		return 0, nil
-	}
-	bigInt, err := rand.Int(rand.Reader, big.NewInt(int64(max)))
-	if err != nil {
-		return 0, err
-	}
-	return int(bigInt.Int64()), nil
 }
