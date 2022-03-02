@@ -292,6 +292,7 @@ func SaveMemberships(
 			Where(
 				usermembership.HasYoutubeTalentWith(
 					youtubetalent.ID(c.ChannelID),
+					youtubetalent.DisabledNotNil(),
 				),
 			).
 			AddFailCount(1).
@@ -330,7 +331,13 @@ func checkSingleMembership(
 					Msg("missing video or comments disabled on membership check video, getting a new one")
 				newVideoID, selectErr := apis.SelectRandomMembersOnlyVideoID(ctx, logger, svc, channelID)
 				if selectErr != nil {
-					logger.Err(err).Msg("error getting new membership check video")
+					logger.Err(err).Msg("error getting new membership check video, disabling checks for channel")
+					disableErr := db.YouTubeTalent.UpdateOneID(channelID).
+						SetDisabled(time.Now()).
+						Exec(ctx)
+					if disableErr != nil {
+						logger.Err(err).Msg("error disabling checks on channel")
+					}
 					err = selectErr
 					return
 				}
