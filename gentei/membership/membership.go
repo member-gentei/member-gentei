@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/member-gentei/member-gentei/gentei/apis"
@@ -16,9 +15,11 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/googleapi"
+	"google.golang.org/api/youtube/v3"
 )
 
 type CheckForUserOptions struct {
@@ -126,50 +127,16 @@ func CheckForUser(
 			}
 		}
 		// perform membership check
-		_, err = svc.CommentThreads.
-			List([]string{"id"}).
-			VideoId(talent.MembershipVideoID).Do()
-		logger = logger.With().Str("videoID", talent.MembershipVideoID).Logger()
-		logger.Info().Msg("CommentThreads.List")
+		isMember, err := checkSingleMembership(ctx, logger, db, svc, talent.ID, talent.MembershipVideoID)
 		if err != nil {
-			var gErr *googleapi.Error
-			if errors.As(err, &gErr) {
-				logger.Debug().Interface("gErr", gErr).Msg("membership check encountered googleapi.Error")
-				if apis.IsCommentsDisabledErr(gErr) || gErr.Code == 404 {
-					// if comments are disabled on this video, we need to select a new video.
-					logger.Warn().Err(err).
-						Msg("missing video or comments disabled on membership check video, getting a new one")
-					newVideoID, selectErr := apis.SelectRandomMembersOnlyVideoID(ctx, logger, svc, talent.ID)
-					if selectErr != nil {
-						logger.Err(err).Msg("error getting new membership check video")
-						err = selectErr
-						return
-					}
-					// do it all over again!
-					err = db.YouTubeTalent.UpdateOneID(talent.ID).
-						SetMembershipVideoID(newVideoID).
-						Exec(ctx)
-					if err != nil {
-						err = fmt.Errorf("error setting new membership check video: %w", err)
-						return
-					}
-					logger.Info().Str("videoID", newVideoID).Msg("restarting membership checks with new video")
-					return CheckForUser(ctx, db, youtubeConfig, userID, options)
-				}
-				if gErr.Code == 403 {
-					// not a member
-					checkTimestamps[talent.ID] = time.Now()
-					nonMemberChannelIDs = append(nonMemberChannelIDs, talent.ID)
-					continue
-				}
-			}
-			if !strings.HasSuffix(err.Error(), "commentsDisabled") {
-				logger.Err(err).Msg("actual error fetching comments for membership check video")
-				return
-			}
+			return nil, fmt.Errorf("error checking membership: %w", err)
 		}
 		checkTimestamps[talent.ID] = time.Now()
-		verifiedMembershipChannelIDs = append(verifiedMembershipChannelIDs, talent.ID)
+		if isMember {
+			verifiedMembershipChannelIDs = append(verifiedMembershipChannelIDs, talent.ID)
+		} else {
+			nonMemberChannelIDs = append(nonMemberChannelIDs, talent.ID)
+		}
 	}
 	// merge in results
 	results = &CheckResultSet{}
@@ -335,6 +302,54 @@ func SaveMemberships(
 		}
 		logger.Debug().Int("count", count).Time("firstFailed", c.Time).
 			Msg("incremented non-membership")
+	}
+	return
+}
+
+// checkSingleMembership performs a membership check and handles membership video reassignment
+func checkSingleMembership(
+	ctx context.Context,
+	logger zerolog.Logger,
+	db *ent.Client,
+	svc *youtube.Service,
+	channelID string,
+	membershipVideoID string,
+) (isMember bool, err error) {
+	_, err = svc.
+		CommentThreads.List([]string{"id"}).
+		VideoId(membershipVideoID).Do()
+	logger = logger.With().Str("videoID", membershipVideoID).Logger()
+	logger.Info().Msg("CommentThreads.List")
+	if err != nil {
+		var gErr *googleapi.Error
+		if errors.As(err, &gErr) {
+			logger.Debug().Interface("gErr", gErr).Msg("membership check encountered googleapi.Error")
+			if apis.IsCommentsDisabledErr(gErr) || gErr.Code == 404 {
+				// if comments are disabled on this video, we need to select a new video.
+				logger.Warn().Err(err).
+					Msg("missing video or comments disabled on membership check video, getting a new one")
+				newVideoID, selectErr := apis.SelectRandomMembersOnlyVideoID(ctx, logger, svc, channelID)
+				if selectErr != nil {
+					logger.Err(err).Msg("error getting new membership check video")
+					err = selectErr
+					return
+				}
+				// do it all over again!
+				err = db.YouTubeTalent.UpdateOneID(channelID).
+					SetMembershipVideoID(newVideoID).
+					Exec(ctx)
+				if err != nil {
+					err = fmt.Errorf("error setting new membership check video: %w", err)
+					return
+				}
+				logger.Info().Str("videoID", newVideoID).Msg("checking with new video")
+				return checkSingleMembership(ctx, logger, db, svc, channelID, membershipVideoID)
+			}
+			if gErr.Code == 403 {
+				// not a member
+				return false, nil
+			}
+		}
 	}
 	return
 }
