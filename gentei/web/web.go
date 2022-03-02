@@ -222,9 +222,7 @@ func loginDiscord(
 				Where(user.ID(userDBID)).
 				WithGuilds().
 				WithGuildsAdmin().
-				WithMemberships(func(umq *ent.UserMembershipQuery) {
-					umq.WithRoles()
-				}).
+				WithMemberships(func(umq *ent.UserMembershipQuery) { umq.WithYoutubeTalent() }).
 				OnlyX(ctx),
 		)
 		if err != nil {
