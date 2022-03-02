@@ -238,6 +238,7 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 			} else if err != nil {
 				return nil, err
 			}
+			ensureRegisteredUserHasGuildEdge(context.Background(), b.db, guildID, userID)
 			if time.Since(u.LastCheck).Minutes() < 1 {
 				return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
 			}
@@ -340,10 +341,11 @@ func (b *DiscordBot) handleInfo(ctx context.Context, i *discordgo.InteractionCre
 			// TODO
 		} else {
 			// fetch guild info + user-relevant info
-			guildID, err := strconv.ParseUint(i.GuildID, 10, 64)
+			guildID, userID, err := getMessageAttributionIDs(i)
 			if err != nil {
 				return nil, err
 			}
+			go ensureRegisteredUserHasGuildEdge(context.Background(), b.db, guildID, userID)
 			dg, err := b.db.Guild.Query().
 				WithRoles(func(grq *ent.GuildRoleQuery) { grq.WithTalent() }).
 				WithYoutubeTalents().
@@ -508,4 +510,29 @@ func subcommandOptionsMap(cmd *discordgo.ApplicationCommandInteractionDataOption
 		options[option.Name] = option
 	}
 	return options
+}
+
+// ctx is expected to be context.Background() most of the time.
+func ensureRegisteredUserHasGuildEdge(ctx context.Context, db *ent.Client, guildID, userID uint64) {
+	logger := log.With().
+		Str("guildID", strconv.FormatUint(guildID, 10)).
+		Str("userID", strconv.FormatUint(guildID, 10)).
+		Logger()
+	isMember, err := db.User.Query().
+		Where(
+			user.ID(userID),
+			user.HasGuildsWith(guild.ID(guildID)),
+		).
+		Exist(ctx)
+	if err != nil {
+		logger.Err(err).Msg("error checking for edge between User and Guild")
+	}
+	if !isMember {
+		err := db.User.UpdateOneID(userID).
+			AddGuildIDs(guildID).
+			Exec(ctx)
+		if err != nil && ent.IsNotFound(err) {
+			logger.Err(err).Msg("error adding edge between User and Guild")
+		}
+	}
 }
