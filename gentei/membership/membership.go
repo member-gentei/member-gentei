@@ -129,7 +129,8 @@ func CheckForUser(
 		_, err = svc.CommentThreads.
 			List([]string{"id"}).
 			VideoId(talent.MembershipVideoID).Do()
-		logger.Info().Str("videoID", talent.MembershipVideoID).Msg("CommentThreads.List")
+		logger = logger.With().Str("videoID", talent.MembershipVideoID).Logger()
+		logger.Info().Msg("CommentThreads.List")
 		if err != nil {
 			var gErr *googleapi.Error
 			if errors.As(err, &gErr) {
@@ -138,6 +139,7 @@ func CheckForUser(
 					if apis.IsCommentsDisabledErr(gErr) {
 						// if comments are disabled on this video, we need to select a new video.
 						err = gErr
+						logger.Err(err).Msg("comments disabled on membership check video")
 						return
 					}
 					// not a member
