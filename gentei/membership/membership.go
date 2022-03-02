@@ -135,28 +135,28 @@ func CheckForUser(
 			var gErr *googleapi.Error
 			if errors.As(err, &gErr) {
 				logger.Debug().Interface("gErr", gErr).Msg("membership check encountered googleapi.Error")
-				if gErr.Code == 403 {
-					if apis.IsCommentsDisabledErr(gErr) {
-						// if comments are disabled on this video, we need to select a new video.
-						logger.Warn().Err(err).
-							Msg("comments disabled on membership check video, checking for a new one")
-						newVideoID, selectErr := apis.SelectRandomMembersOnlyVideoID(ctx, logger, svc, talent.ID)
-						if selectErr != nil {
-							logger.Err(err).Msg("error getting new membership check video")
-							err = selectErr
-							return
-						}
-						// do it all over again!
-						err = db.YouTubeTalent.UpdateOneID(talent.ID).
-							SetMembershipVideoID(newVideoID).
-							Exec(ctx)
-						if err != nil {
-							err = fmt.Errorf("error setting new membership check video: %w", err)
-							return
-						}
-						logger.Info().Str("videoID", newVideoID).Msg("restarting membership checks with new video")
-						return CheckForUser(ctx, db, youtubeConfig, userID, options)
+				if apis.IsCommentsDisabledErr(gErr) || gErr.Code == 404 {
+					// if comments are disabled on this video, we need to select a new video.
+					logger.Warn().Err(err).
+						Msg("missing video or comments disabled on membership check video, getting a new one")
+					newVideoID, selectErr := apis.SelectRandomMembersOnlyVideoID(ctx, logger, svc, talent.ID)
+					if selectErr != nil {
+						logger.Err(err).Msg("error getting new membership check video")
+						err = selectErr
+						return
 					}
+					// do it all over again!
+					err = db.YouTubeTalent.UpdateOneID(talent.ID).
+						SetMembershipVideoID(newVideoID).
+						Exec(ctx)
+					if err != nil {
+						err = fmt.Errorf("error setting new membership check video: %w", err)
+						return
+					}
+					logger.Info().Str("videoID", newVideoID).Msg("restarting membership checks with new video")
+					return CheckForUser(ctx, db, youtubeConfig, userID, options)
+				}
+				if gErr.Code == 403 {
 					// not a member
 					checkTimestamps[talent.ID] = time.Now()
 					nonMemberChannelIDs = append(nonMemberChannelIDs, talent.ID)
