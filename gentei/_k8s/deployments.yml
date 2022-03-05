@@ -98,6 +98,8 @@ spec:
           env:
             - name: GOOGLE_APPLICATION_CREDENTIALS
               value: /secret/google-sa/google-sa.json
+            - name: DISCORD_CLIENT_ID
+              value: "768486576388177950"
             - name: YOUTUBE_CLIENT_ID
               value: "649732146530-s4cj4tqo2impojg7ljol2chsuj1us81s.apps.googleusercontent.com"
             - name: GCP_LOG_ID
