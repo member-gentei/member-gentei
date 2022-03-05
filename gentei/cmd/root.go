@@ -11,6 +11,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/migrate"
+	discordoauth "github.com/ravener/discord-oauth2"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -22,8 +23,10 @@ import (
 const (
 	envNameDiscordClientID     = "DISCORD_CLIENT_ID"
 	envNameDiscordClientSecret = "DISCORD_CLIENT_SECRET"
+	envNameDiscordRedirectURL  = "DISCORD_REDIRECT_URL"
 	envNameYouTubeClientID     = "YOUTUBE_CLIENT_ID"
 	envNameYouTubeClientSecret = "YOUTUBE_CLIENT_SECRET"
+	envNameYouTubeRedirectURL  = "YOUTUBE_REDIRECT_URL"
 	envNamePubSubTopic         = "PUBSUB_TOPIC"
 	envNamePubSubSubscription  = "PUBSUB_SUBSCRIPTION"
 )
@@ -39,6 +42,7 @@ var (
 	flagPubSubTopic         string
 	flagDiscordClientID     string
 	flagDiscordClientSecret string
+	flagDiscordRedirectURL  string
 	flagYouTubeClientID     string
 	flagYouTubeClientSecret string
 	flagYouTubeRedirectURL  string
@@ -57,8 +61,10 @@ var rootCmd = &cobra.Command{
 		flagPubSubTopic = os.Getenv(envNamePubSubTopic)
 		flagDiscordClientID = os.Getenv(envNameDiscordClientID)
 		flagDiscordClientSecret = os.Getenv(envNameDiscordClientSecret)
+		flagDiscordRedirectURL = os.Getenv(envNameDiscordRedirectURL)
 		flagYouTubeClientID = os.Getenv(envNameYouTubeClientID)
 		flagYouTubeClientSecret = os.Getenv(envNameYouTubeClientSecret)
+		flagYouTubeRedirectURL = os.Getenv(envNameYouTubeRedirectURL)
 		gcloWriter, err := zlg.NewCloudLoggingWriter(context.Background(), flagGCPProjectID, flagGCPLogID, zlg.CloudLoggingOptions{})
 		if err != nil {
 			log.Fatal().Err(err).Msg("error creating zlg.Writer")
@@ -116,6 +122,15 @@ func getYouTubeConfig() *oauth2.Config {
 	}
 }
 
+func getDiscordConfig() *oauth2.Config {
+	return &oauth2.Config{
+		ClientID:     flagDiscordClientID,
+		ClientSecret: flagDiscordClientSecret,
+		Endpoint:     discordoauth.Endpoint,
+		RedirectURL:  flagDiscordRedirectURL,
+	}
+}
+
 func init() {
 	persistent := rootCmd.PersistentFlags()
 	persistent.BoolVarP(&flagVerbose, "verbose", "v", false, "debug/verbose logging")
@@ -123,7 +138,6 @@ func init() {
 	persistent.String("db", "file:ent.sqlite3?cache=shared&_fk=1", "sql connection string")
 	persistent.String("gcp-project", "member-gentei", "GCP project ID")
 	persistent.String("gcp-log-id", "dev", "GCP log ID")
-	persistent.StringVar(&flagYouTubeRedirectURL, "youtube-redirect-url", "http://localhost:3000/login/youtube", "")
 	viper.BindPFlags(persistent)
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()

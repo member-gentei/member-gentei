@@ -7,10 +7,8 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"github.com/member-gentei/member-gentei/gentei/web"
-	discordoauth "github.com/ravener/discord-oauth2"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"golang.org/x/oauth2"
 )
 
 const (
@@ -18,9 +16,8 @@ const (
 )
 
 var (
-	serveJWTKey                 []byte
-	flagServeAddress            string
-	flagServeDiscordRedirectURL string
+	serveJWTKey      []byte
+	flagServeAddress string
 )
 
 // serveCmd represents the serve command
@@ -38,6 +35,9 @@ var serveCmd = &cobra.Command{
 		if flagDiscordClientSecret == "" {
 			log.Fatal().Msgf("env var %s must not be empty", envNameDiscordClientSecret)
 		}
+		if flagDiscordRedirectURL == "" {
+			log.Fatal().Msgf("env var %s must not be empty", envNameDiscordRedirectURL)
+		}
 		if flagYouTubeClientID == "" {
 			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientID)
 		}
@@ -54,12 +54,7 @@ var serveCmd = &cobra.Command{
 		var (
 			ctx           = context.Background()
 			db            = mustOpenDB(ctx)
-			discordConfig = &oauth2.Config{
-				ClientID:     flagDiscordClientID,
-				ClientSecret: flagDiscordClientSecret,
-				Endpoint:     discordoauth.Endpoint,
-				RedirectURL:  flagServeDiscordRedirectURL,
-			}
+			discordConfig = getDiscordConfig()
 			youTubeConfig = getYouTubeConfig()
 			topic         *pubsub.Topic
 		)
@@ -82,5 +77,4 @@ func init() {
 	rootCmd.AddCommand(serveCmd)
 	flags := serveCmd.Flags()
 	flags.StringVar(&flagServeAddress, "address", "localhost:5000", "API listening address")
-	flags.StringVar(&flagServeDiscordRedirectURL, "discord-redirect-url", "http://localhost:3000/login/discord", "")
 }
