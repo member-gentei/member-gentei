@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	entgo.io/ent v0.10.0
-	github.com/bwmarrin/discordgo v0.23.3-0.20211228023845-29269347e820
+	github.com/bwmarrin/discordgo v0.24.0
 	github.com/cbroglie/mustache v1.3.1
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/hashicorp/go-retryablehttp v0.7.0
