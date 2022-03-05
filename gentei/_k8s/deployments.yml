@@ -27,21 +27,11 @@ spec:
             - "--address"
             - ":5000"
           env:
-            - name: GOOGLE_APPLICATION_CREDENTIALS
-              value: /secret/google-sa/google-sa.json
-            - name: DISCORD_CLIENT_ID
-              value: "768486576388177950"
-            - name: DISCORD_REDIRECT_URL
-              value: https://gentei.tindabox.net/login/discord
-            - name: YOUTUBE_CLIENT_ID
-              value: "649732146530-s4cj4tqo2impojg7ljol2chsuj1us81s.apps.googleusercontent.com"
-            - name: YOUTUBE_REDIRECT_URL
-              value: https://gentei.tindabox.net/login/youtube
             - name: GCP_LOG_ID
               value: web
-            - name: PUBSUB_TOPIC
-              value: async
           envFrom:
+            - configMapRef:
+                name: gentei-envs
             - secretRef:
                 name: gentei-db
             - secretRef:
@@ -98,21 +88,13 @@ spec:
           env:
             - name: GOOGLE_APPLICATION_CREDENTIALS
               value: /secret/google-sa/google-sa.json
-            - name: DISCORD_CLIENT_ID
-              value: "768486576388177950"
-            - name: DISCORD_REDIRECT_URL
-              value: https://gentei.tindabox.net/login/discord
-            - name: YOUTUBE_CLIENT_ID
-              value: "649732146530-s4cj4tqo2impojg7ljol2chsuj1us81s.apps.googleusercontent.com"
-            - name: YOUTUBE_REDIRECT_URL
-              value: https://gentei.tindabox.net/login/youtube
             - name: GCP_LOG_ID
               value: async
             - name: PUBSUB_SUBSCRIPTION
               value: general
-            - name: PUBSUB_TOPIC
-              value: async
           envFrom:
+            - configMapRef:
+                name: gentei-envs
             - secretRef:
                 name: gentei-async
             - secretRef:
@@ -153,19 +135,13 @@ spec:
             - bot
             - "--prod"
           env:
-            - name: GOOGLE_APPLICATION_CREDENTIALS
-              value: /secret/google-sa/google-sa.json
-            - name: YOUTUBE_CLIENT_ID
-              value: "649732146530-s4cj4tqo2impojg7ljol2chsuj1us81s.apps.googleusercontent.com"
-            - name: YOUTUBE_REDIRECT_URL
-              value: https://gentei.tindabox.net/login/youtube
             - name: GCP_LOG_ID
               value: bot
             - name: PUBSUB_SUBSCRIPTION
               value: bot-apply-membership
-            - name: PUBSUB_TOPIC
-              value: async
           envFrom:
+            - configMapRef:
+                name: gentei-envs
             - secretRef:
                 name: gentei-bot
             - secretRef:

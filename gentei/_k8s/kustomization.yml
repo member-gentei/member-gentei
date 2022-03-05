@@ -1,4 +1,5 @@
 resources:
+  - configmap.yml
   - cronjobs.yml
   - deployments.yml
 apiVersion: kustomize.config.k8s.io/v1beta1
