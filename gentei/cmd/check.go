@@ -36,6 +36,9 @@ var checkCmd = &cobra.Command{
 		if flagYouTubeClientSecret == "" {
 			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientSecret)
 		}
+		if flagYouTubeRedirectURL == "" {
+			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeRedirectURL)
+		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
