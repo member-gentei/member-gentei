@@ -3,14 +3,17 @@ package cmd
 import (
 	"context"
 
+	"github.com/member-gentei/member-gentei/gentei/apis"
 	"github.com/member-gentei/member-gentei/gentei/membership"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"golang.org/x/oauth2"
 )
 
 var (
-	flagCheckUserID     uint64
-	flagCheckChannelIDs []string
+	flagCheckUserID      uint64
+	flagCheckChannelIDs  []string
+	flagCheckRefreshOnly bool
 )
 
 // checkCmd represents the check command
@@ -18,22 +21,35 @@ var checkCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Check users' memberships",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if flagDiscordClientID == "" {
+			log.Fatal().Msgf("env var %s must not be empty", envNameDiscordClientID)
+		}
+		if flagDiscordClientSecret == "" {
+			log.Fatal().Msgf("env var %s must not be empty", envNameDiscordClientSecret)
+		}
+		if flagDiscordRedirectURL == "" {
+			log.Fatal().Msgf("env var %s must not be empty", envNameDiscordRedirectURL)
+		}
 		if flagYouTubeClientID == "" {
 			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientID)
 		}
 		if flagYouTubeClientSecret == "" {
 			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientSecret)
 		}
+		if flagYouTubeRedirectURL == "" {
+			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeRedirectURL)
+		}
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
-			ctx      = context.Background()
-			db       = mustOpenDB(ctx)
-			ytConfig = getYouTubeConfig()
-			results  *membership.CheckResultSet
-			options  *membership.CheckForUserOptions
-			err      error
+			ctx           = context.Background()
+			db            = mustOpenDB(ctx)
+			discordConfig = getDiscordConfig()
+			ytConfig      = getYouTubeConfig()
+			results       *membership.CheckResultSet
+			options       *membership.CheckForUserOptions
+			err           error
 		)
 		for _, chID := range flagCheckChannelIDs {
 			if options == nil {
@@ -42,6 +58,26 @@ var checkCmd = &cobra.Command{
 			options.ChannelIDs = append(options.ChannelIDs, chID)
 		}
 		if flagCheckUserID != 0 {
+			// refresh guilds for user
+			var (
+				ts    oauth2.TokenSource
+				token *oauth2.Token
+			)
+			ts, err = apis.GetRefreshingDiscordTokenSource(ctx, db, discordConfig, flagCheckUserID)
+			if err != nil {
+				log.Fatal().Err(err).Msg("error getting Discord TokenSource for single user")
+			}
+			token, err = ts.Token()
+			if err != nil {
+				log.Fatal().Err(err).Msg("error getting Discord token for single user")
+			}
+			_, _, err = membership.RefreshUserGuildEdges(ctx, db, token, flagCheckUserID)
+			if err != nil {
+				log.Fatal().Err(err).Msg("error refreshing Discord Guild edges for single user")
+			}
+			if flagCheckRefreshOnly {
+				return
+			}
 			// check single user ID
 			results, err = membership.CheckForUser(ctx, db, ytConfig, flagCheckUserID, options)
 			if err != nil {
@@ -53,7 +89,14 @@ var checkCmd = &cobra.Command{
 				Msg("check results")
 			err = membership.SaveMemberships(ctx, db, flagCheckUserID, results)
 		} else {
-			// otherwise, check all stale
+			// otherwise, refresh all guilds and check all stale
+			err = membership.RefreshAllUserGuildEdges(ctx, db, discordConfig)
+			if err != nil {
+				log.Fatal().Err(err).Msg("error refreshing Discord Guild edges")
+			}
+			if flagCheckRefreshOnly {
+				return
+			}
 			err = membership.CheckStale(ctx, db, ytConfig, nil)
 		}
 		if err != nil {
@@ -76,4 +119,5 @@ func init() {
 	flags := checkCmd.Flags()
 	flags.Uint64Var(&flagCheckUserID, "uid", 0, "check only this user")
 	flags.StringSliceVar(&flagCheckChannelIDs, "channel", nil, "check user(s) against these channels")
+	flags.BoolVar(&flagCheckRefreshOnly, "refresh-only", false, "only refresh Discord information")
 }
