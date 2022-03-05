@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gentei-envs
+data:
+  DISCORD_CLIENT_ID: "768486576388177950"
+  DISCORD_REDIRECT_URL: https://gentei.tindabox.net/login/discord
+  YOUTUBE_CLIENT_ID: "649732146530-s4cj4tqo2impojg7ljol2chsuj1us81s.apps.googleusercontent.com"
+  YOUTUBE_REDIRECT_URL: https://gentei.tindabox.net/login/youtube
+  GOOGLE_APPLICATION_CREDENTIALS: /secret/google-sa/google-sa.json
+  PUBSUB_TOPIC: async

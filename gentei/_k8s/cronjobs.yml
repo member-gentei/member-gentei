@@ -21,21 +21,13 @@ spec:
               args:
                 - check
               env:
-                - name: GOOGLE_APPLICATION_CREDENTIALS
-                  value: /secret/google-sa/google-sa.json
-                - name: DISCORD_CLIENT_ID
-                  value: "768486576388177950"
-                - name: DISCORD_REDIRECT_URL
-                  value: https://gentei.tindabox.net/login/discord
-                - name: YOUTUBE_CLIENT_ID
-                  value: "649732146530-s4cj4tqo2impojg7ljol2chsuj1us81s.apps.googleusercontent.com"
-                - name: YOUTUBE_REDIRECT_URL
-                  value: https://gentei.tindabox.net/login/youtube
                 - name: GCP_LOG_ID
                   value: checks
                 - name: PUBSUB_TOPIC
                   value: async
               envFrom:
+                - configMapRef:
+                    name: gentei-envs
                 - secretRef:
                     name: gentei-async
               volumeMounts:
