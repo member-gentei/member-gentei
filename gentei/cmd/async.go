@@ -18,6 +18,12 @@ var asyncCmd = &cobra.Command{
 	Use:   "async",
 	Short: "Works with the async task queue.",
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if flagDiscordClientID == "" {
+			log.Fatal().Msgf("env var %s must not be empty", envNameDiscordClientID)
+		}
+		if flagDiscordClientSecret == "" {
+			log.Fatal().Msgf("env var %s must not be empty", envNameDiscordClientSecret)
+		}
 		if flagYouTubeClientID == "" {
 			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientID)
 		}
