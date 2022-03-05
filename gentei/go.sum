@@ -106,6 +106,8 @@ github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6r
 github.com/bgentry/speakeasy v0.1.0/go.mod h1:+zsyZBPWlz7T6j88CTgSN5bM796AkVf0kBD4zp0CCIs=
 github.com/bwmarrin/discordgo v0.23.3-0.20211228023845-29269347e820 h1:MIW5DnBVJAgAy4LYBqWwIMBB0ezklvh8b7DsYvHZHb0=
 github.com/bwmarrin/discordgo v0.23.3-0.20211228023845-29269347e820/go.mod h1:NJZpH+1AfhIcyQsPeuBKsUtYrRnjkyu0kIVMCHkZtRY=
+github.com/bwmarrin/discordgo v0.24.0 h1:Gw4MYxqHdvhO99A3nXnSLy97z5pmIKHZVJ1JY5ZDPqY=
+github.com/bwmarrin/discordgo v0.24.0/go.mod h1:NJZpH+1AfhIcyQsPeuBKsUtYrRnjkyu0kIVMCHkZtRY=
 github.com/cbroglie/mustache v1.3.1 h1:S6Lrg+YHT9e2DOy6RZi9f+rU69F6NarEYGZGzw+X5LU=
 github.com/cbroglie/mustache v1.3.1/go.mod h1:SS1FTIghy0sjse4DUVGV1k/40B1qE1XkD9DtDsHo9iM=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
