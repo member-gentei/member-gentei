@@ -82,10 +82,11 @@ var (
 						Type:        discordgo.ApplicationCommandOptionSubCommand,
 						Options: []*discordgo.ApplicationCommandOption{
 							{
-								Name:        "channel",
-								Description: "The Discord channel to recieve audit logs.",
-								Type:        discordgo.ApplicationCommandOptionChannel,
-								Required:    true,
+								Name:         "channel",
+								Description:  "The Discord channel to recieve audit logs.",
+								Type:         discordgo.ApplicationCommandOptionChannel,
+								ChannelTypes: []discordgo.ChannelType{discordgo.ChannelTypeGuildText},
+								Required:     true,
 							},
 						},
 					},
