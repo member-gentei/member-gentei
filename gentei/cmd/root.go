@@ -114,6 +114,15 @@ func mustOpenDB(ctx context.Context) *ent.Client {
 }
 
 func getYouTubeConfig() *oauth2.Config {
+	if flagYouTubeClientID == "" {
+		log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientID)
+	}
+	if flagYouTubeClientSecret == "" {
+		log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientSecret)
+	}
+	if flagYouTubeRedirectURL == "" {
+		log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeRedirectURL)
+	}
 	return &oauth2.Config{
 		ClientID:     flagYouTubeClientID,
 		ClientSecret: flagYouTubeClientSecret,
@@ -123,6 +132,15 @@ func getYouTubeConfig() *oauth2.Config {
 }
 
 func getDiscordConfig() *oauth2.Config {
+	if flagDiscordClientID == "" {
+		log.Fatal().Msgf("env var %s must not be empty", envNameDiscordClientID)
+	}
+	if flagDiscordClientSecret == "" {
+		log.Fatal().Msgf("env var %s must not be empty", envNameDiscordClientSecret)
+	}
+	if flagDiscordRedirectURL == "" {
+		log.Fatal().Msgf("env var %s must not be empty", envNameDiscordRedirectURL)
+	}
 	return &oauth2.Config{
 		ClientID:     flagDiscordClientID,
 		ClientSecret: flagDiscordClientSecret,

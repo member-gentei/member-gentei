@@ -33,20 +33,10 @@ var botCmd = &cobra.Command{
 		}
 		return nil
 	},
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if flagYouTubeClientID == "" {
-			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientID)
-		}
-		if flagYouTubeClientSecret == "" {
-			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientSecret)
-		}
-		if flagYouTubeRedirectURL == "" {
-			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeRedirectURL)
-		}
+	PreRun: func(cmd *cobra.Command, args []string) {
 		if flagBotProd && flagPubSubSubscription == "" {
 			log.Fatal().Msgf("env var %s must not be empty in prod", envNamePubSubSubscription)
 		}
-		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var (

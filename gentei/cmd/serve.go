@@ -29,24 +29,6 @@ var serveCmd = &cobra.Command{
 		if len(serveJWTKey) == 0 {
 			log.Fatal().Msgf("env var %s must not be empty", envNameServeJWTKey)
 		}
-		if flagDiscordClientID == "" {
-			log.Fatal().Msgf("env var %s must not be empty", envNameDiscordClientID)
-		}
-		if flagDiscordClientSecret == "" {
-			log.Fatal().Msgf("env var %s must not be empty", envNameDiscordClientSecret)
-		}
-		if flagDiscordRedirectURL == "" {
-			log.Fatal().Msgf("env var %s must not be empty", envNameDiscordRedirectURL)
-		}
-		if flagYouTubeClientID == "" {
-			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientID)
-		}
-		if flagYouTubeClientSecret == "" {
-			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientSecret)
-		}
-		if flagYouTubeRedirectURL == "" {
-			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeRedirectURL)
-		}
 		if !strings.HasPrefix(flagServeAddress, "localhost") {
 			if flagPubSubTopic == "" {
 				log.Fatal().Msgf("env var %s must not be empty in prod", envNamePubSubTopic)
