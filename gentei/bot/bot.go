@@ -73,21 +73,14 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 			Str("guildName", gc.Name).
 			Logger()
 		logger.Info().Msg("joined Guild")
-		// update Guild info in ~5s to avoid clashing with first time registration
+		// update Guild info opportunistically
 		go func() {
 			<-time.NewTimer(time.Second * 5).C
 			err = b.db.Guild.UpdateOneID(guildID).
 				SetName(gc.Name).
 				SetIconHash(gc.Icon).
 				Exec(context.Background())
-			if ent.IsNotFound(err) {
-				logger.Err(err).Msg("guild mentioned in GUILD_CREATE does not have a database entry, leaving guild")
-				err = b.session.GuildLeave(gc.ID)
-				if err != nil {
-					logger.Err(err).Msg("error leaving guild")
-				}
-				return
-			} else if err != nil {
+			if err != nil && !ent.IsNotFound(err) {
 				logger.Err(err).Msg("error updating on GUILD_CREATE")
 				return
 			}
