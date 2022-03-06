@@ -49,7 +49,7 @@ func ProcessYouTubeRegistration(ctx context.Context, db *ent.Client, youTubeConf
 
 // ProcessUserDelete revokes tokens and tells the bot to delete the user.
 // The bot has to delete the user because it'll communicate the final role removals + user deletion, and at that point why have the async queue require another message?
-func ProcessUserDelete(ctx context.Context, db *ent.Client, topic *pubsub.Topic, userID uint64) error {
+func ProcessUserDelete(ctx context.Context, db *ent.Client, topic *pubsub.Topic, userID uint64, reason string) error {
 	logger := log.With().Str("userID", strconv.FormatUint(userID, 10)).Logger()
 	// revoke tokens
 	u, err := db.User.Get(ctx, userID)
@@ -73,6 +73,7 @@ func ProcessUserDelete(ctx context.Context, db *ent.Client, topic *pubsub.Topic,
 	// tell the bot to delete the user
 	err = PublishApplyMembershipMessage(ctx, topic, ApplyMembershipPSMessage{
 		DeleteUserID: json.Number(strconv.FormatUint(userID, 10)),
+		Reason:       reason,
 	})
 	if err != nil {
 		return fmt.Errorf("error publishing role revoke message: %w", err)
