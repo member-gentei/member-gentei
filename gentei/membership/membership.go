@@ -29,13 +29,17 @@ type CheckForUserOptions struct {
 
 type CheckResultSet struct {
 	// Gained contains memberships newly gained.
-	Gained []CheckResult
+	Gained []CheckResult `json:",omitempty"`
 	// Retained contains memberships that have been kept and re-validated.
-	Retained []CheckResult
+	Retained []CheckResult `json:",omitempty"`
 	// Lost contains memberships newly lost.
-	Lost []CheckResult
+	Lost []CheckResult `json:",omitempty"`
 	// Not contains memberships that this user does not have but did not newly lose.
-	Not []CheckResult
+	Not []CheckResult `json:",omitempty"`
+}
+
+func (c *CheckResultSet) HasResults() bool {
+	return len(c.Gained)+len(c.Retained)+len(c.Lost)+len(c.Not) > 0
 }
 
 type CheckResult struct {
@@ -208,7 +212,7 @@ func CheckForUser(
 	return
 }
 
-// SaveMemberships maintains UserMembership objects, but not its GuildRole edges.
+// SaveMemberships maintains UserMembership objects, but not its GuildRole edges. It also sets User.LastCheck to the current time after effecting changes.
 func SaveMemberships(
 	ctx context.Context,
 	db *ent.Client,
@@ -232,6 +236,7 @@ func SaveMemberships(
 				usermembership.HasUserWith(user.ID(userID)),
 			).
 			SetLastVerified(c.Time).
+			SetFailCount(0).
 			Save(ctx)
 		if err != nil {
 			err = fmt.Errorf("error updating last verified time for %s: %w", c.ChannelID, err)
@@ -304,6 +309,9 @@ func SaveMemberships(
 		logger.Debug().Int("count", count).Time("firstFailed", c.Time).
 			Msg("incremented non-membership")
 	}
+	err = db.User.UpdateOneID(userID).
+		SetLastCheck(time.Now()).
+		Exec(ctx)
 	return
 }
 

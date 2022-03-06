@@ -2,6 +2,7 @@ package membership
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/apis"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
+	"github.com/member-gentei/member-gentei/gentei/ent/predicate"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
@@ -18,15 +20,24 @@ import (
 type CheckStaleOptions struct {
 	// StaleThreshold is used in a <= comparison to the last stored membership check time.
 	StaleThreshold time.Duration
-	// MembershipChangeHook gets called whnen a user experiences a change in channel membership.
-	MembershipChangeHook func(userID uint64, results *CheckResultSet) error
+	// UserPredicates overrides predicates that consider a user's memberships stale.
+	UserPredicates []predicate.User
+	// AdditionalUserPredicates allows specifying additional constraints on user checks.
+	AdditionalUserPredicates []predicate.User
+	// NoSave skips saving UserMembership edges.
+	NoSave bool
 }
 
 var DefaultCheckStaleOptions = &CheckStaleOptions{
 	StaleThreshold: time.Hour * 12,
 }
 
-func CheckStale(ctx context.Context, db *ent.Client, youtubeConfig *oauth2.Config, options *CheckStaleOptions) error {
+func CheckStale(
+	ctx context.Context,
+	db *ent.Client,
+	youtubeConfig *oauth2.Config,
+	options *CheckStaleOptions,
+) error {
 	if options == nil {
 		options = DefaultCheckStaleOptions
 	}
@@ -34,14 +45,29 @@ func CheckStale(ctx context.Context, db *ent.Client, youtubeConfig *oauth2.Confi
 	if options.StaleThreshold > 0 {
 		staleThreshold *= -1
 	}
+	staleUserPredicates := options.UserPredicates
+	if staleUserPredicates != nil {
+		log.Info().Msg("stale user predicates overriden")
+	} else {
+		staleUserPredicates = []predicate.User{
+			user.HasGuildsWith(
+				guild.HasYoutubeTalents(),
+			),
+			user.YoutubeIDNotNil(),
+			user.LastCheckLTE(time.Now().Add(staleThreshold)),
+		}
+	}
+	if options.AdditionalUserPredicates != nil {
+		staleUserPredicates = append(staleUserPredicates, options.AdditionalUserPredicates...)
+		log.Info().Msg("appending additional stale user predicates")
+	}
+	var (
+		totalStaleCount int
+	)
+	log.Info().Msg("beginning refresh of stale users")
 	for {
 		staleUserIDs, err := db.User.Query().
-			Where(
-				user.HasGuildsWith(
-					guild.HasYoutubeTalents(),
-				),
-				user.LastCheckLTE(time.Now().Add(staleThreshold)),
-			).
+			Where(staleUserPredicates...).
 			Limit(1000).
 			IDs(ctx)
 		if err != nil {
@@ -50,31 +76,28 @@ func CheckStale(ctx context.Context, db *ent.Client, youtubeConfig *oauth2.Confi
 		if len(staleUserIDs) == 0 {
 			break
 		}
+		totalStaleCount += len(staleUserIDs)
 		for _, userID := range staleUserIDs {
 			// TODO: https://github.com/member-gentei/member-gentei/issues/92
 			results, err := CheckForUser(ctx, db, youtubeConfig, userID, nil)
 			if err != nil {
 				return fmt.Errorf("error checking memberships for user '%d': %w", userID, err)
 			}
-			if options.MembershipChangeHook != nil && (len(results.Lost) > 0 || len(results.Gained) > 0) {
-				err = options.MembershipChangeHook(userID, results)
-				if err != nil {
-					return fmt.Errorf("error calling MembershipChangeHook for user '%d': %w", userID, err)
-				}
+			if options.NoSave {
+				continue
 			}
-			err = db.User.UpdateOneID(userID).
-				SetLastCheck(time.Now()).
-				Exec(ctx)
+			err = SaveMemberships(ctx, db, userID, results)
 			if err != nil {
-				return fmt.Errorf("error saving LastCheck for user '%d': %w", userID, err)
+				return fmt.Errorf("error saving memberships for user '%d': %w", userID, err)
 			}
 		}
 	}
+	log.Info().Int("count", totalStaleCount).Msg("refreshed stale users")
 	return nil
 }
 
 // RefreshAllUserGuildEdges refreshes guild edges for all registered users. Returns a slice of userIDs that could not be refreshed.
-func RefreshAllUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig *oauth2.Config) error {
+func RefreshAllUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig *oauth2.Config) ([]uint64, error) {
 	// refresh everyone's tokens
 	var (
 		userTokensInvalid []uint64
@@ -89,7 +112,7 @@ func RefreshAllUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig
 			Limit(pageSize).
 			IDs(ctx)
 		if err != nil {
-			return fmt.Errorf("error paginating user IDs: %w", err)
+			return nil, fmt.Errorf("error paginating user IDs: %w", err)
 		}
 		for _, userID := range userIDs {
 			logger := log.With().Str("userID", strconv.FormatUint(userID, 10)).Logger()
@@ -101,14 +124,20 @@ func RefreshAllUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig
 			token, err := ts.Token()
 			if err != nil {
 				logger.Warn().Err(err).Msg("error getting Discord token for user")
-				// TODO: enforce and delete
 				userTokensInvalid = append(userTokensInvalid, userID)
 				continue
 			}
 			added, removed, err := RefreshUserGuildEdges(ctx, db, token, userID)
 			if err != nil {
+				var restErr *discordgo.RESTError
+				if errors.As(err, &restErr) {
+					logger.Warn().Err(err).Msg("error using Discord token for user")
+					userTokensInvalid = append(userTokensInvalid, userID)
+					err = nil
+					continue
+				}
 				logger.Err(err).Msg("error refreshing guilds for user")
-				return err
+				return nil, err
 			}
 			if len(added)+len(removed) > 0 {
 				logger.Info().
@@ -125,7 +154,7 @@ func RefreshAllUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig
 		log.Info().Int("count", len(userTokensInvalid)).
 			Msg("failed to refresh some Discord tokens")
 	}
-	return nil
+	return userTokensInvalid, nil
 }
 
 // Refreshes guilds for all registered users.
