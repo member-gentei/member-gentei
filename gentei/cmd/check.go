@@ -19,28 +19,7 @@ var (
 // checkCmd represents the check command
 var checkCmd = &cobra.Command{
 	Use:   "check",
-	Short: "Check users' memberships",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		if flagDiscordClientID == "" {
-			log.Fatal().Msgf("env var %s must not be empty", envNameDiscordClientID)
-		}
-		if flagDiscordClientSecret == "" {
-			log.Fatal().Msgf("env var %s must not be empty", envNameDiscordClientSecret)
-		}
-		if flagDiscordRedirectURL == "" {
-			log.Fatal().Msgf("env var %s must not be empty", envNameDiscordRedirectURL)
-		}
-		if flagYouTubeClientID == "" {
-			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientID)
-		}
-		if flagYouTubeClientSecret == "" {
-			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeClientSecret)
-		}
-		if flagYouTubeRedirectURL == "" {
-			log.Fatal().Msgf("env var %s must not be empty", envNameYouTubeRedirectURL)
-		}
-		return nil
-	},
+	Short: "Check users' memberships.",
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
 			ctx           = context.Background()
