@@ -490,7 +490,10 @@ func deleteMe(db *ent.Client, topic *pubsub.Topic) echo.HandlerFunc {
 			claims  = jwtUser.Claims.(*jwt.StandardClaims)
 		)
 		err := async.PublishGeneralMessage(ctx, topic, async.GeneralPSMessage{
-			UserDelete: json.Number(claims.Id),
+			UserDelete: &async.UserDeleteMessage{
+				UserID: json.Number(claims.Id),
+				Reason: "user request",
+			},
 		})
 		if err != nil {
 			return err

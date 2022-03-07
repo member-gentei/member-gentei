@@ -27,7 +27,7 @@ const (
 type GeneralPSMessage struct {
 	// TODO: remove next week.
 	UserRegistration    interface{}                 `json:",omitempty"`
-	UserDelete          json.Number                 `json:",omitempty"`
+	UserDelete          *UserDeleteMessage          `json:",omitempty"`
 	YouTubeRegistration *YouTubeRegistrationMessage `json:",omitempty"`
 }
 
@@ -45,6 +45,7 @@ type YouTubeRegistrationMessage struct {
 
 type UserDeleteMessage struct {
 	UserID json.Number
+	Reason string `json:",omitempty"`
 }
 
 var (
@@ -100,16 +101,17 @@ func ListenGeneral(
 				return
 			}
 		}
-		if message.UserDelete.String() != "" {
-			userID, err := strconv.ParseUint(message.UserDelete.String(), 10, 64)
+		if message.UserDelete != nil {
+			udIDStr := message.UserDelete.UserID.String()
+			userID, err := strconv.ParseUint(udIDStr, 10, 64)
 			if err != nil {
 				log.Err(err).
-					Str("unparsedUserID", message.YouTubeRegistration.UserID.String()).
+					Str("unparsedUserID", udIDStr).
 					Msg("error decoding UserID as uint64")
 				m.Ack()
 				return
 			}
-			if err = ProcessUserDelete(ctx, db, botTopic, userID); err != nil {
+			if err = ProcessUserDelete(ctx, db, botTopic, userID, message.UserDelete.Reason); err != nil {
 				log.Err(err).Str("userID", strconv.FormatUint(userID, 10)).Msg("error processing user deletion")
 			} else {
 				m.Ack()

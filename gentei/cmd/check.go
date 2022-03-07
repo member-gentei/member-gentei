@@ -2,8 +2,16 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"strconv"
 
+	"cloud.google.com/go/pubsub"
+	"github.com/bwmarrin/discordgo"
 	"github.com/member-gentei/member-gentei/gentei/apis"
+	"github.com/member-gentei/member-gentei/gentei/async"
+	"github.com/member-gentei/member-gentei/gentei/ent/predicate"
+	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/member-gentei/member-gentei/gentei/membership"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -14,12 +22,18 @@ var (
 	flagCheckUserID      uint64
 	flagCheckChannelIDs  []string
 	flagCheckRefreshOnly bool
+	flagCheckNoEnforce   bool
 )
 
 // checkCmd represents the check command
 var checkCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Check users' memberships.",
+	PreRun: func(cmd *cobra.Command, args []string) {
+		if flagPubSubTopic == "" && !flagCheckNoEnforce {
+			log.Fatal().Msgf("env var %s must not be empty", envNamePubSubTopic)
+		}
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
 			ctx           = context.Background()
@@ -30,6 +44,11 @@ var checkCmd = &cobra.Command{
 			options       *membership.CheckForUserOptions
 			err           error
 		)
+		ps, err := pubsub.NewClient(ctx, flagGCPProjectID)
+		if err != nil {
+			log.Fatal().Err(err).Msg("error calling pubsub.NewClient")
+		}
+		asyncTopic := ps.Topic(flagPubSubTopic)
 		for _, chID := range flagCheckChannelIDs {
 			if options == nil {
 				options = &membership.CheckForUserOptions{}
@@ -52,6 +71,10 @@ var checkCmd = &cobra.Command{
 			}
 			_, _, err = membership.RefreshUserGuildEdges(ctx, db, token, flagCheckUserID)
 			if err != nil {
+				var restErr *discordgo.RESTError
+				if errors.As(err, &restErr) {
+					log.Warn().Err(err).Msg("error using Discord token for user")
+				}
 				log.Fatal().Err(err).Msg("error refreshing Discord Guild edges for single user")
 			}
 			if flagCheckRefreshOnly {
@@ -64,19 +87,46 @@ var checkCmd = &cobra.Command{
 			}
 			log.Info().
 				Interface("checkResults", results).
-				Uint64("userID", flagCheckUserID).
+				Str("userID", strconv.FormatUint(flagCheckUserID, 10)).
 				Msg("check results")
 			err = membership.SaveMemberships(ctx, db, flagCheckUserID, results)
 		} else {
-			// otherwise, refresh all guilds and check all stale
-			err = membership.RefreshAllUserGuildEdges(ctx, db, discordConfig)
+			// otherwise, refresh all guilds and check all stale users
+			var failedUserIDs []uint64
+			failedUserIDs, err = membership.RefreshAllUserGuildEdges(ctx, db, discordConfig)
 			if err != nil {
 				log.Fatal().Err(err).Msg("error refreshing Discord Guild edges")
+			}
+			if !flagCheckNoEnforce {
+				for _, userID := range failedUserIDs {
+					var (
+						userIDStr = strconv.FormatUint(userID, 10)
+						logger    = log.With().Str("userID", userIDStr).Logger()
+					)
+					err = async.PublishGeneralMessage(ctx, asyncTopic, async.GeneralPSMessage{
+						UserDelete: &async.UserDeleteMessage{
+							UserID: json.Number(userIDStr),
+							Reason: "Discord token invalid",
+						},
+					})
+					if err != nil {
+						logger.Fatal().Err(err).Msg("error publishing delete message")
+					} else {
+						logger.Info().Msg("issued delete for user")
+					}
+				}
 			}
 			if flagCheckRefreshOnly {
 				return
 			}
-			err = membership.CheckStale(ctx, db, ytConfig, nil)
+			var excludeToBeDeleted []predicate.User
+			if len(failedUserIDs) > 0 {
+				excludeToBeDeleted = append(excludeToBeDeleted, user.IDNotIn(failedUserIDs...))
+			}
+			err = membership.CheckStale(ctx, db, ytConfig, &membership.CheckStaleOptions{
+				StaleThreshold:           membership.DefaultCheckStaleOptions.StaleThreshold,
+				AdditionalUserPredicates: excludeToBeDeleted,
+			})
 		}
 		if err != nil {
 			log.Fatal().Err(err).Msg("error saving memberships")
@@ -99,4 +149,5 @@ func init() {
 	flags.Uint64Var(&flagCheckUserID, "uid", 0, "check only this user")
 	flags.StringSliceVar(&flagCheckChannelIDs, "channel", nil, "check user(s) against these channels")
 	flags.BoolVar(&flagCheckRefreshOnly, "refresh-only", false, "only refresh Discord information")
+	flags.BoolVar(&flagCheckNoEnforce, "no-enforce", false, "do not effect membership changes")
 }
