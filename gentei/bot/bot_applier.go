@@ -3,10 +3,12 @@ package bot
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 
 	"cloud.google.com/go/pubsub"
+	"github.com/bwmarrin/discordgo"
 	"github.com/member-gentei/member-gentei/gentei/async"
 	"github.com/member-gentei/member-gentei/gentei/bot/templates"
 	"github.com/rs/zerolog/log"
@@ -78,8 +80,14 @@ func (b *DiscordBot) handlePSMessage(ctx context.Context, m *pubsub.Message) {
 		}
 		msg, err := b.session.ChannelMessageSend(ch.ID, templates.PlaintextUserDeleted)
 		if err != nil {
-			logger.Err(err).
-				Msg("error sending deletion confirmation message")
+			var restErr *discordgo.RESTError
+			if errors.As(err, &restErr) && restErr.Message.Code == discordgo.ErrCodeCannotSendMessagesToThisUser {
+				logger.Warn().Err(err).
+					Msg("unable to send deletion confirmation message")
+			} else {
+				logger.Err(err).
+					Msg("error sending deletion confirmation message")
+			}
 		} else {
 			logger.Info().
 				Interface("messageMetadata", msg).
