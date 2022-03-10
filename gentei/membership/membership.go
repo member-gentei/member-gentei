@@ -224,7 +224,7 @@ func SaveMemberships(
 		var (
 			count  int
 			logger = log.With().
-				Uint64("userID", userID).
+				Str("userID", strconv.FormatUint(userID, 10)).
 				Str("talentID", c.ChannelID).
 				Logger()
 		)
@@ -263,7 +263,7 @@ func SaveMemberships(
 		var (
 			count  int
 			logger = log.With().
-				Uint64("userID", userID).
+				Str("userID", strconv.FormatUint(userID, 10)).
 				Str("talentID", c.ChannelID).
 				Logger()
 		)
@@ -289,7 +289,7 @@ func SaveMemberships(
 		var (
 			count  int
 			logger = log.With().
-				Uint64("userID", userID).
+				Str("userID", strconv.FormatUint(userID, 10)).
 				Str("talentID", c.ChannelID).
 				Logger()
 		)
@@ -373,7 +373,7 @@ func checkSingleMembership(
 func createMissingUserMemberships(ctx context.Context, db *ent.Client, userID uint64, c CheckResult) error {
 	var (
 		logger = log.With().
-			Uint64("userID", userID).
+			Str("userID", strconv.FormatUint(userID, 10)).
 			Str("talentID", c.ChannelID).
 			Logger()
 		missingRolePredicates = []predicate.GuildRole{
