@@ -366,6 +366,7 @@ func checkSingleMembership(
 			}
 		}
 	}
+	isMember = true
 	return
 }
 
