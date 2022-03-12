@@ -92,6 +92,9 @@ func Execute() {
 }
 func mustOpenDB(ctx context.Context) *ent.Client {
 	logger := log.With().Str("engine", flagDBEngine).Logger()
+	if flagDBEngine == "sqlite3" {
+		logger.Warn().Str("db", flagOpenDB).Msg("using sqlite3 database")
+	}
 	db, err := ent.Open(flagDBEngine, flagOpenDB)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("error opening SQL database")
