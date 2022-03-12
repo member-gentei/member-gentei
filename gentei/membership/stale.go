@@ -96,11 +96,12 @@ func CheckStale(
 	return nil
 }
 
-// RefreshAllUserGuildEdges refreshes guild edges for all registered users. Returns a slice of userIDs that could not be refreshed.
-func RefreshAllUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig *oauth2.Config) ([]uint64, error) {
+// RefreshAllUserGuildEdges refreshes guild edges for all registered users. Returns a slice of userIDs that could not be refreshed and a count of all users.
+func RefreshAllUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig *oauth2.Config) ([]uint64, int, error) {
 	// refresh everyone's tokens
 	var (
 		userTokensInvalid []uint64
+		totalCount        int
 		after             uint64
 	)
 	const pageSize = 1000
@@ -112,7 +113,7 @@ func RefreshAllUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig
 			Limit(pageSize).
 			IDs(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("error paginating user IDs: %w", err)
+			return nil, 0, fmt.Errorf("error paginating user IDs: %w", err)
 		}
 		for _, userID := range userIDs {
 			logger := log.With().Str("userID", strconv.FormatUint(userID, 10)).Logger()
@@ -137,7 +138,7 @@ func RefreshAllUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig
 					continue
 				}
 				logger.Err(err).Msg("error refreshing guilds for user")
-				return nil, err
+				return nil, totalCount, err
 			}
 			if len(added)+len(removed) > 0 {
 				logger.Info().
@@ -146,6 +147,7 @@ func RefreshAllUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig
 					Msg("refreshed with changes")
 			}
 		}
+		totalCount += len(userIDs)
 		if len(userIDs) < pageSize {
 			break
 		}
@@ -154,7 +156,7 @@ func RefreshAllUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig
 		log.Info().Int("count", len(userTokensInvalid)).
 			Msg("failed to refresh some Discord tokens")
 	}
-	return userTokensInvalid, nil
+	return userTokensInvalid, totalCount, nil
 }
 
 // Refreshes guilds for all registered users.

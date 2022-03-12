@@ -92,11 +92,18 @@ var checkCmd = &cobra.Command{
 			err = membership.SaveMemberships(ctx, db, flagCheckUserID, results)
 		} else {
 			// otherwise, refresh all guilds and check all stale users
-			var failedUserIDs []uint64
-			failedUserIDs, err = membership.RefreshAllUserGuildEdges(ctx, db, discordConfig)
+			var (
+				failedUserIDs []uint64
+				userCount     int
+			)
+			failedUserIDs, userCount, err = membership.RefreshAllUserGuildEdges(ctx, db, discordConfig)
 			if err != nil {
 				log.Fatal().Err(err).Msg("error refreshing Discord Guild edges")
 			}
+			log.Info().
+				Int("total", userCount).
+				Int("succeeded", userCount-len(failedUserIDs)).
+				Msg("refreshed guild edges")
 			if !flagCheckNoEnforce {
 				for _, userID := range failedUserIDs {
 					var (
