@@ -31,6 +31,8 @@ spec:
                     name: gentei-envs
                 - secretRef:
                     name: gentei-async
+                - secretRef:
+                    name: gentei-db
               volumeMounts:
                 - name: google-sa
                   mountPath: /secret/google-sa
