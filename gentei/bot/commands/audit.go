@@ -65,3 +65,13 @@ func CreateAuditLogEmbed(
 	}
 	return embed
 }
+
+var (
+	AuditTestMessageEmbed = &discordgo.MessageEmbed{
+		Title:       "Test embed",
+		Description: ":wave: checking that this bot has permissions to send embed messages with thumbnails to this channel. Feel free to delete this message.",
+		Thumbnail: &discordgo.MessageEmbedThumbnail{
+			URL: "https://picsum.photos/200",
+		},
+	}
+)
