@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/member-gentei/member-gentei/gentei/bot/commands"
 	"github.com/member-gentei/member-gentei/gentei/bot/templates"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
@@ -44,13 +45,13 @@ func (b *DiscordBot) handleManageAuditSet(
 		}, nil
 	}
 	// test that we can actually send messages to this channel
-	_, err = b.session.ChannelMessageSend(targetChannel.ID, ":wave: checking that this bot has permissions to send messages to this channel. Feel free to delete this message.")
+	_, err = b.session.ChannelMessageSendEmbed(targetChannel.ID, commands.AuditTestMessageEmbed)
 	if err != nil {
 		var restErr *discordgo.RESTError
 		if errors.As(err, &restErr) {
 			if restErr.Message != nil && restErr.Message.Code == discordgo.ErrCodeMissingAccess {
 				return &discordgo.WebhookEdit{
-					Content: "We don't have permission to send messages to that test channel. Please re-run this command after granting the bot permission to do so.",
+					Content: "We don't have permission to send embed messages to that test channel. Please re-run this command after granting the bot or its role the `Send Messages` and `Embed Links` permissions on that channel.",
 				}, nil
 			}
 		}
