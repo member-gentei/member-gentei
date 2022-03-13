@@ -75,7 +75,7 @@ func ServeAPI(db *ent.Client, discordConfig *oauth2.Config, youTubeConfig *oauth
 	loginRequired.POST("/login/youtube", loginYouTube(db, youTubeConfig, topic))
 	loginRequired.POST("/logout", logout())
 	loginRequired.GET("/me", getMe(db))
-	loginRequired.DELETE("/me/youtube", deleteYouTube(db))
+	loginRequired.DELETE("/me/youtube", deleteYouTube(db, topic))
 	loginRequired.DELETE("/me", deleteMe(db, topic))
 	loginRequired.POST("/enroll-guild", enrollGuild(db, &enrollDiscordConfig))
 	loginRequired.GET("/guild/:id", getGuild(db))
@@ -450,7 +450,7 @@ func getMe(db *ent.Client) echo.HandlerFunc {
 	}
 }
 
-func deleteYouTube(db *ent.Client) echo.HandlerFunc {
+func deleteYouTube(db *ent.Client, topic *pubsub.Topic) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var (
 			ctx     = c.Request().Context()
@@ -461,12 +461,58 @@ func deleteYouTube(db *ent.Client) echo.HandlerFunc {
 		if err != nil {
 			return err
 		}
-		err = db.User.UpdateOneID(userID).
-			ClearYoutubeID().
-			ClearMemberships().
-			Exec(ctx)
-		if err != nil {
-			return err
+		if topic == nil {
+			log.Warn().
+				Str("userID", claims.Id).
+				Msg("async pubsub topic unspecified, would've sent YoutubeDelete message")
+		} else {
+			err = async.PublishGeneralMessage(ctx, topic, async.GeneralPSMessage{
+				YouTubeRegistration: &async.YouTubeRegistrationMessage{
+					UserID: json.Number(claims.Id),
+				},
+			})
+			if err != nil {
+				return err
+			}
+		}
+		// poll 10s for the disconnect to happen
+		var (
+			ticker       = time.NewTicker(time.Second)
+			timeout      = time.NewTimer(time.Second * 10)
+			disconnected bool
+			outerBreak   bool
+		)
+		defer ticker.Stop()
+		for {
+			if outerBreak {
+				break
+			}
+			select {
+			case <-ticker.C:
+				disconnected, err = db.User.Query().
+					Where(
+						user.ID(userID),
+						user.Or(
+							user.YoutubeIDIsNil(),
+							user.YoutubeID(""),
+						),
+					).
+					Exist(ctx)
+				if err != nil {
+					return err
+				}
+				if disconnected {
+					timeout.Stop()
+					outerBreak = true
+				}
+			case <-timeout.C:
+				outerBreak = true
+			}
+		}
+		if !disconnected {
+			return c.JSON(http.StatusAccepted, map[string]string{
+				"error": "timeout reached",
+			})
 		}
 		me, err := meResponseFromUser(
 			db.User.Query().
@@ -490,7 +536,7 @@ func deleteMe(db *ent.Client, topic *pubsub.Topic) echo.HandlerFunc {
 			claims  = jwtUser.Claims.(*jwt.StandardClaims)
 		)
 		err := async.PublishGeneralMessage(ctx, topic, async.GeneralPSMessage{
-			UserDelete: &async.UserDeleteMessage{
+			UserDelete: &async.DeleteUserMessage{
 				UserID: json.Number(claims.Id),
 				Reason: "user request",
 			},

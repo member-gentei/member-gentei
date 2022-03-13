@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"strconv"
-	"time"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/member-gentei/member-gentei/gentei/apis"
@@ -25,33 +24,35 @@ const (
 )
 
 type GeneralPSMessage struct {
-	// TODO: remove next week.
-	UserRegistration    interface{}                 `json:",omitempty"`
-	UserDelete          *UserDeleteMessage          `json:",omitempty"`
+	UserDelete          *DeleteUserMessage          `json:",omitempty"`
 	YouTubeRegistration *YouTubeRegistrationMessage `json:",omitempty"`
+	YouTubeDelete       json.Number                 `json:",omitempty"`
 }
 
 type ApplyMembershipPSMessage struct {
-	UserMembershipID int
-	Gained           bool
-	Reason           string
-
-	DeleteUserID json.Number `json:",omitempty"`
+	ApplySingle  *ApplySingleMessage `json:",omitempty"`
+	DeleteSingle *DeleteUserMessage  `json:",omitempty"`
+	EnforceAll   *EnforceAllMessage  `json:",omitempty"`
 }
 
 type YouTubeRegistrationMessage struct {
 	UserID json.Number
 }
 
-type UserDeleteMessage struct {
+type DeleteUserMessage struct {
 	UserID json.Number
 	Reason string `json:",omitempty"`
 }
 
-var (
-	trashUserRegistrationMessageDeadline time.Time
-	trashUserRegistrationHours           = 24 * 7.0
-)
+type ApplySingleMessage struct {
+	UserMembershipID int
+	Gained           bool
+	Reason           string
+}
+
+type EnforceAllMessage struct {
+	Reason string
+}
 
 // ListenGeneral polls a pubsub subscription for GeneralType messages.
 func ListenGeneral(
@@ -72,10 +73,6 @@ func ListenGeneral(
 		err := json.Unmarshal(m.Data, &message)
 		if err != nil {
 			log.Warn().Str("data", string(m.Data)).Msg("acking message that cannot be decoded as JSON")
-			m.Ack()
-			return
-		}
-		if message.UserRegistration != nil && time.Since(trashUserRegistrationMessageDeadline).Hours() < trashUserRegistrationHours {
 			m.Ack()
 			return
 		}
@@ -118,6 +115,22 @@ func ListenGeneral(
 				return
 			}
 		}
+		if message.YouTubeDelete.String() != "" {
+			userID, err := strconv.ParseUint(message.YouTubeDelete.String(), 10, 64)
+			if err != nil {
+				log.Err(err).
+					Str("unparsedUserID", message.YouTubeDelete.String()).
+					Msg("error decoding UserID as uint64")
+				m.Ack()
+				return
+			}
+			if err = ProcessYouTubeDelete(ctx, db, botTopic, userID); err != nil {
+				log.Err(err).Str("userID", strconv.FormatUint(userID, 10)).Msg("error processing user deletion")
+			} else {
+				m.Ack()
+				return
+			}
+		}
 		m.Nack()
 		log.Warn().Str("data", string(m.Data)).Msg("nacking unhandled message - is this mid-deploy?")
 	})
@@ -136,12 +149,4 @@ func publishPubSubMessage(ctx context.Context, topic *pubsub.Topic, messageType 
 	})
 	_, err = pr.Get(ctx)
 	return err
-}
-
-func init() {
-	var err error
-	trashUserRegistrationMessageDeadline, err = time.Parse(time.UnixDate, "Sun Feb 27 15:50:06 UTC 2022")
-	if err != nil {
-		panic(err)
-	}
 }

@@ -12,6 +12,8 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"github.com/member-gentei/member-gentei/gentei/ent"
+	"github.com/member-gentei/member-gentei/gentei/ent/user"
+	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
 	"github.com/member-gentei/member-gentei/gentei/membership"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
@@ -72,13 +74,48 @@ func ProcessUserDelete(ctx context.Context, db *ent.Client, topic *pubsub.Topic,
 	}
 	// tell the bot to delete the user
 	err = PublishApplyMembershipMessage(ctx, topic, ApplyMembershipPSMessage{
-		DeleteUserID: json.Number(strconv.FormatUint(userID, 10)),
-		Reason:       reason,
+		DeleteSingle: &DeleteUserMessage{
+			UserID: json.Number(strconv.FormatUint(userID, 10)),
+			Reason: reason,
+		},
 	})
 	if err != nil {
 		return fmt.Errorf("error publishing role revoke message: %w", err)
 	}
 	return nil
+}
+
+// ProcessUserDelete revokes tokens and deletes all membership edges.
+func ProcessYouTubeDelete(ctx context.Context, db *ent.Client, topic *pubsub.Topic, userID uint64) error {
+	logger := log.With().Str("userID", strconv.FormatUint(userID, 10)).Logger()
+	u, err := db.User.Get(ctx, userID)
+	if err != nil {
+		return err
+	}
+	// no-op
+	if u.YoutubeID == nil || *u.YoutubeID == "" {
+		return nil
+	}
+	err = revokeYouTubeToken(ctx, u.YoutubeToken)
+	if err != nil {
+		logger.Err(err).Msg("error revoking YouTube token, proceeding to delete")
+	}
+	// delete UserMembership edges first
+	deleteCount, err := db.UserMembership.Delete().
+		Where(
+			usermembership.HasUserWith(user.ID(userID)),
+		).
+		Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("error deleting UserMembership objects: %w", err)
+	}
+	logger.Info().
+		Int("count", deleteCount).
+		Msg("deleted UserMembership objects associated with YouTube user")
+	return db.User.UpdateOneID(u.ID).
+		ClearYoutubeID().
+		ClearYoutubeToken().
+		Exec(ctx)
 }
 
 func revokeYouTubeToken(ctx context.Context, token *oauth2.Token) error {

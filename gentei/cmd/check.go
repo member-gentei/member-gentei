@@ -111,7 +111,7 @@ var checkCmd = &cobra.Command{
 						logger    = log.With().Str("userID", userIDStr).Logger()
 					)
 					err = async.PublishGeneralMessage(ctx, asyncTopic, async.GeneralPSMessage{
-						UserDelete: &async.UserDeleteMessage{
+						UserDelete: &async.DeleteUserMessage{
 							UserID: json.Number(userIDStr),
 							Reason: "Discord token invalid",
 						},
