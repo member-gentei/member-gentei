@@ -42,11 +42,11 @@ func (b *DiscordBot) handlePSMessage(ctx context.Context, m *pubsub.Message) {
 		return
 	}
 	switch {
-	case message.DeleteUserID != "":
+	case message.DeleteSingle != nil:
 		var (
-			userIDStr    = message.DeleteUserID.String()
-			userID, err  = strconv.ParseUint(message.DeleteUserID.String(), 10, 64)
-			reasonDetail = message.Reason
+			userIDStr    = message.DeleteSingle.UserID.String()
+			userID, err  = strconv.ParseUint(userIDStr, 10, 64)
+			reasonDetail = message.DeleteSingle.Reason
 			reason       string
 		)
 		if err != nil {
@@ -93,17 +93,23 @@ func (b *DiscordBot) handlePSMessage(ctx context.Context, m *pubsub.Message) {
 				Interface("messageMetadata", msg).
 				Msg("sent deletion confirmation message")
 		}
-	case message.Gained:
-		err = b.grantMemberships(ctx, b.db, message.UserMembershipID, message.Reason)
-		if err != nil {
-			log.Err(err).Msg("error granting memberships")
-			return
-		}
-	default:
-		err = b.revokeMemberships(ctx, b.db, message.UserMembershipID, message.Reason)
-		if err != nil {
-			log.Err(err).Msg("error revoking memberships")
-			return
+	case message.ApplySingle != nil:
+		var (
+			userMembershipID = message.ApplySingle.UserMembershipID
+			reason           = message.ApplySingle.Reason
+		)
+		if message.ApplySingle.Gained {
+			err = b.grantMemberships(ctx, b.db, userMembershipID, reason)
+			if err != nil {
+				log.Err(err).Msg("error granting memberships")
+				return
+			}
+		} else {
+			err = b.revokeMemberships(ctx, b.db, userMembershipID, reason)
+			if err != nil {
+				log.Err(err).Msg("error revoking memberships")
+				return
+			}
 		}
 	}
 	m.Ack()
