@@ -19,6 +19,7 @@ import (
 )
 
 var (
+	flagCheckDisabled    bool
 	flagCheckUserID      uint64
 	flagCheckChannelIDs  []string
 	flagCheckRefreshOnly bool
@@ -55,6 +56,9 @@ var checkCmd = &cobra.Command{
 			}
 			options.ChannelIDs = append(options.ChannelIDs, chID)
 		}
+		if options != nil && flagCheckDisabled {
+			options.CheckDisabledChannels = true
+		}
 		if flagCheckUserID != 0 {
 			// refresh guilds for user
 			var (
@@ -90,6 +94,8 @@ var checkCmd = &cobra.Command{
 				Str("userID", strconv.FormatUint(flagCheckUserID, 10)).
 				Msg("check results")
 			err = membership.SaveMemberships(ctx, db, flagCheckUserID, results)
+		} else if options != nil {
+			log.Fatal().Msg("narrowing options not supported without --uid")
 		} else {
 			// otherwise, refresh all guilds and check all stale users
 			var (
@@ -134,6 +140,12 @@ var checkCmd = &cobra.Command{
 				StaleThreshold:           membership.DefaultCheckStaleOptions.StaleThreshold,
 				AdditionalUserPredicates: excludeToBeDeleted,
 			})
+			defer async.PublishApplyMembershipMessage(ctx, asyncTopic, async.ApplyMembershipPSMessage{
+				EnforceAll: &async.EnforceAllMessage{
+					DryRun: flagCheckDisabled,
+					Reason: "daily role enforcement",
+				},
+			})
 		}
 		if err != nil {
 			log.Fatal().Err(err).Msg("error saving memberships")
@@ -155,6 +167,7 @@ func init() {
 	flags := checkCmd.Flags()
 	flags.Uint64Var(&flagCheckUserID, "uid", 0, "check only this user")
 	flags.StringSliceVar(&flagCheckChannelIDs, "channel", nil, "check user(s) against these channels")
+	flags.BoolVar(&flagCheckDisabled, "check-disabled", false, "check against disabled channels")
 	flags.BoolVar(&flagCheckRefreshOnly, "refresh-only", false, "only refresh Discord information")
 	flags.BoolVar(&flagCheckNoEnforce, "no-enforce", false, "do not effect membership changes")
 }

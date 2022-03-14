@@ -2,7 +2,9 @@ package bot
 
 import (
 	"context"
+	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
@@ -13,7 +15,135 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 )
+
+func (b *DiscordBot) enforceAllRoles(ctx context.Context, dryRun bool, reason string) error {
+	// iterate through all configured roles
+	grs, err := b.db.GuildRole.Query().
+		WithGuild().
+		Where(
+			guildrole.HasTalentWith(youtubetalent.DisabledIsNil()),
+		).
+		All(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting GuildRoles: %w", err)
+	}
+	for _, gr := range grs {
+		if err = b.enforceRole(ctx, gr, dryRun, reason); err != nil {
+			return fmt.Errorf("error enforcing GuildRole: %w", err)
+		}
+	}
+	return nil
+}
+
+func (b *DiscordBot) enforceRole(ctx context.Context, gr *ent.GuildRole, dryRun bool, reason string) error {
+	dg, err := gr.Edges.GuildOrErr()
+	if err != nil {
+		return err
+	}
+	var (
+		guildID    = dg.ID
+		roleID     = gr.ID
+		guildIDStr = strconv.FormatUint(guildID, 10)
+		roleIDStr  = strconv.FormatUint(roleID, 10)
+		logger     = log.With().Str("guildID", guildIDStr).Str("roleID", roleIDStr).Logger()
+		mutex      = b.roleRWMutex.GetOrCreate(roleIDStr)
+	)
+	logger.Debug().Msg("acquiring RWMutex for role")
+	mutex.Lock()
+	defer mutex.Unlock()
+	// gather users who should have this role
+	var (
+		shouldHaveRole = map[uint64]bool{}
+		yesterdayIsh   = time.Now().Add(-time.Hour * 24)
+	)
+	ums, err := b.db.GuildRole.QueryUserMemberships(gr).
+		WithUser().
+		All(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting users that should have role: %w", err)
+	}
+	for _, um := range ums {
+		userID := um.Edges.User.ID
+		if um.FailCount == 0 {
+			// the last check worked
+			shouldHaveRole[userID] = true
+		} else if !um.LastVerified.IsZero() && um.FirstFailed.After(yesterdayIsh) {
+			// a check worked before, but it failed today. They have [insert grace period] to fix it.
+			// TODO: insert configurable grace period here
+			shouldHaveRole[userID] = true
+			logger.Info().Str("userID", strconv.FormatUint(userID, 10)).Msg("role membership in grace period")
+		}
+	}
+	// compile the changeset
+	var (
+		toAdd    []string
+		toRemove []string
+	)
+	dGuild, err := b.session.Guild(guildIDStr)
+	if err != nil {
+		return fmt.Errorf("error getting Guild in session: %w", err)
+	}
+	for _, member := range dGuild.Members {
+		uid, err := strconv.ParseUint(member.User.ID, 10, 64)
+		if err != nil {
+			return err
+		}
+		// determine if this user should be granted / removed the role
+		if shouldHaveRole[uid] && !sSliceContains(roleIDStr, member.Roles) {
+			toAdd = append(toAdd, member.User.ID)
+		} else if sSliceContains(roleIDStr, member.Roles) {
+			toRemove = append(toRemove, member.User.ID)
+		}
+	}
+	logger.Info().
+		Int("addCount", len(toAdd)).
+		Int("removeCount", len(toRemove)).
+		Bool("dryRun", dryRun).
+		Msg("role enforcement rollup")
+	if dryRun {
+		return nil
+	}
+	// smash through the queue
+	var (
+		sem       = semaphore.NewWeighted(4)
+		eg, egCtx = errgroup.WithContext(ctx)
+	)
+	for _, uid := range toAdd {
+		userID, err := strconv.ParseUint(uid, 10, 64)
+		if err != nil {
+			return err
+		}
+		eg.Go(func() error {
+			e := sem.Acquire(egCtx, 1)
+			if e != nil {
+				return e
+			}
+			defer sem.Release(1)
+			return b.applyRole(egCtx, guildID, roleID, userID, true, reason)
+		})
+	}
+	for _, uid := range toRemove {
+		userID, err := strconv.ParseUint(uid, 10, 64)
+		if err != nil {
+			return err
+		}
+		eg.Go(func() error {
+			e := sem.Acquire(egCtx, 1)
+			if e != nil {
+				return e
+			}
+			defer sem.Release(1)
+			return b.applyRole(egCtx, guildID, roleID, userID, false, reason)
+		})
+	}
+	if err = eg.Wait(); err != nil {
+		return fmt.Errorf("error applying changes for role, aborted: %w", err)
+	}
+	return nil
+}
 
 // grantMemberships makes the edges of userMembershipID authoritative.
 //
@@ -198,4 +328,13 @@ func userVerifiedFor(userMembershipID int) []predicate.GuildRole {
 			),
 		),
 	}
+}
+
+func sSliceContains(needle string, haystack []string) bool {
+	for _, hay := range haystack {
+		if needle == hay {
+			return true
+		}
+	}
+	return false
 }

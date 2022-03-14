@@ -25,6 +25,8 @@ import (
 type CheckForUserOptions struct {
 	// Specify ChannelIDs to restrict checks to these channels.
 	ChannelIDs []string
+	// CheckDisabledChannels forces a check on channels that have been disabled *if ChannelIDs is not empty*
+	CheckDisabledChannels bool
 }
 
 type CheckResultSet struct {
@@ -65,14 +67,20 @@ func CheckForUser(
 		talents []*ent.YouTubeTalent
 	)
 	if options.ChannelIDs != nil {
-		talents, err = db.YouTubeTalent.Query().
-			Where(
-				youtubetalent.IDIn(options.ChannelIDs...),
+		predicates := []predicate.YouTubeTalent{
+			youtubetalent.IDIn(options.ChannelIDs...),
+		}
+		if !options.CheckDisabledChannels {
+			predicates = append(predicates,
 				youtubetalent.Or(
 					youtubetalent.Disabled(time.Time{}),
 					youtubetalent.DisabledIsNil(),
 				),
-			).All(ctx)
+			)
+		}
+		talents, err = db.YouTubeTalent.Query().
+			Where(predicates...).
+			All(ctx)
 		if err != nil {
 			err = fmt.Errorf("error getting specified channels: %w", err)
 			return
@@ -85,6 +93,10 @@ func CheckForUser(
 						guild.HasMembersWith(user.ID(userID)),
 						guild.HasAdminsWith(user.ID(userID)),
 					),
+				),
+				youtubetalent.Or(
+					youtubetalent.Disabled(time.Time{}),
+					youtubetalent.DisabledIsNil(),
 				),
 			).All(ctx)
 		if err != nil {
