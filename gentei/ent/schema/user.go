@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"golang.org/x/oauth2"
@@ -48,6 +49,9 @@ func (User) Edges() []ent.Edge {
 			Comment("Guild that this user has joined"),
 		edge.From("guilds_admin", Guild.Type).
 			Ref("admins"),
-		edge.To("memberships", UserMembership.Type),
+		edge.To("memberships", UserMembership.Type).
+			Annotations(entsql.Annotation{
+				OnDelete: entsql.Cascade,
+			}),
 	}
 }
