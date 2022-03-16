@@ -88,7 +88,7 @@ var (
 				Symbol:     "user_memberships_users_memberships",
 				Columns:    []*schema.Column{UserMembershipsColumns[4]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.SetNull,
+				OnDelete:   schema.Cascade,
 			},
 			{
 				Symbol:     "user_memberships_you_tube_talents_youtube_talent",
