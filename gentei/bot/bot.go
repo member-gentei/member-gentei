@@ -21,6 +21,9 @@ type DiscordBot struct {
 	rut             *roles.RoleUpdateTracker
 	cancelPSApplier context.CancelFunc
 	youTubeConfig   *oauth2.Config
+
+	// roleRWMutex is held 'W' by role-wide operations, like daily enforcement. 'R' is held by all other operations that 'W' would overrun or interrupt.
+	roleRWMutex *roles.DefaultMapRWMutex
 }
 
 func New(db *ent.Client, token string, youTubeConfig *oauth2.Config) (*DiscordBot, error) {
@@ -34,6 +37,7 @@ func New(db *ent.Client, token string, youTubeConfig *oauth2.Config) (*DiscordBo
 		db:            db,
 		rut:           rut,
 		youTubeConfig: youTubeConfig,
+		roleRWMutex:   roles.NewDefaultMapRWMutex(),
 	}, nil
 }
 
@@ -144,7 +148,10 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 	}
 	var (
 		applyCtx, cancelApplyCtx = context.WithCancel(ctx)
+		mutex                    = b.roleRWMutex.GetOrCreate(roleIDStr)
 	)
+	mutex.RLock()
+	defer mutex.RUnlock()
 	b.rut.TrackHook(guildIDStr, userIDStr, func(gmu *discordgo.GuildMemberUpdate) (removeHook bool) {
 		if add {
 			// check this update for the target role that should exist

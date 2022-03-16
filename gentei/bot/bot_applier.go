@@ -111,6 +111,12 @@ func (b *DiscordBot) handlePSMessage(ctx context.Context, m *pubsub.Message) {
 				return
 			}
 		}
+	case message.EnforceAll != nil:
+		err = b.enforceAllRoles(ctx, message.EnforceAll.DryRun, message.EnforceAll.Reason)
+		if err != nil {
+			log.Err(err).Msg("error enforcing all roles")
+			return
+		}
 	}
 	m.Ack()
 }

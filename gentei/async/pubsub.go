@@ -51,6 +51,7 @@ type ApplySingleMessage struct {
 }
 
 type EnforceAllMessage struct {
+	DryRun bool
 	Reason string
 }
 
