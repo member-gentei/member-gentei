@@ -1,10 +1,8 @@
-import Footer from "../components/Footer";
-
+import { RiGithubFill } from "react-icons/ri";
+import { Link } from "react-router-dom";
 import membershipDiagram from "../assets/img/01.png";
 import securityKeibiRobot from "../assets/img/security_keibi_robot.png";
-import monkeyWrench from "../assets/img/monkey_wrench.png";
-import { Link } from "react-router-dom";
-import { RiGithubFill } from "react-icons/ri";
+import Footer from "../components/Footer";
 
 function Home() {
   return (

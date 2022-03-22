@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 /** No trailing slash! */
 export const API_BASE_URL = process.env.REACT_APP_PROD
   ? "https://gentei-api.tindabox.net"
@@ -50,4 +52,24 @@ export function authedFetchJSON(
     credentials: "include",
     body: JSON.stringify(body),
   });
+}
+
+export function useWindowSize() {
+  const [width, setWidth] = useState(0);
+  const [height, setHeight] = useState(0);
+  useEffect(() => {
+    function handler() {
+      setWidth(window.innerWidth);
+      setHeight(window.innerHeight);
+    }
+    window.addEventListener("resize", handler);
+    handler();
+    return () => {
+      window.removeEventListener("resize", handler);
+    };
+  });
+  return {
+    width: width,
+    height: height,
+  };
 }
