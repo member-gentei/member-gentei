@@ -1,8 +1,9 @@
 module github.com/member-gentei/member-gentei/gentei
 
-go 1.17
+go 1.18
 
 require (
+	cloud.google.com/go/pubsub v1.18.0
 	entgo.io/ent v0.10.0
 	github.com/bwmarrin/discordgo v0.24.0
 	github.com/cbroglie/mustache v1.3.1
@@ -20,6 +21,7 @@ require (
 	github.com/spf13/viper v1.10.0
 	github.com/ziflex/lecho/v3 v3.1.0
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/api v0.67.0
 	libs.altipla.consulting v1.91.0
 )
@@ -30,7 +32,6 @@ require (
 	cloud.google.com/go/compute v0.1.0 // indirect
 	cloud.google.com/go/iam v0.1.0 // indirect
 	cloud.google.com/go/logging v1.4.2 // indirect
-	cloud.google.com/go/pubsub v1.18.0 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
@@ -63,7 +64,6 @@ require (
 	golang.org/x/crypto v0.0.0-20211215165025-cf75a172585e // indirect
 	golang.org/x/mod v0.5.1 // indirect
 	golang.org/x/net v0.0.0-20220111093109-d55c255bac03 // indirect
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
