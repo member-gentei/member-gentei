@@ -12,7 +12,7 @@ require (
 	github.com/labstack/echo/v4 v4.6.1
 	github.com/lib/pq v1.10.4
 	github.com/mark-ignacio/zerolog-gcp v0.4.0
-	github.com/mattn/go-sqlite3 v1.14.10
+	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/otiai10/opengraph/v2 v2.1.0
 	github.com/ravener/discord-oauth2 v0.0.0-20210928130214-d7697a35c387
