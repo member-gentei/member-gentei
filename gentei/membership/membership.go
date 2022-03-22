@@ -409,7 +409,7 @@ func createMissingUserMemberships(ctx context.Context, db *ent.Client, userID ui
 	if err != nil {
 		return fmt.Errorf("error querying for eligible roles to %s: %w", c.ChannelID, err)
 	}
-	if len(roleIDsToGrant) > 0 {
+	if len(roleIDsToGrant) == 0 {
 		return nil
 	}
 	logger.Info().Uints64("roleIDs", roleIDsToGrant).Msg("granting newly gained Discord roles to user")
