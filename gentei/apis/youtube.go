@@ -147,7 +147,11 @@ func SelectRandomMembersOnlyVideoID(
 			return nil
 		})
 	if errors.Is(err, errStopPagination) {
-		err = nil
+		if membersOnlyVideoID == "" {
+			err = ErrNoMembersOnlyVideos
+		} else {
+			err = nil
+		}
 	} else if err != nil {
 		var gErr *googleapi.Error
 		if errors.As(err, &gErr) && gErr.Code == 404 {
