@@ -4,6 +4,7 @@ import membershipDiagram from "../assets/img/01.png";
 import securityKeibiRobot from "../assets/img/security_keibi_robot.png";
 import monkeyWrench from "../assets/img/monkey_wrench.png";
 import { Link } from "react-router-dom";
+import { RiGithubFill } from "react-icons/ri";
 
 function Home() {
   return (
@@ -46,14 +47,15 @@ function Home() {
                   basis! All for free, no catch.
                 </p>
                 <p>
-                  For technical docs, see{" "}
+                  For technical and administrative documentation, see{" "}
                   <a
-                    href="https://docs.member-gentei.tindabox.net"
+                    href="https://docs.gentei.tindabox.net"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    https://docs.member-gentei.tindabox.net
+                    https://docs.gentei.tindabox.net
                   </a>
+                  !
                 </p>
               </div>
             </div>
@@ -70,7 +72,7 @@ function Home() {
                 <p>
                   For more info on the bot, please see{" "}
                   <a
-                    href="https://docs.member-gentei.tindabox.net/Discord/bot"
+                    href="https://docs.gentei.tindabox.net/bot/"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -93,25 +95,21 @@ function Home() {
           <div className="columns">
             <div className="column">
               <div className="content has-text-centered">
-                <img
-                  src={monkeyWrench}
-                  style={{ maxHeight: 180 }}
-                  alt="monkey wrench"
-                />
+                <RiGithubFill size={180} />
               </div>
             </div>
             <div className="column">
               <div className="content">
-                <h3>OpenAPI Integration</h3>
+                <h3>Open Source</h3>
                 <p>
-                  Fan community administrators can integrate their own tooling
-                  and/or existing Discord bots with Gentei's REST API, in lieu
-                  of the accompanying Discord bot.
+                  Gentei is an open source, AGPLv3-licensed SaaS project both
+                  hosted on GitHub and deployed straight from the project for
+                  transparency.
                 </p>
                 <p>
-                  Documentation and authentication details are available in the{" "}
-                  <a href="https://docs.member-gentei.tindabox.net/api.html">
-                    OpenAPI doc linked here
+                  To check out the code and infrastructure, see{" "}
+                  <a href="https://github.com/member-gentei">
+                    https://github.com/member-gentei
                   </a>
                   .
                 </p>
