@@ -1,15 +1,17 @@
-import React, { Fragment } from "react";
+import classNames from "classnames";
+import React, { Fragment, useState } from "react";
 import { RiArrowDropDownLine } from "react-icons/ri";
 import { SiDiscord } from "react-icons/si";
 import { Link, Outlet } from "react-router-dom";
 import logo128 from "../../assets/img/logo-128.png";
 import Footer from "../../components/Footer";
 import { useDiscordLoginURL } from "../../components/LoginURL";
-import { LoadState } from "../../lib/lib";
+import { LoadState, useWindowSize } from "../../lib/lib";
 import { useUser } from "../../stores/UserStore";
 
 function AppIndex() {
   const actions = useUser()[1];
+  const [navActive, setNavActive] = useState(false);
   actions.getMe();
   return (
     <Fragment>
@@ -18,8 +20,18 @@ function AppIndex() {
           <Link to="/app" className="navbar-item">
             <img src={logo128} alt="Gentei bot logo" />
           </Link>
+          <a
+            href="#"
+            role="button"
+            className={classNames("navbar-burger", { "is-active": navActive })}
+            onClick={() => setNavActive((v) => !v)}
+          >
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+          </a>
         </div>
-        <div className="navbar-menu">
+        <div className={classNames("navbar-menu", { "is-active": navActive })}>
           <div className="navbar-start"></div>
           <div className="navbar-end">
             <div className="navbar-item">{<AuthButtons />}</div>
@@ -60,6 +72,7 @@ function AppIndex() {
 function AuthButtons() {
   const [store, actions] = useUser();
   const loginURL = useDiscordLoginURL();
+  const windowSize = useWindowSize();
   if (store.userLoad <= LoadState.Started || !loginURL) {
     return (
       <progress className="progress is-small" max="100">
@@ -75,7 +88,11 @@ function AuthButtons() {
     const user = store.user!;
     const avatarURL = `https://cdn.discordapp.com/avatars/${user.ID}/${user.AvatarHash}.webp?size=64`;
     return (
-      <div className="dropdown is-right is-hoverable">
+      <div
+        className={classNames("dropdown is-hoverable", {
+          "is-right": windowSize.width >= 1024,
+        })}
+      >
         <div className="dropdown-trigger">
           <button className="button is-black outlined">
             <span>
