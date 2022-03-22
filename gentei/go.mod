@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	cloud.google.com/go/pubsub v1.18.0
-	entgo.io/ent v0.10.0
+	entgo.io/ent v0.10.1
 	github.com/bwmarrin/discordgo v0.24.0
 	github.com/cbroglie/mustache v1.3.1
 	github.com/golang-jwt/jwt v3.2.2+incompatible
@@ -27,7 +27,7 @@ require (
 )
 
 require (
-	ariga.io/atlas v0.3.2-0.20220120225051-c3fac7d636dd // indirect
+	ariga.io/atlas v0.3.7-0.20220303204946-787354f533c3 // indirect
 	cloud.google.com/go v0.100.2 // indirect
 	cloud.google.com/go/compute v0.1.0 // indirect
 	cloud.google.com/go/iam v0.1.0 // indirect
@@ -41,7 +41,7 @@ require (
 	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.1.1 // indirect
-	github.com/gorilla/websocket v1.4.2 // indirect
+	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.10.0 // indirect
