@@ -17,7 +17,7 @@ require (
 	github.com/otiai10/opengraph/v2 v2.1.0
 	github.com/ravener/discord-oauth2 v0.0.0-20210928130214-d7697a35c387
 	github.com/rs/zerolog v1.26.1
-	github.com/spf13/cobra v1.3.0
+	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.10.0
 	github.com/ziflex/lecho/v3 v3.1.0
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
