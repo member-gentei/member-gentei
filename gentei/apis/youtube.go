@@ -159,7 +159,7 @@ func SelectRandomMembersOnlyVideoID(
 		}
 		return "", err
 	}
-	return membersOnlyVideoID, nil
+	return membersOnlyVideoID, err
 }
 
 func IsCommentsDisabledErr(err *googleapi.Error) bool {
