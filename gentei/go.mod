@@ -3,7 +3,7 @@ module github.com/member-gentei/member-gentei/gentei
 go 1.18
 
 require (
-	cloud.google.com/go/pubsub v1.18.0
+	cloud.google.com/go/pubsub v1.19.0
 	entgo.io/ent v0.10.1
 	github.com/bwmarrin/discordgo v0.24.0
 	github.com/cbroglie/mustache v1.3.1
@@ -23,14 +23,14 @@ require (
 	golang.org/x/oauth2 v0.0.0-20220309155454-6242fa91716a
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/api v0.73.0
-	libs.altipla.consulting v1.91.0
+	libs.altipla.consulting v1.100.0
 )
 
 require (
 	ariga.io/atlas v0.3.7-0.20220303204946-787354f533c3 // indirect
 	cloud.google.com/go v0.100.2 // indirect
 	cloud.google.com/go/compute v1.5.0 // indirect
-	cloud.google.com/go/iam v0.1.0 // indirect
+	cloud.google.com/go/iam v0.3.0 // indirect
 	cloud.google.com/go/logging v1.4.2 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
@@ -61,7 +61,7 @@ require (
 	github.com/valyala/fasttemplate v1.2.1 // indirect
 	github.com/zclconf/go-cty v1.8.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	golang.org/x/crypto v0.0.0-20211215165025-cf75a172585e // indirect
+	golang.org/x/crypto v0.0.0-20220307211146-efcb8507fb70 // indirect
 	golang.org/x/mod v0.5.1 // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
 	golang.org/x/sys v0.0.0-20220310020820-b874c991c1a5 // indirect
