@@ -350,7 +350,7 @@ func checkSingleMembership(
 				logger.Warn().Err(err).
 					Msg("missing video or comments disabled on membership check video, getting a new one")
 				newVideoID, selectErr := apis.SelectRandomMembersOnlyVideoID(ctx, logger, svc, channelID)
-				if selectErr != nil {
+				if selectErr != nil || newVideoID == "" {
 					logger.Err(err).Msg("error getting new membership check video, disabling checks for channel")
 					disableErr := db.YouTubeTalent.UpdateOneID(channelID).
 						SetDisabled(time.Now()).
@@ -358,7 +358,11 @@ func checkSingleMembership(
 					if disableErr != nil {
 						logger.Err(err).Msg("error disabling checks on channel")
 					}
-					err = selectErr
+					if selectErr != nil {
+						err = selectErr
+					} else {
+						err = apis.ErrNoMembersOnlyVideos
+					}
 					return
 				}
 				// do it all over again!
