@@ -108,6 +108,7 @@ func CheckForUser(
 		checkTimestamps              = map[string]time.Time{}
 		verifiedMembershipChannelIDs []string
 		nonMemberChannelIDs          []string
+		tokenInvalid                 bool
 	)
 	for _, talent := range talents {
 		logger := log.With().
@@ -143,9 +144,15 @@ func CheckForUser(
 			}
 		}
 		// perform membership check
-		isMember, err := checkSingleMembership(ctx, logger, db, svc, talent.ID, talent.MembershipVideoID)
-		if err != nil {
-			return nil, fmt.Errorf("error checking membership: %w", err)
+		var isMember bool
+		if !tokenInvalid {
+			isMember, err = checkSingleMembership(ctx, logger, db, svc, talent.ID, talent.MembershipVideoID)
+			if errors.Is(err, apis.ErrInvalidGrant) {
+				logger.Warn().Msg("YouTube token expired/revoked for user, all memberships will be lost")
+				tokenInvalid = true
+			} else if err != nil {
+				return nil, fmt.Errorf("error checking membership: %w", err)
+			}
 		}
 		checkTimestamps[talent.ID] = time.Now()
 		if isMember {

@@ -86,7 +86,9 @@ var checkCmd = &cobra.Command{
 			}
 			// check single user ID
 			results, err = membership.CheckForUser(ctx, db, ytConfig, flagCheckUserID, options)
-			if err != nil {
+			if errors.Is(err, apis.ErrInvalidGrant) {
+				log.Fatal().Err(err).Msg("token expired/revoked, user should be deleted")
+			} else if err != nil {
 				log.Fatal().Err(err).Msg("error checking memberships for user")
 			}
 			log.Info().
@@ -102,6 +104,7 @@ var checkCmd = &cobra.Command{
 				failedUserIDs []uint64
 				userCount     int
 			)
+			log.Info().Msg("refreshing UserGuildEdges")
 			failedUserIDs, userCount, err = membership.RefreshAllUserGuildEdges(ctx, db, discordConfig)
 			if err != nil {
 				log.Fatal().Err(err).Msg("error refreshing Discord Guild edges")
