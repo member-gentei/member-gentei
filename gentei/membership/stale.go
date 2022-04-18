@@ -117,6 +117,7 @@ func RefreshAllUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig
 		}
 		for _, userID := range userIDs {
 			logger := log.With().Str("userID", strconv.FormatUint(userID, 10)).Logger()
+			logger.Debug().Msg("getting Discord token for refresh")
 			ts, err := apis.GetRefreshingDiscordTokenSource(ctx, db, discordConfig, userID)
 			if err != nil {
 				logger.Warn().Err(err).Msg("error creating Discord TokenSource, skipping")
@@ -128,6 +129,7 @@ func RefreshAllUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig
 				userTokensInvalid = append(userTokensInvalid, userID)
 				continue
 			}
+			logger.Debug().Msg("refreshing UserGuildEdges")
 			added, removed, err := RefreshUserGuildEdges(ctx, db, token, userID)
 			if err != nil {
 				var restErr *discordgo.RESTError
@@ -145,6 +147,8 @@ func RefreshAllUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig
 					Strs("addedGuildIDs", uints64ToStrs(added)).
 					Strs("removedGuildIDs", uints64ToStrs(removed)).
 					Msg("refreshed with changes")
+			} else {
+				logger.Debug().Msg("refreshed with no changes")
 			}
 		}
 		totalCount += len(userIDs)

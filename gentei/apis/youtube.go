@@ -23,6 +23,7 @@ import (
 
 var (
 	ErrNoYouTubeTokenForUser = errors.New("user does not have a YouTube token")
+	ErrInvalidGrant          = errors.New("invalid_grant - token expired or revoked")
 	ErrNoMembersOnlyVideos   = errors.New("YouTube channel has membership enabled, but no members-only videos")
 )
 
@@ -50,8 +51,12 @@ func youTubeAPIRetryPolicy(ctx context.Context, r *http.Response, err error) (bo
 			case
 				"Token has been expired or revoked.",
 				"Bad Request":
-				if r.Body != nil {
+				if r != nil && r.Body != nil {
 					r.Body.Close()
+				}
+				if errResponse.Error == "invalid_grant" {
+					log.Warn().Err(err).Msg("invalid_grant error detected, returning more general case")
+					return false, ErrInvalidGrant
 				}
 				return false, err
 			}
