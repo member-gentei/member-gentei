@@ -2,10 +2,12 @@ package bot
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
 	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
@@ -31,8 +33,22 @@ func (b *DiscordBot) enforceAllRoles(ctx context.Context, dryRun bool, reason st
 		return fmt.Errorf("error getting GuildRoles: %w", err)
 	}
 	for _, gr := range grs {
+		var (
+			guildIDStr = strconv.FormatUint(gr.Edges.Guild.ID, 10)
+			roleIDStr  = strconv.FormatUint(gr.ID, 10)
+			logger     = log.With().Str("guildID", guildIDStr).Str("roleID", roleIDStr).Logger()
+		)
 		if err = b.enforceRole(ctx, gr, dryRun, reason); err != nil {
-			return fmt.Errorf("error enforcing GuildRole: %w", err)
+			// TODO: inform point of contact about permissions failure
+			var restErr *discordgo.RESTError
+			if errors.As(err, &restErr) {
+				if restErr.Message.Code == discordgo.ErrCodeMissingAccess {
+					logger.Warn().Err(err).Msg("permissions error working with Guild")
+				}
+			} else {
+				logger.Err(err).Msg("error enforcing GuildRole")
+				return fmt.Errorf("error enforcing GuildRole: %w", err)
+			}
 		}
 	}
 	return nil
@@ -84,7 +100,7 @@ func (b *DiscordBot) enforceRole(ctx context.Context, gr *ent.GuildRole, dryRun 
 	)
 	dGuild, err := b.session.Guild(guildIDStr)
 	if err != nil {
-		return fmt.Errorf("error getting Guild in session: %w", err)
+		return fmt.Errorf("error getting Guild %d from discordgo session: %w", guildID, err)
 	}
 	for _, member := range dGuild.Members {
 		uid, err := strconv.ParseUint(member.User.ID, 10, 64)
