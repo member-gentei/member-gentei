@@ -98,9 +98,9 @@ func (b *DiscordBot) enforceRole(ctx context.Context, gr *ent.GuildRole, dryRun 
 		toAdd    []string
 		toRemove []string
 	)
-	dGuild, err := b.session.Guild(guildIDStr)
+	dGuild, err := b.session.State.Guild(guildIDStr)
 	if err != nil {
-		return fmt.Errorf("error getting Guild %d from discordgo session: %w", guildID, err)
+		return fmt.Errorf("error getting Guild %d from discordgo session state: %w", guildID, err)
 	}
 	for _, member := range dGuild.Members {
 		uid, err := strconv.ParseUint(member.User.ID, 10, 64)

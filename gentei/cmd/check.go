@@ -145,7 +145,7 @@ var checkCmd = &cobra.Command{
 			})
 			defer async.PublishApplyMembershipMessage(ctx, asyncTopic, async.ApplyMembershipPSMessage{
 				EnforceAll: &async.EnforceAllMessage{
-					DryRun: flagCheckDisabled,
+					DryRun: flagCheckNoEnforce,
 					Reason: "daily role enforcement",
 				},
 			})
