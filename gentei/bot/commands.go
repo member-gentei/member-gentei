@@ -415,7 +415,6 @@ func (b *DiscordBot) deferredReply(ctx context.Context, i *discordgo.Interaction
 			Str("userID", i.Member.User.ID).
 			Str("guildID", i.GuildID).
 			Logger()
-		appID = b.session.State.User.ID
 	)
 	err := b.session.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
@@ -442,7 +441,7 @@ func (b *DiscordBot) deferredReply(ctx context.Context, i *discordgo.Interaction
 		if response == nil {
 			continue
 		}
-		_, err = b.session.InteractionResponseEdit(appID, i.Interaction, response)
+		_, err = b.session.InteractionResponseEdit(i.Interaction, response)
 		if err != nil {
 			logger.Err(err).Msg("error generating response")
 		}
