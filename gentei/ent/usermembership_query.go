@@ -183,7 +183,7 @@ func (umq *UserMembershipQuery) FirstIDX(ctx context.Context) int {
 }
 
 // Only returns a single UserMembership entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when exactly one UserMembership entity is not found.
+// Returns a *NotSingularError when more than one UserMembership entity is found.
 // Returns a *NotFoundError when no UserMembership entities are found.
 func (umq *UserMembershipQuery) Only(ctx context.Context) (*UserMembership, error) {
 	nodes, err := umq.Limit(2).All(ctx)
@@ -210,7 +210,7 @@ func (umq *UserMembershipQuery) OnlyX(ctx context.Context) *UserMembership {
 }
 
 // OnlyID is like Only, but returns the only UserMembership ID in the query.
-// Returns a *NotSingularError when exactly one UserMembership ID is not found.
+// Returns a *NotSingularError when more than one UserMembership ID is found.
 // Returns a *NotFoundError when no entities are found.
 func (umq *UserMembershipQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
@@ -322,8 +322,9 @@ func (umq *UserMembershipQuery) Clone() *UserMembershipQuery {
 		withYoutubeTalent: umq.withYoutubeTalent.Clone(),
 		withRoles:         umq.withRoles.Clone(),
 		// clone intermediate query.
-		sql:  umq.sql.Clone(),
-		path: umq.path,
+		sql:    umq.sql.Clone(),
+		path:   umq.path,
+		unique: umq.unique,
 	}
 }
 

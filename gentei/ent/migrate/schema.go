@@ -30,7 +30,7 @@ var (
 		{Name: "id", Type: field.TypeUint64, Increment: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "last_updated", Type: field.TypeTime},
-		{Name: "guild_roles", Type: field.TypeUint64, Nullable: true},
+		{Name: "guild_roles", Type: field.TypeUint64},
 		{Name: "you_tube_talent_roles", Type: field.TypeString, Nullable: true},
 	}
 	// GuildRolesTable holds the schema information for the "guild_roles" table.
@@ -43,7 +43,7 @@ var (
 				Symbol:     "guild_roles_guilds_roles",
 				Columns:    []*schema.Column{GuildRolesColumns[3]},
 				RefColumns: []*schema.Column{GuildsColumns[0]},
-				OnDelete:   schema.Cascade,
+				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "guild_roles_you_tube_talents_roles",
@@ -76,7 +76,7 @@ var (
 		{Name: "last_verified", Type: field.TypeTime},
 		{Name: "fail_count", Type: field.TypeInt, Default: 0},
 		{Name: "user_memberships", Type: field.TypeUint64, Nullable: true},
-		{Name: "user_membership_youtube_talent", Type: field.TypeString, Nullable: true},
+		{Name: "user_membership_youtube_talent", Type: field.TypeString},
 	}
 	// UserMembershipsTable holds the schema information for the "user_memberships" table.
 	UserMembershipsTable = &schema.Table{

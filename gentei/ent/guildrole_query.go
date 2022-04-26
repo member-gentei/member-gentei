@@ -183,7 +183,7 @@ func (grq *GuildRoleQuery) FirstIDX(ctx context.Context) uint64 {
 }
 
 // Only returns a single GuildRole entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when exactly one GuildRole entity is not found.
+// Returns a *NotSingularError when more than one GuildRole entity is found.
 // Returns a *NotFoundError when no GuildRole entities are found.
 func (grq *GuildRoleQuery) Only(ctx context.Context) (*GuildRole, error) {
 	nodes, err := grq.Limit(2).All(ctx)
@@ -210,7 +210,7 @@ func (grq *GuildRoleQuery) OnlyX(ctx context.Context) *GuildRole {
 }
 
 // OnlyID is like Only, but returns the only GuildRole ID in the query.
-// Returns a *NotSingularError when exactly one GuildRole ID is not found.
+// Returns a *NotSingularError when more than one GuildRole ID is found.
 // Returns a *NotFoundError when no entities are found.
 func (grq *GuildRoleQuery) OnlyID(ctx context.Context) (id uint64, err error) {
 	var ids []uint64
@@ -322,8 +322,9 @@ func (grq *GuildRoleQuery) Clone() *GuildRoleQuery {
 		withUserMemberships: grq.withUserMemberships.Clone(),
 		withTalent:          grq.withTalent.Clone(),
 		// clone intermediate query.
-		sql:  grq.sql.Clone(),
-		path: grq.path,
+		sql:    grq.sql.Clone(),
+		path:   grq.path,
+		unique: grq.unique,
 	}
 }
 
