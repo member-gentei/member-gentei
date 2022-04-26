@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"entgo.io/ent"
-	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
@@ -53,10 +52,7 @@ func (Guild) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("members", User.Type),
 		edge.To("admins", User.Type),
-		edge.To("roles", GuildRole.Type).
-			Annotations(entsql.Annotation{
-				OnDelete: entsql.Cascade,
-			}),
+		edge.To("roles", GuildRole.Type),
 		edge.From("youtube_talents", YouTubeTalent.Type).
 			Ref("guilds"),
 	}

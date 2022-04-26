@@ -182,7 +182,7 @@ func (yttq *YouTubeTalentQuery) FirstIDX(ctx context.Context) string {
 }
 
 // Only returns a single YouTubeTalent entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when exactly one YouTubeTalent entity is not found.
+// Returns a *NotSingularError when more than one YouTubeTalent entity is found.
 // Returns a *NotFoundError when no YouTubeTalent entities are found.
 func (yttq *YouTubeTalentQuery) Only(ctx context.Context) (*YouTubeTalent, error) {
 	nodes, err := yttq.Limit(2).All(ctx)
@@ -209,7 +209,7 @@ func (yttq *YouTubeTalentQuery) OnlyX(ctx context.Context) *YouTubeTalent {
 }
 
 // OnlyID is like Only, but returns the only YouTubeTalent ID in the query.
-// Returns a *NotSingularError when exactly one YouTubeTalent ID is not found.
+// Returns a *NotSingularError when more than one YouTubeTalent ID is found.
 // Returns a *NotFoundError when no entities are found.
 func (yttq *YouTubeTalentQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
@@ -321,8 +321,9 @@ func (yttq *YouTubeTalentQuery) Clone() *YouTubeTalentQuery {
 		withRoles:       yttq.withRoles.Clone(),
 		withMemberships: yttq.withMemberships.Clone(),
 		// clone intermediate query.
-		sql:  yttq.sql.Clone(),
-		path: yttq.path,
+		sql:    yttq.sql.Clone(),
+		path:   yttq.path,
+		unique: yttq.unique,
 	}
 }
 

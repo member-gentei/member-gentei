@@ -205,7 +205,7 @@ func (gq *GuildQuery) FirstIDX(ctx context.Context) uint64 {
 }
 
 // Only returns a single Guild entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when exactly one Guild entity is not found.
+// Returns a *NotSingularError when more than one Guild entity is found.
 // Returns a *NotFoundError when no Guild entities are found.
 func (gq *GuildQuery) Only(ctx context.Context) (*Guild, error) {
 	nodes, err := gq.Limit(2).All(ctx)
@@ -232,7 +232,7 @@ func (gq *GuildQuery) OnlyX(ctx context.Context) *Guild {
 }
 
 // OnlyID is like Only, but returns the only Guild ID in the query.
-// Returns a *NotSingularError when exactly one Guild ID is not found.
+// Returns a *NotSingularError when more than one Guild ID is found.
 // Returns a *NotFoundError when no entities are found.
 func (gq *GuildQuery) OnlyID(ctx context.Context) (id uint64, err error) {
 	var ids []uint64
@@ -345,8 +345,9 @@ func (gq *GuildQuery) Clone() *GuildQuery {
 		withRoles:          gq.withRoles.Clone(),
 		withYoutubeTalents: gq.withYoutubeTalents.Clone(),
 		// clone intermediate query.
-		sql:  gq.sql.Clone(),
-		path: gq.path,
+		sql:    gq.sql.Clone(),
+		path:   gq.path,
+		unique: gq.unique,
 	}
 }
 
