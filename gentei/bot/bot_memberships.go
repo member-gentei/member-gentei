@@ -45,6 +45,16 @@ func (b *DiscordBot) enforceAllRoles(ctx context.Context, dryRun bool, reason st
 				if restErr.Message.Code == discordgo.ErrCodeMissingAccess {
 					logger.Warn().Err(err).Msg("permissions error working with Guild")
 				}
+			} else if errors.Is(err, discordgo.ErrStateNotFound) {
+				logger.Warn().Msg("Guild relevant to enforcement not in session state")
+				pruned, err := b.pruneGuildIfAbsent(ctx, gr.Edges.Guild.ID)
+				if err != nil {
+					return fmt.Errorf("error pruning Guild: %w", err)
+				} else if pruned {
+					logger.Info().Msg("pruned departed Guild, no membership changes will be communicated")
+				} else {
+					logger.Error().Msg("Guild was absent from state, consider restarting")
+				}
 			} else {
 				logger.Err(err).Msg("error enforcing GuildRole")
 				return fmt.Errorf("error enforcing GuildRole: %w", err)
@@ -321,6 +331,23 @@ func (b *DiscordBot) grantRole(
 		}
 	}
 	return nil
+}
+
+// returns whether the Guild and its roles were pruned.
+func (b *DiscordBot) pruneGuildIfAbsent(ctx context.Context, guildID uint64) (bool, error) {
+	var (
+		guildIDStr = strconv.FormatUint(guildID, 10)
+		restErr    *discordgo.RESTError
+	)
+	_, err := b.session.Guild(guildIDStr)
+	if errors.As(err, &restErr) {
+		if restErr.Message.Code == discordgo.ErrCodeMissingAccess {
+			// we're not in the guild, so remove it and its roles
+			// (this should CASCADE DELETE to all appropriate objects)
+			return true, b.db.Guild.DeleteOneID(guildID).Exec(ctx)
+		}
+	}
+	return false, err
 }
 
 func userNewlyVerifiedFor(userMembershipID int) []predicate.GuildRole {
