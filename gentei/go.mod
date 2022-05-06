@@ -10,7 +10,7 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/hashicorp/go-retryablehttp v0.7.0
 	github.com/labstack/echo/v4 v4.7.2
-	github.com/lib/pq v1.10.4
+	github.com/lib/pq v1.10.5
 	github.com/mark-ignacio/zerolog-gcp v0.4.0
 	github.com/mattn/go-sqlite3 v1.14.10
 	github.com/mitchellh/mapstructure v1.4.3
