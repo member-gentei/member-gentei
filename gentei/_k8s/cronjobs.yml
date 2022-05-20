@@ -20,7 +20,6 @@ spec:
               image: ghcr.io/member-gentei/gentei:latest
               args:
                 - check
-                - "--no-enforce"
               env:
                 - name: GCP_LOG_ID
                   value: checks
