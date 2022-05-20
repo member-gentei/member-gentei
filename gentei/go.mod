@@ -8,7 +8,7 @@ require (
 	github.com/bwmarrin/discordgo v0.25.0
 	github.com/cbroglie/mustache v1.3.1
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/hashicorp/go-retryablehttp v0.7.0
+	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/labstack/echo/v4 v4.7.2
 	github.com/lib/pq v1.10.5
 	github.com/mark-ignacio/zerolog-gcp v0.4.0
