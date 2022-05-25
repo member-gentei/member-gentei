@@ -10,6 +10,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/member-gentei/member-gentei/gentei/bot/roles"
 	"github.com/member-gentei/member-gentei/gentei/ent"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
 )
@@ -63,51 +64,25 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 	})
 	// guild metadata updates
 	b.session.AddHandler(func(s *discordgo.Session, gc *discordgo.GuildCreate) {
-		guildID, err := strconv.ParseUint(gc.ID, 10, 64)
-		if err != nil {
-			log.Err(err).Str("unparsedGuildID", gc.ID).Msg("error parsing joined guild ID as uint64")
-			return
-		}
 		logger := log.With().
-			Str("guildID", strconv.FormatUint(guildID, 10)).
+			Str("guildID", gc.ID).
 			Str("guildName", gc.Name).
 			Logger()
 		logger.Info().Msg("joined Guild")
 		// update Guild info opportunistically
 		go func() {
 			<-time.NewTimer(time.Second * 5).C
-			err = b.db.Guild.UpdateOneID(guildID).
-				SetName(gc.Name).
-				SetIconHash(gc.Icon).
-				Exec(context.Background())
-			if err != nil && !ent.IsNotFound(err) {
-				logger.Err(err).Msg("error updating on GUILD_CREATE")
-				return
-			}
+			b.handleCommonGuildCreateUpdate(context.Background(), logger, s, gc.Guild)
 		}()
 	})
 	b.session.AddHandler(func(s *discordgo.Session, gu *discordgo.GuildUpdate) {
-		guildID, err := strconv.ParseUint(gu.ID, 10, 64)
-		if err != nil {
-			log.Err(err).Str("unparsedGuildID", gu.ID).Msg("error parsing joined guild ID as uint64")
-			return
-		}
 		logger := log.With().
-			Str("guildID", strconv.FormatUint(guildID, 10)).
+			Str("guildID", gu.ID).
 			Str("guildName", gu.Name).
 			Logger()
+		logger.Info().Msg("update for Guild received")
 		// update if guild and info exists
-		err = b.db.Guild.UpdateOneID(guildID).
-			SetName(gu.Name).
-			SetIconHash(gu.Icon).
-			Exec(context.Background())
-		if ent.IsNotFound(err) {
-			logger.Warn().Msg("got update for Guild not in database")
-		} else if err != nil {
-			logger.Err(err).Msg("error updating GUILD_UPDATE")
-		} else {
-			logger.Info().Msg("updated Guild")
-		}
+		b.handleCommonGuildCreateUpdate(context.Background(), logger, s, gu.Guild)
 	})
 	// register intents (new for v8 gateway)
 	b.session.Identify.Intents = discordgo.IntentsGuilds | discordgo.IntentsGuildMembers
@@ -186,6 +161,46 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 		Int("attempts", result.Attempts).
 		Msg("role apply attempt finished")
 	return err
+}
+
+func (b *DiscordBot) handleCommonGuildCreateUpdate(
+	ctx context.Context,
+	logger zerolog.Logger,
+	s *discordgo.Session,
+	g *discordgo.Guild,
+) {
+	guildID, err := strconv.ParseUint(g.ID, 10, 64)
+	if err != nil {
+		log.Err(err).Str("unparsedGuildID", g.ID).Msg("error parsing joined guild ID as uint64")
+		return
+	}
+	err = b.db.Guild.UpdateOneID(guildID).
+		SetName(g.Name).
+		SetIconHash(g.Icon).
+		Exec(ctx)
+	if err != nil && !ent.IsNotFound(err) {
+		logger.Err(err).Msg("error updating Guild during metadata update")
+		return
+	}
+	// check-and-set owner
+	// TODO: actually set
+	dg, err := b.db.Guild.Get(ctx, guildID)
+	if err != nil {
+		logger.Err(err).Msg("error getting Guild during metadata update")
+		return
+	}
+	if g.OwnerID != "" {
+		ownerID, err := strconv.ParseUint(g.OwnerID, 10, 64)
+		if err != nil {
+			logger.Err(err).Msg("error parsing OwnerID as uint64")
+		}
+		if oldOwnerID := dg.AdminSnowflakes[0]; oldOwnerID != ownerID {
+			logger.Info().
+				Str("old", strconv.FormatUint(oldOwnerID, 10)).
+				Str("new", g.OwnerID).
+				Msg("guild owner has changed")
+		}
+	}
 }
 
 func getMessageAttributionIDs(i *discordgo.InteractionCreate) (guildID, userID uint64, err error) {
