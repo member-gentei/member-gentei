@@ -10,6 +10,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/member-gentei/member-gentei/gentei/bot/roles"
 	"github.com/member-gentei/member-gentei/gentei/ent"
+	"github.com/member-gentei/member-gentei/gentei/ent/guild"
+	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
@@ -71,7 +73,38 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 		logger.Info().Msg("joined Guild")
 		// update Guild info opportunistically
 		go func() {
+			ctx := context.Background()
 			<-time.NewTimer(time.Second * 5).C
+			guildID, err := strconv.ParseUint(gc.ID, 10, 64)
+			if err != nil {
+				logger.Err(err).Msg("error parsing gc.ID as uint64")
+				return
+			}
+			exists, err := b.db.Guild.Query().Where(guild.ID(guildID)).Exist(ctx)
+			if err != nil {
+				logger.Err(err).Msg("error checking for guild presence in DB")
+				return
+			}
+			if !exists {
+				logger.Error().Msg("creating Guild object in DB - it should've already been created via the web UI")
+				ownerID, err := strconv.ParseUint(gc.OwnerID, 10, 64)
+				if err != nil {
+					logger.Err(err).Msg("error parsing embedded gc.OwnerID as uint64")
+				}
+				create := b.db.Guild.Create().
+					SetID(guildID).
+					SetName(gc.Name).SetIconHash(gc.Icon).
+					SetAdminSnowflakes([]uint64{ownerID})
+				if exists, _ := b.db.User.Query().Where(user.ID(ownerID)).Exist(ctx); exists {
+					create = create.AddAdminIDs(ownerID)
+				} else {
+					logger.Warn().Msg("owner is not registered with Gentei")
+				}
+				_, err = create.Save(ctx)
+				if err != nil {
+					logger.Err(err).Msg("error creating Guild object")
+				}
+			}
 			b.handleCommonGuildCreateUpdate(context.Background(), logger, s, gc.Guild)
 		}()
 	})
