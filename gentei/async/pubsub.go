@@ -114,9 +114,11 @@ func ListenGeneral(
 				m.Ack()
 				return
 			}
+			logger := log.With().Str("userID", strconv.FormatUint(userID, 10)).Logger()
 			if err = ProcessUserDelete(ctx, db, botTopic, userID, message.UserDelete.Reason); err != nil {
-				log.Err(err).Str("userID", strconv.FormatUint(userID, 10)).Msg("error processing user deletion")
+				logger.Err(err).Msg("error processing user deletion")
 			} else {
+				logger.Info().Msg("issued delete for user")
 				m.Ack()
 				return
 			}
