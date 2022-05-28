@@ -88,6 +88,11 @@ func ListenGeneral(
 			}
 			logger := log.With().Str("userID", strconv.FormatUint(userID, 10)).Logger()
 			if err := ProcessYouTubeRegistration(ctx, db, youTubeConfig, userID, setChangeReason); err != nil {
+				if ent.IsNotFound(err) {
+					m.Ack()
+					logger.Warn().Err(err).Msg("registered user not found, acking YouTube registration")
+					return
+				}
 				if errors.Is(err, apis.ErrNoYouTubeTokenForUser) {
 					logger.Warn().Err(err).Msg("acking YouTube registration with errors")
 					m.Ack()
