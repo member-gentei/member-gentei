@@ -3,7 +3,6 @@ package commands
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/member-gentei/member-gentei/gentei/ent"
@@ -11,7 +10,7 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
-	"github.com/member-gentei/member-gentei/gentei/membership"
+	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 )
 
 // CreateMembershipInfoEmbeds creates a []*discordgo.MessageEmbed that describes the user's current role grants on a server.
@@ -41,9 +40,10 @@ func CreateMembershipInfoEmbeds(ctx context.Context, db *ent.Client, userID, gui
 		applicableGuildRoleIDs[guildRoleID] = true
 	}
 	embeds := make([]*discordgo.MessageEmbed, len(guildRoles))
-	for i, guildRole := range guildRoles {
+	for i := range guildRoles {
 		var (
 			statusMessage string
+			guildRole     = *guildRoles[i]
 			talent        = guildRole.Edges.Talent
 		)
 		if applicableGuildRoleIDs[guildRole.ID] {
@@ -74,59 +74,30 @@ func CreateMembershipInfoEmbeds(ctx context.Context, db *ent.Client, userID, gui
 	return embeds, nil
 }
 
-// CreateLGRWebhookEdit creates a webhook edit with embeds of lost/gained/retained membership roles.
-func CreateCheckResultWebhookEdit(
-	results *membership.CheckResultSet,
-	roleMap map[string]string,
-	talentMap map[string]*ent.YouTubeTalent,
-	asOf time.Time,
-) *discordgo.WebhookEdit {
-	var embeds []*discordgo.MessageEmbed
-	for _, lost := range results.Lost {
-		embeds = append(embeds, checkResultAsEmbed(lost, "⚠️ Verification failed", talentMap))
+// GetDisabledChannelEmbeds creates a
+func GetDisabledChannelEmbeds(ctx context.Context, db *ent.Client, channelIDs []string) ([]*discordgo.MessageEmbed, error) {
+	talents, err := db.YouTubeTalent.Query().
+		Where(youtubetalent.IDIn(channelIDs...)).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error getting disabled channels by ID: %w", err)
 	}
-	for _, lost := range results.Gained {
-		embeds = append(embeds, checkResultAsEmbed(lost, "✅ Membership verified", talentMap))
-	}
-	for _, lost := range results.Retained {
-		embeds = append(embeds, checkResultAsEmbed(lost, "✅ Membership verified", talentMap))
-	}
-	for _, lost := range results.Not {
-		embeds = append(embeds, checkResultAsEmbed(lost, "⛔ Not a member", talentMap))
-	}
-	edit := &discordgo.WebhookEdit{
-		Content: "Your membership check results are below.",
-		Embeds:  embeds,
-	}
-	return edit
-}
-
-func checkResultAsEmbed(result membership.CheckResult, statusValue string, talentMap map[string]*ent.YouTubeTalent) *discordgo.MessageEmbed {
-	var (
-		talent = talentMap[result.ChannelID]
-	)
-	return &discordgo.MessageEmbed{
-		Type:  discordgo.EmbedTypeRich,
-		Title: talent.ChannelName,
-		Thumbnail: &discordgo.MessageEmbedThumbnail{
-			URL: talent.ThumbnailURL,
-		},
-		Fields: []*discordgo.MessageEmbedField{
-			{
-				Name:   "Membership Role",
-				Value:  fmt.Sprintf("<@&%s>", result.ChannelID),
-				Inline: true,
+	embeds := make([]*discordgo.MessageEmbed, len(talents))
+	for i := range talents {
+		talent := *talents[i]
+		embeds[i] = &discordgo.MessageEmbed{
+			Type:  discordgo.EmbedTypeRich,
+			Title: talent.ChannelName,
+			Thumbnail: &discordgo.MessageEmbedThumbnail{
+				URL: talent.ThumbnailURL,
 			},
-			{
-				Name:   "Status",
-				Value:  statusValue,
-				Inline: true,
+			Fields: []*discordgo.MessageEmbedField{
+				{
+					Name:  "Error",
+					Value: "Membership checks are temporarily disabled for this channel. Please try again later!",
+				},
 			},
-			{
-				Name:   "Check Time",
-				Value:  fmt.Sprintf("<t:%d:R>", result.Time.Unix()),
-				Inline: true,
-			},
-		},
+		}
 	}
+	return embeds, nil
 }

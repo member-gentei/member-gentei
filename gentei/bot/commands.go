@@ -325,9 +325,22 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 				logger.Err(err).Msg("error creating embeds for reply")
 				return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
 			}
-			response = &discordgo.WebhookEdit{
-				Content: "Discord roles have been applied - see below for details.",
-				Embeds:  embeds,
+			if len(results.DisabledChannels) > 0 {
+				// append embeds for channels
+				disabledEmbeds, err := commands.GetDisabledChannelEmbeds(ctx, b.db, results.DisabledChannels)
+				if err != nil {
+					logger.Err(err).Msg("error getting disabled channel embeds")
+					return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
+				}
+				response = &discordgo.WebhookEdit{
+					Content: "Discord roles have been applied, but membership checks are currently disabled for one or more channels. See below for details.",
+					Embeds:  append(embeds, disabledEmbeds...),
+				}
+			} else {
+				response = &discordgo.WebhookEdit{
+					Content: "Discord roles have been applied - see below for details.",
+					Embeds:  embeds,
+				}
 			}
 		}
 		return response, nil

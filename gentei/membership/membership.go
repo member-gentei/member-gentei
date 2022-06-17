@@ -38,6 +38,9 @@ type CheckResultSet struct {
 	Lost []CheckResult `json:",omitempty"`
 	// Not contains memberships that this user does not have but did not newly lose.
 	Not []CheckResult `json:",omitempty"`
+
+	// Disabled contains channel IDs that were skipped due to disabled membership checks.
+	DisabledChannels []string
 }
 
 func (c *CheckResultSet) HasResults() bool {
@@ -70,14 +73,6 @@ func CheckForUser(
 		predicates := []predicate.YouTubeTalent{
 			youtubetalent.IDIn(options.ChannelIDs...),
 		}
-		if !options.CheckDisabledChannels {
-			predicates = append(predicates,
-				youtubetalent.Or(
-					youtubetalent.Disabled(time.Time{}),
-					youtubetalent.DisabledIsNil(),
-				),
-			)
-		}
 		talents, err = db.YouTubeTalent.Query().
 			Where(predicates...).
 			All(ctx)
@@ -93,10 +88,6 @@ func CheckForUser(
 						guild.HasMembersWith(user.ID(userID)),
 						guild.HasAdminsWith(user.ID(userID)),
 					),
-				),
-				youtubetalent.Or(
-					youtubetalent.Disabled(time.Time{}),
-					youtubetalent.DisabledIsNil(),
 				),
 			).All(ctx)
 		if err != nil {
@@ -115,6 +106,14 @@ func CheckForUser(
 			Str("userID", strconv.FormatUint(userID, 10)).
 			Str("channelID", talent.ID).
 			Logger()
+		if talent.Disabled.IsZero() {
+			if !options.CheckDisabledChannels {
+				logger.Info().Msg("membership checks for channel disabled, skipping")
+				results.DisabledChannels = append(results.DisabledChannels, talent.ID)
+				continue
+			}
+			logger.Info().Msg("checking membership on disabled channel")
+		}
 		logger.Debug().Msg("checking membership for channel")
 		// if we don't have a membership video ID for this talent, try to get one using a possibly eligible user every ~24 hours
 		if talent.MembershipVideoID == "" {
