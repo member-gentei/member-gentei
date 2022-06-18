@@ -99,6 +99,7 @@ func CheckForUser(
 		checkTimestamps              = map[string]time.Time{}
 		verifiedMembershipChannelIDs []string
 		nonMemberChannelIDs          []string
+		disabledChannelIDs           []string
 		tokenInvalid                 bool
 	)
 	for _, talent := range talents {
@@ -109,7 +110,7 @@ func CheckForUser(
 		if talent.Disabled.IsZero() {
 			if !options.CheckDisabledChannels {
 				logger.Info().Msg("membership checks for channel disabled, skipping")
-				results.DisabledChannels = append(results.DisabledChannels, talent.ID)
+				disabledChannelIDs = append(disabledChannelIDs, talent.ID)
 				continue
 			}
 			logger.Info().Msg("checking membership on disabled channel")
@@ -161,7 +162,9 @@ func CheckForUser(
 		}
 	}
 	// merge in results
-	results = &CheckResultSet{}
+	results = &CheckResultSet{
+		DisabledChannels: disabledChannelIDs,
+	}
 	// 1. get changes
 	// 1a. get lost
 	wasLost := map[string]bool{}
