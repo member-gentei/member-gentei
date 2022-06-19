@@ -107,7 +107,7 @@ func CheckForUser(
 			Str("userID", strconv.FormatUint(userID, 10)).
 			Str("channelID", talent.ID).
 			Logger()
-		if talent.Disabled.IsZero() {
+		if !talent.Disabled.IsZero() {
 			if !options.CheckDisabledChannels {
 				logger.Info().Msg("membership checks for channel disabled, skipping")
 				disabledChannelIDs = append(disabledChannelIDs, talent.ID)
