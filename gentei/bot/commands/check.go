@@ -94,7 +94,7 @@ func GetDisabledChannelEmbeds(ctx context.Context, db *ent.Client, channelIDs []
 			Fields: []*discordgo.MessageEmbedField{
 				{
 					Name:  "Error",
-					Value: "Membership checks are temporarily disabled for this channel. Please try again later!",
+					Value: "Membership checks are temporarily disabled for this YouTube channel. Please try again later!",
 				},
 			},
 		}
