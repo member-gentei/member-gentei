@@ -137,7 +137,7 @@ func SelectRandomMembersOnlyVideoID(
 					var gErr *googleapi.Error
 					if errors.As(ctlErr, &gErr) {
 						if IsCommentsDisabledErr(gErr) {
-							vidLogger.Info().Msg("comments disabled on video")
+							vidLogger.Info().Err(ctlErr).Msg("comments disabled on video")
 							continue
 						}
 						if gErr.Code == 403 {
