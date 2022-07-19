@@ -3,6 +3,7 @@ kind: CronJob
 metadata:
   name: checks
 spec:
+  concurrencyPolicy: Forbid
   jobTemplate:
     metadata:
       labels:
