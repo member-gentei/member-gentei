@@ -95,7 +95,14 @@ var checkCmd = &cobra.Command{
 				Interface("checkResults", results).
 				Str("userID", strconv.FormatUint(flagCheckUserID, 10)).
 				Msg("check results")
+			if flagCheckNoEnforce {
+				return
+			}
+			membership.HookMembershipChanges(db, async.NewPubSubMembershipChangeHandler(ctx, asyncTopic))
 			err = membership.SaveMemberships(ctx, db, flagCheckUserID, results)
+			if err != nil {
+				log.Err(err).Msg("error saving memberships for single user check")
+			}
 		} else if options != nil {
 			log.Fatal().Msg("narrowing options not supported without --uid")
 		} else {

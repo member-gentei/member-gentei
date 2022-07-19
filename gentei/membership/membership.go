@@ -253,6 +253,7 @@ func SaveMemberships(
 			Where(
 				usermembership.HasYoutubeTalentWith(
 					youtubetalent.ID(c.ChannelID),
+					youtubetalent.DisabledIsNil(),
 				),
 				usermembership.HasUserWith(user.ID(userID)),
 			).
@@ -292,6 +293,7 @@ func SaveMemberships(
 			Where(
 				usermembership.HasYoutubeTalentWith(
 					youtubetalent.ID(c.ChannelID),
+					youtubetalent.DisabledIsNil(),
 				),
 				usermembership.HasUserWith(user.ID(userID)),
 			).
@@ -318,8 +320,9 @@ func SaveMemberships(
 			Where(
 				usermembership.HasYoutubeTalentWith(
 					youtubetalent.ID(c.ChannelID),
-					youtubetalent.DisabledNotNil(),
+					youtubetalent.DisabledIsNil(),
 				),
+				usermembership.HasUserWith(user.ID(userID)),
 			).
 			AddFailCount(1).
 			Save(ctx)

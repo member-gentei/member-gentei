@@ -229,7 +229,7 @@ func (b *DiscordBot) revokeMemberships(ctx context.Context, db *ent.Client, user
 		Where(user.HasMembershipsWith(usermembership.ID(userMembershipID))).
 		OnlyID(ctx)
 	if err != nil {
-		logger.Err(err).Msg("failed to query relevant User object")
+		logger.Warn().Err(err).Msg("failed to query relevant User object")
 		return err
 	}
 	existingRoles, err := db.GuildRole.Query().
@@ -238,7 +238,7 @@ func (b *DiscordBot) revokeMemberships(ctx context.Context, db *ent.Client, user
 		WithTalent().
 		All(ctx)
 	if err != nil {
-		logger.Err(err).Msg("failed to query existing GuildRole objects")
+		logger.Warn().Err(err).Msg("failed to query existing GuildRole objects")
 		return err
 	}
 	// revoke everything

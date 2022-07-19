@@ -11,6 +11,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/member-gentei/member-gentei/gentei/async"
 	"github.com/member-gentei/member-gentei/gentei/bot/templates"
+	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/rs/zerolog/log"
 )
 
@@ -97,17 +98,20 @@ func (b *DiscordBot) handlePSMessage(ctx context.Context, m *pubsub.Message) {
 		var (
 			userMembershipID = message.ApplySingle.UserMembershipID
 			reason           = message.ApplySingle.Reason
+			errMessage       string
 		)
 		if message.ApplySingle.Gained {
 			err = b.grantMemberships(ctx, b.db, userMembershipID, reason)
-			if err != nil {
-				log.Err(err).Msg("error granting memberships")
-				return
-			}
+			errMessage = "error granting memberships"
 		} else {
 			err = b.revokeMemberships(ctx, b.db, userMembershipID, reason)
-			if err != nil {
-				log.Err(err).Msg("error revoking memberships")
+			errMessage = "error revoking memberships"
+		}
+		if err != nil {
+			if ent.IsNotFound(err) {
+				log.Info().Err(err).Msg("skipping ent.NotFound on ApplySingle message")
+			} else {
+				log.Err(err).Msg(errMessage)
 				return
 			}
 		}

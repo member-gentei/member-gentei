@@ -22,6 +22,7 @@ func (p *psMembershipChangeHandler) SetChangeReason(reason string) {
 }
 
 func (p *psMembershipChangeHandler) GainedMembership(userMembershipID int) {
+	log.Debug().Int("userMembershipID", userMembershipID).Msg("publishing gained membership")
 	p.publishAsync(
 		ApplyMembershipPSMessage{
 			ApplySingle: &ApplySingleMessage{
@@ -33,6 +34,7 @@ func (p *psMembershipChangeHandler) GainedMembership(userMembershipID int) {
 	)
 }
 func (p *psMembershipChangeHandler) LostMembership(userMembershipID int) {
+	log.Debug().Int("userMembershipID", userMembershipID).Msg("publishing lost membership")
 	p.publishAsync(
 		ApplyMembershipPSMessage{
 			ApplySingle: &ApplySingleMessage{
