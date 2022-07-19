@@ -3,7 +3,7 @@ module github.com/member-gentei/member-gentei/gentei
 go 1.18
 
 require (
-	cloud.google.com/go/pubsub v1.23.0
+	cloud.google.com/go/pubsub v1.24.0
 	entgo.io/ent v0.10.1
 	github.com/bwmarrin/discordgo v0.25.0
 	github.com/cbroglie/mustache v1.3.1
