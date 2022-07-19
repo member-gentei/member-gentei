@@ -139,6 +139,11 @@ func RefreshAllUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig
 					err = nil
 					continue
 				}
+				if errors.Is(err, context.DeadlineExceeded) {
+					logger.Warn().Err(err).Msg("skipping refresh for user due to API request timeout")
+					err = nil
+					continue
+				}
 				logger.Err(err).Msg("error refreshing guilds for user")
 				return nil, totalCount, err
 			}
