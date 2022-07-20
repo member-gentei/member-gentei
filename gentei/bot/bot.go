@@ -249,3 +249,11 @@ func getMessageAttributionIDs(i *discordgo.InteractionCreate) (guildID, userID u
 	}
 	return
 }
+
+func IsDiscordError(err error, code int) bool {
+	var restErr *discordgo.RESTError
+	if errors.As(err, &restErr) {
+		return restErr.Message != nil && restErr.Message.Code == code
+	}
+	return false
+}
