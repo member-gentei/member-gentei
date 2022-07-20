@@ -317,6 +317,13 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 					Msg("check: applying role")
 				err = b.applyRole(ctx, guildID, role.ID, userID, shouldHaveRole, "/gentei check (on-demand)")
 				if err != nil {
+					if IsDiscordError(err, discordgo.ErrCodeMissingPermissions) {
+						logger.Warn().Err(err).Msg("Gentei lost permissions to manage a role - informing user")
+						response = &discordgo.WebhookEdit{
+							Content: fmt.Sprintf("The bot has lost permission to manage <@&%d>, so Gentei cannot apply role changes! Please contact admins/moderators to restore permissions - once that's done, you can run `/gentei check` again to apply changes.", role.ID),
+						}
+						return response, nil
+					}
 					logger.Err(err).Msg("error applying role during check")
 				}
 			}
