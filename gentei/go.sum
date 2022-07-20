@@ -1,5 +1,5 @@
-ariga.io/atlas v0.3.7-0.20220303204946-787354f533c3 h1:fjG4oFCQEfGrRi0QoxWcH2OO28CE6VYa6DkIr3yDySU=
-ariga.io/atlas v0.3.7-0.20220303204946-787354f533c3/go.mod h1:yWGf4VPiD4SW83+kAqzD624txN9VKoJC+bpVXr2pKJA=
+ariga.io/atlas v0.5.0 h1:9HZclkGI/xsW7IqKZLIMfnUJ0Nkgm1X1nysq4SMkKsg=
+ariga.io/atlas v0.5.0/go.mod h1:ofVetkJqlaWle3mvYmaS2uyFGFcc7dSq436tmxa/Mzk=
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.38.0/go.mod h1:990N+gfupTy94rShfmMCWGDn0LpTmnzTp2qbd1dvSRU=
@@ -68,8 +68,8 @@ cloud.google.com/go/storage v1.10.0/go.mod h1:FLPqc6j+Ki4BU591ie1oL6qBQGu2Bl/tZ9
 cloud.google.com/go/storage v1.14.0/go.mod h1:GrKmX003DSIwi9o29oFT7YDnHYwZoctc3fOKtUw0Xmo=
 cloud.google.com/go/storage v1.22.1/go.mod h1:S8N1cAStu7BOeFfE8KAQzmyyLkK8p/vmRq6kuBTW58Y=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
-entgo.io/ent v0.10.1 h1:dM5h4Zk6yHGIgw4dCqVzGw3nWgpGYJiV4/kyHEF6PFo=
-entgo.io/ent v0.10.1/go.mod h1:YPgxeLnoQ/YdpVORRtqjBF+wCy9NX9IR7veTv3Bffus=
+entgo.io/ent v0.11.1 h1:im67R+2W3Nee2bNS2YnoYz8oAF0Qz4AOlIvKRIAEISY=
+entgo.io/ent v0.11.1/go.mod h1:X5b1YfMayrRTgKGO//8IqpL7XJx0uqdeReEkxNpXROA=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/DATA-DOG/go-sqlmock v1.5.0 h1:Shsta01QNfFxHCfpW6YH2STWB0MudeXXEWMr20OEh60=
