@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	cloud.google.com/go/pubsub v1.24.0
-	entgo.io/ent v0.10.1
+	entgo.io/ent v0.11.1
 	github.com/bwmarrin/discordgo v0.25.0
 	github.com/cbroglie/mustache v1.3.1
 	github.com/golang-jwt/jwt v3.2.2+incompatible
@@ -27,7 +27,7 @@ require (
 )
 
 require (
-	ariga.io/atlas v0.3.7-0.20220303204946-787354f533c3 // indirect
+	ariga.io/atlas v0.5.0 // indirect
 	cloud.google.com/go v0.102.1 // indirect
 	cloud.google.com/go/compute v1.7.0 // indirect
 	cloud.google.com/go/iam v0.3.0 // indirect
