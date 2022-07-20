@@ -108,8 +108,8 @@ func (b *DiscordBot) handlePSMessage(ctx context.Context, m *pubsub.Message) {
 			errMessage = "error revoking memberships"
 		}
 		if err != nil {
-			if ent.IsNotFound(err) {
-				log.Info().Err(err).Msg("skipping ent.NotFound on ApplySingle message")
+			if ent.IsConstraintError(err) {
+				log.Info().Err(err).Msg("skipping ent.ConstraintError on ApplySingle message")
 			} else {
 				log.Err(err).Msg(errMessage)
 				return
