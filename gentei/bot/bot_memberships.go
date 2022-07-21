@@ -184,8 +184,8 @@ func (b *DiscordBot) grantMemberships(ctx context.Context, db *ent.Client, userM
 		Where(user.HasMembershipsWith(usermembership.ID(userMembershipID))).
 		OnlyID(ctx)
 	if err != nil {
-		logger.Err(err).Msg("failed to query relevant User object")
-		return ent.ConstraintError{}
+		logger.Warn().Err(err).Msg("failed to query relevant User object")
+		return &ent.ConstraintError{}
 	}
 	logger = logger.With().Logger()
 	existingRoles, err := db.GuildRole.Query().
