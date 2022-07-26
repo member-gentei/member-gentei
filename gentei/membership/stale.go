@@ -208,11 +208,14 @@ func RefreshUserGuildEdges(
 		return
 	}
 	// remove guilds
+	removePredicates := []predicate.Guild{
+		guild.HasMembersWith(user.ID(userID)),
+	}
+	if len(guildIDs) > 0 {
+		removePredicates = append(removePredicates, guild.IDNotIn(guildIDs...))
+	}
 	removeGuildIDs, err := db.Guild.Query().
-		Where(
-			guild.IDNotIn(guildIDs...),
-			guild.HasMembersWith(user.ID(userID)),
-		).
+		Where(removePredicates...).
 		IDs(ctx)
 	if err != nil {
 		err = fmt.Errorf("error getting Guilds to remove: %w", err)
