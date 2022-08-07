@@ -8,6 +8,7 @@ import UserDashboard from "./pages/app/UserDashboard";
 import Home from "./pages/Home";
 import { LoginDiscord, LoginYouTube } from "./pages/Login";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/tos" element={<TermsOfService />} />
         <Route path="/login/discord" element={<LoginDiscord />} />
         <Route path="/login/youtube" element={<LoginYouTube />} />
         <Route path="/app" element={<AppIndex />}>
