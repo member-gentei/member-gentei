@@ -4,12 +4,14 @@ metadata:
   name: checks
 spec:
   concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 7
   jobTemplate:
     metadata:
       labels:
         app: checks
     spec:
       parallelism: 1
+      activeDeadlineSeconds: 86400 # one day
       template:
         metadata:
           labels:
