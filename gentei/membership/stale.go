@@ -90,6 +90,7 @@ func CheckStale(
 			if err != nil {
 				return fmt.Errorf("error saving memberships for user '%d': %w", userID, err)
 			}
+			log.Info().Int("count", totalStaleCount).Msg("refreshed stale user batch of <=1000")
 		}
 	}
 	log.Info().Int("count", totalStaleCount).Msg("refreshed stale users")
