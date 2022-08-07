@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/pubsub v1.24.0
 	entgo.io/ent v0.11.1
 	github.com/bwmarrin/discordgo v0.25.0
-	github.com/cbroglie/mustache v1.3.1
+	github.com/cbroglie/mustache v1.4.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/labstack/echo/v4 v4.7.2
