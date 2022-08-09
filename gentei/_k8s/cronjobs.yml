@@ -48,3 +48,54 @@ spec:
               secret:
                 secretName: google-sa
   schedule: "0 13 * * *"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: video-repair
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 7
+  jobTemplate:
+    metadata:
+      labels:
+        app: video-repair
+    spec:
+      parallelism: 1
+      activeDeadlineSeconds: 86400 # one day
+      template:
+        metadata:
+          labels:
+            app: video-repair
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: video-repair
+              image: ghcr.io/member-gentei/gentei:latest
+              args:
+                - admin
+                - repair
+                - "--all"
+              envs:
+                - name: GCP_LOG_ID
+                  value: video-repair
+              envFrom:
+                - configMapRef:
+                    name: gentei-envs
+                - secretRef:
+                    name: gentei-async
+                - secretRef:
+                    name: gentei-db
+              volumeMounts:
+                - name: google-sa
+                  mountPath: /secret/google-sa
+                  readOnly: true
+              resources:
+                limits:
+                  memory: "256Mi"
+                  cpu: "500m"
+          volumes:
+            - name: google-sa
+              secret:
+                secretName: google-sa
+  schedule: "0 10 * * *"
