@@ -136,8 +136,14 @@ func RefreshAllUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig
 			if err != nil {
 				var restErr *discordgo.RESTError
 				if errors.As(err, &restErr) {
-					logger.Warn().Err(err).Msg("error using Discord token for user")
-					userTokensInvalid = append(userTokensInvalid, userID)
+					if restErr.Response.StatusCode >= 500 {
+						logger.Warn().Err(err).Msg("Discord API server error, skipping user")
+						err = nil
+						continue
+					} else {
+						logger.Warn().Err(err).Msg("error using Discord token for user, will revoke all roles")
+						userTokensInvalid = append(userTokensInvalid, userID)
+					}
 					err = nil
 					continue
 				}
