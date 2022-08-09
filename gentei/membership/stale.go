@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -140,7 +141,7 @@ func RefreshAllUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig
 					err = nil
 					continue
 				}
-				if errors.Is(err, context.DeadlineExceeded) {
+				if errors.Is(err, context.DeadlineExceeded) || strings.Contains(err.Error(), "Client.Timeout exceeded while awaiting headers") {
 					logger.Warn().Err(err).Msg("skipping refresh for user due to API request timeout")
 					err = nil
 					continue
