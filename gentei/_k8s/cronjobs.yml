@@ -76,7 +76,7 @@ spec:
                 - admin
                 - repair
                 - "--all"
-              envs:
+              env:
                 - name: GCP_LOG_ID
                   value: video-repair
               envFrom:
