@@ -22,13 +22,12 @@ import (
 // UserMembershipQuery is the builder for querying UserMembership entities.
 type UserMembershipQuery struct {
 	config
-	limit      *int
-	offset     *int
-	unique     *bool
-	order      []OrderFunc
-	fields     []string
-	predicates []predicate.UserMembership
-	// eager-loading edges.
+	limit             *int
+	offset            *int
+	unique            *bool
+	order             []OrderFunc
+	fields            []string
+	predicates        []predicate.UserMembership
 	withUser          *UserQuery
 	withYoutubeTalent *YouTubeTalentQuery
 	withRoles         *GuildRoleQuery
@@ -374,7 +373,6 @@ func (umq *UserMembershipQuery) WithRoles(opts ...func(*GuildRoleQuery)) *UserMe
 //		GroupBy(usermembership.FieldFirstFailed).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
-//
 func (umq *UserMembershipQuery) GroupBy(field string, fields ...string) *UserMembershipGroupBy {
 	grbuild := &UserMembershipGroupBy{config: umq.config}
 	grbuild.fields = append([]string{field}, fields...)
@@ -401,7 +399,6 @@ func (umq *UserMembershipQuery) GroupBy(field string, fields ...string) *UserMem
 //	client.UserMembership.Query().
 //		Select(usermembership.FieldFirstFailed).
 //		Scan(ctx, &v)
-//
 func (umq *UserMembershipQuery) Select(fields ...string) *UserMembershipSelect {
 	umq.fields = append(umq.fields, fields...)
 	selbuild := &UserMembershipSelect{UserMembershipQuery: umq}
@@ -464,119 +461,143 @@ func (umq *UserMembershipQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-
 	if query := umq.withUser; query != nil {
-		ids := make([]uint64, 0, len(nodes))
-		nodeids := make(map[uint64][]*UserMembership)
-		for i := range nodes {
-			if nodes[i].user_memberships == nil {
-				continue
-			}
-			fk := *nodes[i].user_memberships
-			if _, ok := nodeids[fk]; !ok {
-				ids = append(ids, fk)
-			}
-			nodeids[fk] = append(nodeids[fk], nodes[i])
-		}
-		query.Where(user.IDIn(ids...))
-		neighbors, err := query.All(ctx)
-		if err != nil {
+		if err := umq.loadUser(ctx, query, nodes, nil,
+			func(n *UserMembership, e *User) { n.Edges.User = e }); err != nil {
 			return nil, err
 		}
-		for _, n := range neighbors {
-			nodes, ok := nodeids[n.ID]
-			if !ok {
-				return nil, fmt.Errorf(`unexpected foreign-key "user_memberships" returned %v`, n.ID)
-			}
-			for i := range nodes {
-				nodes[i].Edges.User = n
-			}
-		}
 	}
-
 	if query := umq.withYoutubeTalent; query != nil {
-		ids := make([]string, 0, len(nodes))
-		nodeids := make(map[string][]*UserMembership)
-		for i := range nodes {
-			if nodes[i].user_membership_youtube_talent == nil {
-				continue
-			}
-			fk := *nodes[i].user_membership_youtube_talent
-			if _, ok := nodeids[fk]; !ok {
-				ids = append(ids, fk)
-			}
-			nodeids[fk] = append(nodeids[fk], nodes[i])
-		}
-		query.Where(youtubetalent.IDIn(ids...))
-		neighbors, err := query.All(ctx)
-		if err != nil {
+		if err := umq.loadYoutubeTalent(ctx, query, nodes, nil,
+			func(n *UserMembership, e *YouTubeTalent) { n.Edges.YoutubeTalent = e }); err != nil {
 			return nil, err
 		}
-		for _, n := range neighbors {
-			nodes, ok := nodeids[n.ID]
-			if !ok {
-				return nil, fmt.Errorf(`unexpected foreign-key "user_membership_youtube_talent" returned %v`, n.ID)
-			}
-			for i := range nodes {
-				nodes[i].Edges.YoutubeTalent = n
-			}
-		}
 	}
-
 	if query := umq.withRoles; query != nil {
-		edgeids := make([]driver.Value, len(nodes))
-		byid := make(map[int]*UserMembership)
-		nids := make(map[uint64]map[*UserMembership]struct{})
-		for i, node := range nodes {
-			edgeids[i] = node.ID
-			byid[node.ID] = node
-			node.Edges.Roles = []*GuildRole{}
-		}
-		query.Where(func(s *sql.Selector) {
-			joinT := sql.Table(usermembership.RolesTable)
-			s.Join(joinT).On(s.C(guildrole.FieldID), joinT.C(usermembership.RolesPrimaryKey[1]))
-			s.Where(sql.InValues(joinT.C(usermembership.RolesPrimaryKey[0]), edgeids...))
-			columns := s.SelectedColumns()
-			s.Select(joinT.C(usermembership.RolesPrimaryKey[0]))
-			s.AppendSelect(columns...)
-			s.SetDistinct(false)
-		})
-		neighbors, err := query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
-			assign := spec.Assign
-			values := spec.ScanValues
-			spec.ScanValues = func(columns []string) ([]interface{}, error) {
-				values, err := values(columns[1:])
-				if err != nil {
-					return nil, err
-				}
-				return append([]interface{}{new(sql.NullInt64)}, values...), nil
-			}
-			spec.Assign = func(columns []string, values []interface{}) error {
-				outValue := int(values[0].(*sql.NullInt64).Int64)
-				inValue := uint64(values[1].(*sql.NullInt64).Int64)
-				if nids[inValue] == nil {
-					nids[inValue] = map[*UserMembership]struct{}{byid[outValue]: struct{}{}}
-					return assign(columns[1:], values[1:])
-				}
-				nids[inValue][byid[outValue]] = struct{}{}
-				return nil
-			}
-		})
-		if err != nil {
+		if err := umq.loadRoles(ctx, query, nodes,
+			func(n *UserMembership) { n.Edges.Roles = []*GuildRole{} },
+			func(n *UserMembership, e *GuildRole) { n.Edges.Roles = append(n.Edges.Roles, e) }); err != nil {
 			return nil, err
 		}
-		for _, n := range neighbors {
-			nodes, ok := nids[n.ID]
-			if !ok {
-				return nil, fmt.Errorf(`unexpected "roles" node returned %v`, n.ID)
-			}
-			for kn := range nodes {
-				kn.Edges.Roles = append(kn.Edges.Roles, n)
-			}
+	}
+	return nodes, nil
+}
+
+func (umq *UserMembershipQuery) loadUser(ctx context.Context, query *UserQuery, nodes []*UserMembership, init func(*UserMembership), assign func(*UserMembership, *User)) error {
+	ids := make([]uint64, 0, len(nodes))
+	nodeids := make(map[uint64][]*UserMembership)
+	for i := range nodes {
+		if nodes[i].user_memberships == nil {
+			continue
+		}
+		fk := *nodes[i].user_memberships
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	query.Where(user.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "user_memberships" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
 		}
 	}
-
-	return nodes, nil
+	return nil
+}
+func (umq *UserMembershipQuery) loadYoutubeTalent(ctx context.Context, query *YouTubeTalentQuery, nodes []*UserMembership, init func(*UserMembership), assign func(*UserMembership, *YouTubeTalent)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*UserMembership)
+	for i := range nodes {
+		if nodes[i].user_membership_youtube_talent == nil {
+			continue
+		}
+		fk := *nodes[i].user_membership_youtube_talent
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	query.Where(youtubetalent.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "user_membership_youtube_talent" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (umq *UserMembershipQuery) loadRoles(ctx context.Context, query *GuildRoleQuery, nodes []*UserMembership, init func(*UserMembership), assign func(*UserMembership, *GuildRole)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[int]*UserMembership)
+	nids := make(map[uint64]map[*UserMembership]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
+		}
+	}
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(usermembership.RolesTable)
+		s.Join(joinT).On(s.C(guildrole.FieldID), joinT.C(usermembership.RolesPrimaryKey[1]))
+		s.Where(sql.InValues(joinT.C(usermembership.RolesPrimaryKey[0]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(usermembership.RolesPrimaryKey[0]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	neighbors, err := query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+		assign := spec.Assign
+		values := spec.ScanValues
+		spec.ScanValues = func(columns []string) ([]interface{}, error) {
+			values, err := values(columns[1:])
+			if err != nil {
+				return nil, err
+			}
+			return append([]interface{}{new(sql.NullInt64)}, values...), nil
+		}
+		spec.Assign = func(columns []string, values []interface{}) error {
+			outValue := int(values[0].(*sql.NullInt64).Int64)
+			inValue := uint64(values[1].(*sql.NullInt64).Int64)
+			if nids[inValue] == nil {
+				nids[inValue] = map[*UserMembership]struct{}{byID[outValue]: struct{}{}}
+				return assign(columns[1:], values[1:])
+			}
+			nids[inValue][byID[outValue]] = struct{}{}
+			return nil
+		}
+	})
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected "roles" node returned %v`, n.ID)
+		}
+		for kn := range nodes {
+			assign(kn, n)
+		}
+	}
+	return nil
 }
 
 func (umq *UserMembershipQuery) sqlCount(ctx context.Context) (int, error) {

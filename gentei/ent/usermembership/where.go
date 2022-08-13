@@ -123,12 +123,6 @@ func FirstFailedIn(vs ...time.Time) predicate.UserMembership {
 		v[i] = vs[i]
 	}
 	return predicate.UserMembership(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.In(s.C(FieldFirstFailed), v...))
 	})
 }
@@ -140,12 +134,6 @@ func FirstFailedNotIn(vs ...time.Time) predicate.UserMembership {
 		v[i] = vs[i]
 	}
 	return predicate.UserMembership(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.NotIn(s.C(FieldFirstFailed), v...))
 	})
 }
@@ -213,12 +201,6 @@ func LastVerifiedIn(vs ...time.Time) predicate.UserMembership {
 		v[i] = vs[i]
 	}
 	return predicate.UserMembership(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.In(s.C(FieldLastVerified), v...))
 	})
 }
@@ -230,12 +212,6 @@ func LastVerifiedNotIn(vs ...time.Time) predicate.UserMembership {
 		v[i] = vs[i]
 	}
 	return predicate.UserMembership(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.NotIn(s.C(FieldLastVerified), v...))
 	})
 }
@@ -289,12 +265,6 @@ func FailCountIn(vs ...int) predicate.UserMembership {
 		v[i] = vs[i]
 	}
 	return predicate.UserMembership(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.In(s.C(FieldFailCount), v...))
 	})
 }
@@ -306,12 +276,6 @@ func FailCountNotIn(vs ...int) predicate.UserMembership {
 		v[i] = vs[i]
 	}
 	return predicate.UserMembership(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.NotIn(s.C(FieldFailCount), v...))
 	})
 }
