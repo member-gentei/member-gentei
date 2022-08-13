@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
@@ -26,6 +27,8 @@ type Guild struct {
 	AuditChannel uint64 `json:"audit_channel,omitempty"`
 	// IETF BCP 47 language tag
 	Language guild.Language `json:"language,omitempty"`
+	// Used to leave inactive/unconfigured servers.
+	FirstJoined time.Time `json:"first_joined,omitempty"`
 	// Discord snowflakes of users and groups that can modify server settings. The first snowflake is always the server owner.
 	AdminSnowflakes []uint64 `json:"admin_snowflakes,omitempty"`
 	// Discord snowflakes of users and groups that can read server settings
@@ -99,6 +102,8 @@ func (*Guild) scanValues(columns []string) ([]interface{}, error) {
 			values[i] = new(sql.NullInt64)
 		case guild.FieldName, guild.FieldIconHash, guild.FieldLanguage:
 			values[i] = new(sql.NullString)
+		case guild.FieldFirstJoined:
+			values[i] = new(sql.NullTime)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Guild", columns[i])
 		}
@@ -143,6 +148,12 @@ func (gu *Guild) assignValues(columns []string, values []interface{}) error {
 				return fmt.Errorf("unexpected type %T for field language", values[i])
 			} else if value.Valid {
 				gu.Language = guild.Language(value.String)
+			}
+		case guild.FieldFirstJoined:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field first_joined", values[i])
+			} else if value.Valid {
+				gu.FirstJoined = value.Time
 			}
 		case guild.FieldAdminSnowflakes:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -227,6 +238,9 @@ func (gu *Guild) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("language=")
 	builder.WriteString(fmt.Sprintf("%v", gu.Language))
+	builder.WriteString(", ")
+	builder.WriteString("first_joined=")
+	builder.WriteString(gu.FirstJoined.Format(time.ANSIC))
 	builder.WriteString(", ")
 	builder.WriteString("admin_snowflakes=")
 	builder.WriteString(fmt.Sprintf("%v", gu.AdminSnowflakes))

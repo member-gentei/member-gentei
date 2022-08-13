@@ -15,6 +15,7 @@ var (
 		{Name: "icon_hash", Type: field.TypeString, Nullable: true},
 		{Name: "audit_channel", Type: field.TypeUint64, Unique: true, Nullable: true},
 		{Name: "language", Type: field.TypeEnum, Enums: []string{"en-US"}, Default: "en-US"},
+		{Name: "first_joined", Type: field.TypeTime},
 		{Name: "admin_snowflakes", Type: field.TypeJSON},
 		{Name: "moderator_snowflakes", Type: field.TypeJSON, Nullable: true},
 		{Name: "settings", Type: field.TypeJSON, Nullable: true},

@@ -5,6 +5,7 @@ package ent
 import (
 	"time"
 
+	"github.com/member-gentei/member-gentei/gentei/ent/guild"
 	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
 	"github.com/member-gentei/member-gentei/gentei/ent/schema"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
@@ -18,6 +19,10 @@ import (
 func init() {
 	guildFields := schema.Guild{}.Fields()
 	_ = guildFields
+	// guildDescFirstJoined is the schema descriptor for first_joined field.
+	guildDescFirstJoined := guildFields[5].Descriptor()
+	// guild.DefaultFirstJoined holds the default value on creation for the first_joined field.
+	guild.DefaultFirstJoined = guildDescFirstJoined.Default.(func() time.Time)
 	guildroleFields := schema.GuildRole{}.Fields()
 	_ = guildroleFields
 	// guildroleDescLastUpdated is the schema descriptor for last_updated field.

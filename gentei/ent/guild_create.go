@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -69,6 +70,20 @@ func (gc *GuildCreate) SetLanguage(gu guild.Language) *GuildCreate {
 func (gc *GuildCreate) SetNillableLanguage(gu *guild.Language) *GuildCreate {
 	if gu != nil {
 		gc.SetLanguage(*gu)
+	}
+	return gc
+}
+
+// SetFirstJoined sets the "first_joined" field.
+func (gc *GuildCreate) SetFirstJoined(t time.Time) *GuildCreate {
+	gc.mutation.SetFirstJoined(t)
+	return gc
+}
+
+// SetNillableFirstJoined sets the "first_joined" field if the given value is not nil.
+func (gc *GuildCreate) SetNillableFirstJoined(t *time.Time) *GuildCreate {
+	if t != nil {
+		gc.SetFirstJoined(*t)
 	}
 	return gc
 }
@@ -238,6 +253,10 @@ func (gc *GuildCreate) defaults() {
 		v := guild.DefaultLanguage
 		gc.mutation.SetLanguage(v)
 	}
+	if _, ok := gc.mutation.FirstJoined(); !ok {
+		v := guild.DefaultFirstJoined()
+		gc.mutation.SetFirstJoined(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -252,6 +271,9 @@ func (gc *GuildCreate) check() error {
 		if err := guild.LanguageValidator(v); err != nil {
 			return &ValidationError{Name: "language", err: fmt.Errorf(`ent: validator failed for field "Guild.language": %w`, err)}
 		}
+	}
+	if _, ok := gc.mutation.FirstJoined(); !ok {
+		return &ValidationError{Name: "first_joined", err: errors.New(`ent: missing required field "Guild.first_joined"`)}
 	}
 	if _, ok := gc.mutation.AdminSnowflakes(); !ok {
 		return &ValidationError{Name: "admin_snowflakes", err: errors.New(`ent: missing required field "Guild.admin_snowflakes"`)}
@@ -321,6 +343,14 @@ func (gc *GuildCreate) createSpec() (*Guild, *sqlgraph.CreateSpec) {
 			Column: guild.FieldLanguage,
 		})
 		_node.Language = value
+	}
+	if value, ok := gc.mutation.FirstJoined(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: guild.FieldFirstJoined,
+		})
+		_node.FirstJoined = value
 	}
 	if value, ok := gc.mutation.AdminSnowflakes(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
@@ -540,6 +570,18 @@ func (u *GuildUpsert) UpdateLanguage() *GuildUpsert {
 	return u
 }
 
+// SetFirstJoined sets the "first_joined" field.
+func (u *GuildUpsert) SetFirstJoined(v time.Time) *GuildUpsert {
+	u.Set(guild.FieldFirstJoined, v)
+	return u
+}
+
+// UpdateFirstJoined sets the "first_joined" field to the value that was provided on create.
+func (u *GuildUpsert) UpdateFirstJoined() *GuildUpsert {
+	u.SetExcluded(guild.FieldFirstJoined)
+	return u
+}
+
 // SetAdminSnowflakes sets the "admin_snowflakes" field.
 func (u *GuildUpsert) SetAdminSnowflakes(v []uint64) *GuildUpsert {
 	u.Set(guild.FieldAdminSnowflakes, v)
@@ -710,6 +752,20 @@ func (u *GuildUpsertOne) SetLanguage(v guild.Language) *GuildUpsertOne {
 func (u *GuildUpsertOne) UpdateLanguage() *GuildUpsertOne {
 	return u.Update(func(s *GuildUpsert) {
 		s.UpdateLanguage()
+	})
+}
+
+// SetFirstJoined sets the "first_joined" field.
+func (u *GuildUpsertOne) SetFirstJoined(v time.Time) *GuildUpsertOne {
+	return u.Update(func(s *GuildUpsert) {
+		s.SetFirstJoined(v)
+	})
+}
+
+// UpdateFirstJoined sets the "first_joined" field to the value that was provided on create.
+func (u *GuildUpsertOne) UpdateFirstJoined() *GuildUpsertOne {
+	return u.Update(func(s *GuildUpsert) {
+		s.UpdateFirstJoined()
 	})
 }
 
@@ -1054,6 +1110,20 @@ func (u *GuildUpsertBulk) SetLanguage(v guild.Language) *GuildUpsertBulk {
 func (u *GuildUpsertBulk) UpdateLanguage() *GuildUpsertBulk {
 	return u.Update(func(s *GuildUpsert) {
 		s.UpdateLanguage()
+	})
+}
+
+// SetFirstJoined sets the "first_joined" field.
+func (u *GuildUpsertBulk) SetFirstJoined(v time.Time) *GuildUpsertBulk {
+	return u.Update(func(s *GuildUpsert) {
+		s.SetFirstJoined(v)
+	})
+}
+
+// UpdateFirstJoined sets the "first_joined" field to the value that was provided on create.
+func (u *GuildUpsertBulk) UpdateFirstJoined() *GuildUpsertBulk {
+	return u.Update(func(s *GuildUpsert) {
+		s.UpdateFirstJoined()
 	})
 }
 

@@ -4,6 +4,7 @@ package guild
 
 import (
 	"fmt"
+	"time"
 )
 
 const (
@@ -19,6 +20,8 @@ const (
 	FieldAuditChannel = "audit_channel"
 	// FieldLanguage holds the string denoting the language field in the database.
 	FieldLanguage = "language"
+	// FieldFirstJoined holds the string denoting the first_joined field in the database.
+	FieldFirstJoined = "first_joined"
 	// FieldAdminSnowflakes holds the string denoting the admin_snowflakes field in the database.
 	FieldAdminSnowflakes = "admin_snowflakes"
 	// FieldModeratorSnowflakes holds the string denoting the moderator_snowflakes field in the database.
@@ -66,6 +69,7 @@ var Columns = []string{
 	FieldIconHash,
 	FieldAuditChannel,
 	FieldLanguage,
+	FieldFirstJoined,
 	FieldAdminSnowflakes,
 	FieldModeratorSnowflakes,
 	FieldSettings,
@@ -92,6 +96,11 @@ func ValidColumn(column string) bool {
 	}
 	return false
 }
+
+var (
+	// DefaultFirstJoined holds the default value on creation for the "first_joined" field.
+	DefaultFirstJoined func() time.Time
+)
 
 // Language defines the type for the "language" enum field.
 type Language string

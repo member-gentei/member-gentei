@@ -37,6 +37,9 @@ func (Guild) Fields() []ent.Field {
 			Values("en-US").
 			Default("en-US").
 			Comment("IETF BCP 47 language tag"),
+		field.Time("first_joined").
+			Default(time.Now).
+			Comment("Used to leave inactive/unconfigured servers."),
 		field.JSON("admin_snowflakes", []uint64{}).
 			Comment("Discord snowflakes of users and groups that can modify server settings. The first snowflake is always the server owner."),
 		field.JSON("moderator_snowflakes", []uint64{}).

@@ -3,6 +3,8 @@
 package guild
 
 import (
+	"time"
+
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/member-gentei/member-gentei/gentei/ent/predicate"
@@ -97,6 +99,13 @@ func IconHash(v string) predicate.Guild {
 func AuditChannel(v uint64) predicate.Guild {
 	return predicate.Guild(func(s *sql.Selector) {
 		s.Where(sql.EQ(s.C(FieldAuditChannel), v))
+	})
+}
+
+// FirstJoined applies equality check predicate on the "first_joined" field. It's identical to FirstJoinedEQ.
+func FirstJoined(v time.Time) predicate.Guild {
+	return predicate.Guild(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldFirstJoined), v))
 	})
 }
 
@@ -423,6 +432,70 @@ func LanguageNotIn(vs ...Language) predicate.Guild {
 	}
 	return predicate.Guild(func(s *sql.Selector) {
 		s.Where(sql.NotIn(s.C(FieldLanguage), v...))
+	})
+}
+
+// FirstJoinedEQ applies the EQ predicate on the "first_joined" field.
+func FirstJoinedEQ(v time.Time) predicate.Guild {
+	return predicate.Guild(func(s *sql.Selector) {
+		s.Where(sql.EQ(s.C(FieldFirstJoined), v))
+	})
+}
+
+// FirstJoinedNEQ applies the NEQ predicate on the "first_joined" field.
+func FirstJoinedNEQ(v time.Time) predicate.Guild {
+	return predicate.Guild(func(s *sql.Selector) {
+		s.Where(sql.NEQ(s.C(FieldFirstJoined), v))
+	})
+}
+
+// FirstJoinedIn applies the In predicate on the "first_joined" field.
+func FirstJoinedIn(vs ...time.Time) predicate.Guild {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Guild(func(s *sql.Selector) {
+		s.Where(sql.In(s.C(FieldFirstJoined), v...))
+	})
+}
+
+// FirstJoinedNotIn applies the NotIn predicate on the "first_joined" field.
+func FirstJoinedNotIn(vs ...time.Time) predicate.Guild {
+	v := make([]interface{}, len(vs))
+	for i := range v {
+		v[i] = vs[i]
+	}
+	return predicate.Guild(func(s *sql.Selector) {
+		s.Where(sql.NotIn(s.C(FieldFirstJoined), v...))
+	})
+}
+
+// FirstJoinedGT applies the GT predicate on the "first_joined" field.
+func FirstJoinedGT(v time.Time) predicate.Guild {
+	return predicate.Guild(func(s *sql.Selector) {
+		s.Where(sql.GT(s.C(FieldFirstJoined), v))
+	})
+}
+
+// FirstJoinedGTE applies the GTE predicate on the "first_joined" field.
+func FirstJoinedGTE(v time.Time) predicate.Guild {
+	return predicate.Guild(func(s *sql.Selector) {
+		s.Where(sql.GTE(s.C(FieldFirstJoined), v))
+	})
+}
+
+// FirstJoinedLT applies the LT predicate on the "first_joined" field.
+func FirstJoinedLT(v time.Time) predicate.Guild {
+	return predicate.Guild(func(s *sql.Selector) {
+		s.Where(sql.LT(s.C(FieldFirstJoined), v))
+	})
+}
+
+// FirstJoinedLTE applies the LTE predicate on the "first_joined" field.
+func FirstJoinedLTE(v time.Time) predicate.Guild {
+	return predicate.Guild(func(s *sql.Selector) {
+		s.Where(sql.LTE(s.C(FieldFirstJoined), v))
 	})
 }
 

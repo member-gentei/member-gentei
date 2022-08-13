@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -94,6 +95,20 @@ func (gu *GuildUpdate) SetLanguage(value guild.Language) *GuildUpdate {
 func (gu *GuildUpdate) SetNillableLanguage(value *guild.Language) *GuildUpdate {
 	if value != nil {
 		gu.SetLanguage(*value)
+	}
+	return gu
+}
+
+// SetFirstJoined sets the "first_joined" field.
+func (gu *GuildUpdate) SetFirstJoined(t time.Time) *GuildUpdate {
+	gu.mutation.SetFirstJoined(t)
+	return gu
+}
+
+// SetNillableFirstJoined sets the "first_joined" field if the given value is not nil.
+func (gu *GuildUpdate) SetNillableFirstJoined(t *time.Time) *GuildUpdate {
+	if t != nil {
+		gu.SetFirstJoined(*t)
 	}
 	return gu
 }
@@ -410,6 +425,13 @@ func (gu *GuildUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Type:   field.TypeEnum,
 			Value:  value,
 			Column: guild.FieldLanguage,
+		})
+	}
+	if value, ok := gu.mutation.FirstJoined(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: guild.FieldFirstJoined,
 		})
 	}
 	if value, ok := gu.mutation.AdminSnowflakes(); ok {
@@ -743,6 +765,20 @@ func (guo *GuildUpdateOne) SetLanguage(gu guild.Language) *GuildUpdateOne {
 func (guo *GuildUpdateOne) SetNillableLanguage(gu *guild.Language) *GuildUpdateOne {
 	if gu != nil {
 		guo.SetLanguage(*gu)
+	}
+	return guo
+}
+
+// SetFirstJoined sets the "first_joined" field.
+func (guo *GuildUpdateOne) SetFirstJoined(t time.Time) *GuildUpdateOne {
+	guo.mutation.SetFirstJoined(t)
+	return guo
+}
+
+// SetNillableFirstJoined sets the "first_joined" field if the given value is not nil.
+func (guo *GuildUpdateOne) SetNillableFirstJoined(t *time.Time) *GuildUpdateOne {
+	if t != nil {
+		guo.SetFirstJoined(*t)
 	}
 	return guo
 }
@@ -1089,6 +1125,13 @@ func (guo *GuildUpdateOne) sqlSave(ctx context.Context) (_node *Guild, err error
 			Type:   field.TypeEnum,
 			Value:  value,
 			Column: guild.FieldLanguage,
+		})
+	}
+	if value, ok := guo.mutation.FirstJoined(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: guild.FieldFirstJoined,
 		})
 	}
 	if value, ok := guo.mutation.AdminSnowflakes(); ok {

@@ -48,6 +48,7 @@ type GuildMutation struct {
 	audit_channel          *uint64
 	addaudit_channel       *int64
 	language               *guild.Language
+	first_joined           *time.Time
 	admin_snowflakes       *[]uint64
 	moderator_snowflakes   *[]uint64
 	settings               **schema.GuildSettings
@@ -362,6 +363,42 @@ func (m *GuildMutation) OldLanguage(ctx context.Context) (v guild.Language, err 
 // ResetLanguage resets all changes to the "language" field.
 func (m *GuildMutation) ResetLanguage() {
 	m.language = nil
+}
+
+// SetFirstJoined sets the "first_joined" field.
+func (m *GuildMutation) SetFirstJoined(t time.Time) {
+	m.first_joined = &t
+}
+
+// FirstJoined returns the value of the "first_joined" field in the mutation.
+func (m *GuildMutation) FirstJoined() (r time.Time, exists bool) {
+	v := m.first_joined
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFirstJoined returns the old "first_joined" field's value of the Guild entity.
+// If the Guild object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *GuildMutation) OldFirstJoined(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFirstJoined is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFirstJoined requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFirstJoined: %w", err)
+	}
+	return oldValue.FirstJoined, nil
+}
+
+// ResetFirstJoined resets all changes to the "first_joined" field.
+func (m *GuildMutation) ResetFirstJoined() {
+	m.first_joined = nil
 }
 
 // SetAdminSnowflakes sets the "admin_snowflakes" field.
@@ -733,7 +770,7 @@ func (m *GuildMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GuildMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 8)
 	if m.name != nil {
 		fields = append(fields, guild.FieldName)
 	}
@@ -745,6 +782,9 @@ func (m *GuildMutation) Fields() []string {
 	}
 	if m.language != nil {
 		fields = append(fields, guild.FieldLanguage)
+	}
+	if m.first_joined != nil {
+		fields = append(fields, guild.FieldFirstJoined)
 	}
 	if m.admin_snowflakes != nil {
 		fields = append(fields, guild.FieldAdminSnowflakes)
@@ -771,6 +811,8 @@ func (m *GuildMutation) Field(name string) (ent.Value, bool) {
 		return m.AuditChannel()
 	case guild.FieldLanguage:
 		return m.Language()
+	case guild.FieldFirstJoined:
+		return m.FirstJoined()
 	case guild.FieldAdminSnowflakes:
 		return m.AdminSnowflakes()
 	case guild.FieldModeratorSnowflakes:
@@ -794,6 +836,8 @@ func (m *GuildMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldAuditChannel(ctx)
 	case guild.FieldLanguage:
 		return m.OldLanguage(ctx)
+	case guild.FieldFirstJoined:
+		return m.OldFirstJoined(ctx)
 	case guild.FieldAdminSnowflakes:
 		return m.OldAdminSnowflakes(ctx)
 	case guild.FieldModeratorSnowflakes:
@@ -836,6 +880,13 @@ func (m *GuildMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetLanguage(v)
+		return nil
+	case guild.FieldFirstJoined:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFirstJoined(v)
 		return nil
 	case guild.FieldAdminSnowflakes:
 		v, ok := value.([]uint64)
@@ -960,6 +1011,9 @@ func (m *GuildMutation) ResetField(name string) error {
 		return nil
 	case guild.FieldLanguage:
 		m.ResetLanguage()
+		return nil
+	case guild.FieldFirstJoined:
+		m.ResetFirstJoined()
 		return nil
 	case guild.FieldAdminSnowflakes:
 		m.ResetAdminSnowflakes()
