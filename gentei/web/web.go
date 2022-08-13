@@ -110,7 +110,6 @@ func loginDiscord(
 			retErr *oauth2.RetrieveError
 		)
 		if errors.As(err, &retErr) {
-			log.Err(err).Msg("oauth2.RetrieveError")
 			var body struct {
 				Error       string `json:"error"`
 				Description string `json:"error_description"`
@@ -118,6 +117,9 @@ func loginDiscord(
 			err = json.Unmarshal(retErr.Body, &body)
 			if err != nil {
 				return fmt.Errorf("error decoding Discord OAuth login repsonse: %w", err)
+			}
+			if body.Description != `Invalid "code" in request.` {
+				log.Err(err).Msg("oauth2.RetrieveError for Discord")
 			}
 			return c.JSON(http.StatusBadRequest, body)
 		} else if err != nil {
