@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -16,6 +18,7 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
+	"golang.org/x/sync/errgroup"
 )
 
 type CheckStaleOptions struct {
@@ -101,73 +104,99 @@ func CheckStale(
 // RefreshAllUserGuildEdges refreshes guild edges for all registered users. Returns a slice of userIDs that could not be refreshed and a count of all users.
 func RefreshAllUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig *oauth2.Config) ([]uint64, int, error) {
 	// refresh everyone's tokens
+	return refreshUserGuildEdgesWithPredicates(ctx, db, discordConfig, nil)
+}
+
+// RefreshStaleUserGuildEdges
+func RefreshStaleUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig *oauth2.Config, staleThreshold time.Duration) ([]uint64, int, error) {
+	staleBefore := time.Now().Add(-staleThreshold)
+	return refreshUserGuildEdgesWithPredicates(ctx, db, discordConfig, user.LastCheckLT(staleBefore))
+}
+
+// refreshUserGuildEdgesWithPredicates is the inner implementation of all stale refreshes.
+func refreshUserGuildEdgesWithPredicates(ctx context.Context, db *ent.Client, discordConfig *oauth2.Config, predicates ...predicate.User) ([]uint64, int, error) {
 	var (
-		userTokensInvalid []uint64
-		totalCount        int
-		after             uint64
+		userTokensInvalid      []uint64
+		totalCount             int
+		after                  uint64
+		userTokensInvalidMutex = &sync.Mutex{}
 	)
-	const pageSize = 1000
+	const pageSize = 400
 	for {
+		processedCounter := &atomic.Int64{}
 		userIDs, err := db.User.Query().
-			Where(
+			Where(append(
+				predicates,
 				user.IDGT(after),
-			).
+			)...).
+			Order(ent.Asc(user.FieldID)).
 			Limit(pageSize).
 			IDs(ctx)
 		if err != nil {
 			return nil, 0, fmt.Errorf("error paginating user IDs: %w", err)
 		}
-		for _, userID := range userIDs {
-			logger := log.With().Str("userID", strconv.FormatUint(userID, 10)).Logger()
-			logger.Debug().Msg("getting Discord token for refresh")
-			ts, err := apis.GetRefreshingDiscordTokenSource(ctx, db, discordConfig, userID)
-			if err != nil {
-				logger.Warn().Err(err).Msg("error creating Discord TokenSource, skipping")
-				continue
-			}
-			token, err := ts.Token()
-			if err != nil {
-				logger.Warn().Err(err).Msg("error getting Discord token for user")
-				userTokensInvalid = append(userTokensInvalid, userID)
-				continue
-			}
-			logger.Debug().Msg("refreshing UserGuildEdges")
-			added, removed, err := RefreshUserGuildEdges(ctx, db, token, userID)
-			if err != nil {
-				var restErr *discordgo.RESTError
-				if errors.As(err, &restErr) {
-					if restErr.Response.StatusCode >= 500 {
-						logger.Warn().Err(err).Msg("Discord API server error, skipping user")
-						err = nil
-						continue
-					} else {
-						logger.Warn().Err(err).Msg("error using Discord token for user, will revoke all roles")
-						userTokensInvalid = append(userTokensInvalid, userID)
+		var eGroup errgroup.Group
+		eGroup.SetLimit(10)
+		for i := range userIDs {
+			userID := userIDs[i]
+			eGroup.Go(func() error {
+				defer processedCounter.Add(1)
+				logger := log.With().Str("userID", strconv.FormatUint(userID, 10)).Logger()
+				logger.Debug().Msg("getting Discord token for refresh")
+				ts, err := apis.GetRefreshingDiscordTokenSource(ctx, db, discordConfig, userID)
+				if err != nil {
+					logger.Warn().Err(err).Msg("error creating Discord TokenSource, skipping")
+					return nil
+				}
+				token, err := ts.Token()
+				if err != nil {
+					logger.Warn().Err(err).Msg("error getting Discord token for user, will revoke all roles")
+					userTokensInvalidMutex.Lock()
+					userTokensInvalid = append(userTokensInvalid, userID)
+					userTokensInvalidMutex.Unlock()
+					return nil
+				}
+				logger.Debug().Msg("refreshing UserGuildEdges")
+				added, removed, err := RefreshUserGuildEdges(ctx, db, token, userID)
+				if err != nil {
+					var restErr *discordgo.RESTError
+					if errors.As(err, &restErr) {
+						if restErr.Response.StatusCode >= 500 {
+							logger.Warn().Err(err).Msg("Discord API server error, skipping user")
+						} else {
+							logger.Warn().Err(err).Msg("error using Discord token for user, will revoke all roles")
+							userTokensInvalidMutex.Lock()
+							userTokensInvalid = append(userTokensInvalid, userID)
+							userTokensInvalidMutex.Unlock()
+						}
+						return nil
 					}
-					err = nil
-					continue
+					if errors.Is(err, context.DeadlineExceeded) || strings.Contains(err.Error(), "Client.Timeout exceeded while awaiting headers") {
+						logger.Warn().Err(err).Msg("skipping refresh for user due to API request timeout")
+						return nil
+					}
+					logger.Err(err).Msg("error refreshing guilds for user")
+					return err
 				}
-				if errors.Is(err, context.DeadlineExceeded) || strings.Contains(err.Error(), "Client.Timeout exceeded while awaiting headers") {
-					logger.Warn().Err(err).Msg("skipping refresh for user due to API request timeout")
-					err = nil
-					continue
+				if len(added)+len(removed) > 0 {
+					logger.Info().
+						Strs("addedGuildIDs", uints64ToStrs(added)).
+						Strs("removedGuildIDs", uints64ToStrs(removed)).
+						Msg("refreshed with changes")
+				} else {
+					logger.Debug().Msg("refreshed with no changes")
 				}
-				logger.Err(err).Msg("error refreshing guilds for user")
-				return nil, totalCount, err
-			}
-			if len(added)+len(removed) > 0 {
-				logger.Info().
-					Strs("addedGuildIDs", uints64ToStrs(added)).
-					Strs("removedGuildIDs", uints64ToStrs(removed)).
-					Msg("refreshed with changes")
-			} else {
-				logger.Debug().Msg("refreshed with no changes")
-			}
+				return nil
+			})
+		}
+		if err = eGroup.Wait(); err != nil {
+			return userTokensInvalid, totalCount, err
 		}
 		totalCount += len(userIDs)
 		if len(userIDs) < pageSize {
 			break
 		}
+		after = userIDs[len(userIDs)-1]
 	}
 	if len(userTokensInvalid) > 0 {
 		log.Info().Int("count", len(userTokensInvalid)).

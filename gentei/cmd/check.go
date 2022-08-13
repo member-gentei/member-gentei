@@ -19,11 +19,12 @@ import (
 )
 
 var (
-	flagCheckDisabled    bool
-	flagCheckUserID      uint64
-	flagCheckChannelIDs  []string
-	flagCheckRefreshOnly bool
-	flagCheckNoEnforce   bool
+	flagCheckDisabled        bool
+	flagCheckUserID          uint64
+	flagCheckChannelIDs      []string
+	flagCheckRefreshAllUsers bool
+	flagCheckRefreshOnly     bool
+	flagCheckNoEnforce       bool
 )
 
 // checkCmd represents the check command
@@ -111,8 +112,13 @@ var checkCmd = &cobra.Command{
 				failedUserIDs []uint64
 				userCount     int
 			)
-			log.Info().Msg("refreshing UserGuildEdges")
-			failedUserIDs, userCount, err = membership.RefreshAllUserGuildEdges(ctx, db, discordConfig)
+			if flagCheckRefreshAllUsers {
+				log.Info().Msg("refreshing all UserGuildEdges")
+				failedUserIDs, userCount, err = membership.RefreshAllUserGuildEdges(ctx, db, discordConfig)
+			} else {
+				log.Info().Msg("refreshing stale UserGuildEdges")
+				failedUserIDs, userCount, err = membership.RefreshStaleUserGuildEdges(ctx, db, discordConfig, membership.DefaultCheckStaleOptions.StaleThreshold)
+			}
 			if err != nil {
 				log.Fatal().Err(err).Msg("error refreshing Discord Guild edges")
 			}
@@ -129,7 +135,7 @@ var checkCmd = &cobra.Command{
 					err = async.PublishGeneralMessage(ctx, asyncTopic, async.GeneralPSMessage{
 						UserDelete: &async.DeleteUserMessage{
 							UserID: json.Number(userIDStr),
-							Reason: "Discord token invalid",
+							Reason: "Discord token invalid/expired",
 						},
 					})
 					if err != nil {
@@ -178,6 +184,7 @@ func init() {
 	flags.Uint64Var(&flagCheckUserID, "uid", 0, "check only this user")
 	flags.StringSliceVar(&flagCheckChannelIDs, "channel", nil, "check user(s) against these channels")
 	flags.BoolVar(&flagCheckDisabled, "check-disabled", false, "check against disabled channels")
+	flags.BoolVar(&flagCheckRefreshAllUsers, "refresh-all-users", false, "refresh tokens for non-stale users")
 	flags.BoolVar(&flagCheckRefreshOnly, "refresh-only", false, "only refresh Discord information")
 	flags.BoolVar(&flagCheckNoEnforce, "no-enforce", false, "do not effect membership changes")
 }

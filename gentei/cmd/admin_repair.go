@@ -89,7 +89,10 @@ func repairChannelID(ctx context.Context, db *ent.Client, channelID string) erro
 			SetMembershipVideoID(videoID).
 			ClearDisabled().
 			SaveX(ctx)
-		logger.Info().Str("videoID", videoID).Msg("set new MembershipVideoID")
+		logger.Info().
+			Str("channelID", talent.ID).
+			Str("channelName", talent.ChannelName).
+			Str("videoID", videoID).Msg("set new MembershipVideoID")
 	}
 	return nil
 }
