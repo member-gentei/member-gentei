@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -140,7 +141,13 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 	// first, check if we even need to do this
 	member, err := b.session.GuildMember(guildIDStr, userIDStr)
 	if err != nil {
-		return fmt.Errorf("error calling GuildMember: %w", err)
+		var restErr *discordgo.RESTError
+		if errors.As(err, &restErr) && restErr.Response.StatusCode == http.StatusNotFound {
+			// member does not exist
+			log.Debug().Err(err).Msg("GuildMember not found, no change required")
+		} else {
+			return fmt.Errorf("error calling GuildMember: %w", err)
+		}
 	}
 	var roleExists bool
 	for _, existingRoleID := range member.Roles {
