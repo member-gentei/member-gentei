@@ -432,10 +432,19 @@ func (b *DiscordBot) deferredReply(ctx context.Context, i *discordgo.Interaction
 	var (
 		logger = log.With().
 			Str("command", commandName).
-			Str("userID", i.Member.User.ID).
-			Str("guildID", i.GuildID).
 			Logger()
 	)
+	if i.Member != nil {
+		logger = logger.With().
+			Str("guildID", i.GuildID).
+			Str("userID", i.Member.User.ID).
+			Logger()
+	} else {
+		logger = logger.With().
+			Str("userID", i.User.ID).
+			Bool("dm", true).
+			Logger()
+	}
 	err := b.session.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{

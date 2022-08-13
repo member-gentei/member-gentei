@@ -84,7 +84,14 @@ var rootCmd = &cobra.Command{
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	defer zlg.Flush()
+	defer func() {
+		zlg.Flush()
+		if r := recover(); r != nil {
+			log.Error().Interface("panic", r).Msg("recovered from panic before exiting, re-raising")
+			zlg.Flush()
+			panic(r)
+		}
+	}()
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
