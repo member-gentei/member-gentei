@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/pubsub"
@@ -147,6 +148,9 @@ func revokeYouTubeToken(ctx context.Context, token *oauth2.Token) error {
 		if jbody.Description == "Token expired or revoked" {
 			return nil
 		}
+		if jbody.Error == "invalid_token" {
+			return nil
+		}
 		log.Error().
 			Int("status", r.StatusCode).
 			Str("body", string(body)).
@@ -171,9 +175,14 @@ func revokeDiscordToken(ctx context.Context, token *oauth2.Token) error {
 		return err
 	}
 	// 400 error happens if the token was already revoked by a user.
-	// TODO: actually code in the check after someone does this
 	if r.StatusCode >= 400 {
 		body, _ := ioutil.ReadAll(r.Body)
+		if r.StatusCode == http.StatusUnauthorized {
+			// 401 happens when the token is already revoked/expired
+			if strings.Contains(string(body), "invalid_client") {
+				return nil
+			}
+		}
 		defer r.Body.Close()
 		log.Error().
 			Int("status", r.StatusCode).
