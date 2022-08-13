@@ -86,7 +86,6 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 				return
 			}
 			if !exists {
-				logger.Error().Msg("creating Guild object in DB - it should've already been created via the web UI")
 				ownerID, err := strconv.ParseUint(gc.OwnerID, 10, 64)
 				if err != nil {
 					logger.Err(err).Msg("error parsing embedded gc.OwnerID as uint64")
