@@ -400,7 +400,6 @@ func (yttc *YouTubeTalentCreate) createSpec() (*YouTubeTalent, *sqlgraph.CreateS
 //			SetChannelName(v+v).
 //		}).
 //		Exec(ctx)
-//
 func (yttc *YouTubeTalentCreate) OnConflict(opts ...sql.ConflictOption) *YouTubeTalentUpsertOne {
 	yttc.conflict = opts
 	return &YouTubeTalentUpsertOne{
@@ -414,7 +413,6 @@ func (yttc *YouTubeTalentCreate) OnConflict(opts ...sql.ConflictOption) *YouTube
 //	client.YouTubeTalent.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-//
 func (yttc *YouTubeTalentCreate) OnConflictColumns(columns ...string) *YouTubeTalentUpsertOne {
 	yttc.conflict = append(yttc.conflict, sql.ConflictColumns(columns...))
 	return &YouTubeTalentUpsertOne{
@@ -536,7 +534,6 @@ func (u *YouTubeTalentUpsert) ClearDisabled() *YouTubeTalentUpsert {
 //			}),
 //		).
 //		Exec(ctx)
-//
 func (u *YouTubeTalentUpsertOne) UpdateNewValues() *YouTubeTalentUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
@@ -550,10 +547,9 @@ func (u *YouTubeTalentUpsertOne) UpdateNewValues() *YouTubeTalentUpsertOne {
 // Ignore sets each column to itself in case of conflict.
 // Using this option is equivalent to using:
 //
-//  client.YouTubeTalent.Create().
-//      OnConflict(sql.ResolveWithIgnore()).
-//      Exec(ctx)
-//
+//	client.YouTubeTalent.Create().
+//	    OnConflict(sql.ResolveWithIgnore()).
+//	    Exec(ctx)
 func (u *YouTubeTalentUpsertOne) Ignore() *YouTubeTalentUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
 	return u
@@ -815,7 +811,6 @@ func (yttcb *YouTubeTalentCreateBulk) ExecX(ctx context.Context) {
 //			SetChannelName(v+v).
 //		}).
 //		Exec(ctx)
-//
 func (yttcb *YouTubeTalentCreateBulk) OnConflict(opts ...sql.ConflictOption) *YouTubeTalentUpsertBulk {
 	yttcb.conflict = opts
 	return &YouTubeTalentUpsertBulk{
@@ -829,7 +824,6 @@ func (yttcb *YouTubeTalentCreateBulk) OnConflict(opts ...sql.ConflictOption) *Yo
 //	client.YouTubeTalent.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-//
 func (yttcb *YouTubeTalentCreateBulk) OnConflictColumns(columns ...string) *YouTubeTalentUpsertBulk {
 	yttcb.conflict = append(yttcb.conflict, sql.ConflictColumns(columns...))
 	return &YouTubeTalentUpsertBulk{
@@ -854,7 +848,6 @@ type YouTubeTalentUpsertBulk struct {
 //			}),
 //		).
 //		Exec(ctx)
-//
 func (u *YouTubeTalentUpsertBulk) UpdateNewValues() *YouTubeTalentUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
@@ -874,7 +867,6 @@ func (u *YouTubeTalentUpsertBulk) UpdateNewValues() *YouTubeTalentUpsertBulk {
 //	client.YouTubeTalent.Create().
 //		OnConflict(sql.ResolveWithIgnore()).
 //		Exec(ctx)
-//
 func (u *YouTubeTalentUpsertBulk) Ignore() *YouTubeTalentUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
 	return u

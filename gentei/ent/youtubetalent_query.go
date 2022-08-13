@@ -22,13 +22,12 @@ import (
 // YouTubeTalentQuery is the builder for querying YouTubeTalent entities.
 type YouTubeTalentQuery struct {
 	config
-	limit      *int
-	offset     *int
-	unique     *bool
-	order      []OrderFunc
-	fields     []string
-	predicates []predicate.YouTubeTalent
-	// eager-loading edges.
+	limit           *int
+	offset          *int
+	unique          *bool
+	order           []OrderFunc
+	fields          []string
+	predicates      []predicate.YouTubeTalent
 	withGuilds      *GuildQuery
 	withRoles       *GuildRoleQuery
 	withMemberships *UserMembershipQuery
@@ -373,7 +372,6 @@ func (yttq *YouTubeTalentQuery) WithMemberships(opts ...func(*UserMembershipQuer
 //		GroupBy(youtubetalent.FieldChannelName).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
-//
 func (yttq *YouTubeTalentQuery) GroupBy(field string, fields ...string) *YouTubeTalentGroupBy {
 	grbuild := &YouTubeTalentGroupBy{config: yttq.config}
 	grbuild.fields = append([]string{field}, fields...)
@@ -400,7 +398,6 @@ func (yttq *YouTubeTalentQuery) GroupBy(field string, fields ...string) *YouTube
 //	client.YouTubeTalent.Query().
 //		Select(youtubetalent.FieldChannelName).
 //		Scan(ctx, &v)
-//
 func (yttq *YouTubeTalentQuery) Select(fields ...string) *YouTubeTalentSelect {
 	yttq.fields = append(yttq.fields, fields...)
 	selbuild := &YouTubeTalentSelect{YouTubeTalentQuery: yttq}
@@ -456,119 +453,149 @@ func (yttq *YouTubeTalentQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-
 	if query := yttq.withGuilds; query != nil {
-		edgeids := make([]driver.Value, len(nodes))
-		byid := make(map[string]*YouTubeTalent)
-		nids := make(map[uint64]map[*YouTubeTalent]struct{})
-		for i, node := range nodes {
-			edgeids[i] = node.ID
-			byid[node.ID] = node
-			node.Edges.Guilds = []*Guild{}
-		}
-		query.Where(func(s *sql.Selector) {
-			joinT := sql.Table(youtubetalent.GuildsTable)
-			s.Join(joinT).On(s.C(guild.FieldID), joinT.C(youtubetalent.GuildsPrimaryKey[1]))
-			s.Where(sql.InValues(joinT.C(youtubetalent.GuildsPrimaryKey[0]), edgeids...))
-			columns := s.SelectedColumns()
-			s.Select(joinT.C(youtubetalent.GuildsPrimaryKey[0]))
-			s.AppendSelect(columns...)
-			s.SetDistinct(false)
-		})
-		neighbors, err := query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
-			assign := spec.Assign
-			values := spec.ScanValues
-			spec.ScanValues = func(columns []string) ([]interface{}, error) {
-				values, err := values(columns[1:])
-				if err != nil {
-					return nil, err
-				}
-				return append([]interface{}{new(sql.NullString)}, values...), nil
-			}
-			spec.Assign = func(columns []string, values []interface{}) error {
-				outValue := values[0].(*sql.NullString).String
-				inValue := uint64(values[1].(*sql.NullInt64).Int64)
-				if nids[inValue] == nil {
-					nids[inValue] = map[*YouTubeTalent]struct{}{byid[outValue]: struct{}{}}
-					return assign(columns[1:], values[1:])
-				}
-				nids[inValue][byid[outValue]] = struct{}{}
-				return nil
-			}
-		})
-		if err != nil {
+		if err := yttq.loadGuilds(ctx, query, nodes,
+			func(n *YouTubeTalent) { n.Edges.Guilds = []*Guild{} },
+			func(n *YouTubeTalent, e *Guild) { n.Edges.Guilds = append(n.Edges.Guilds, e) }); err != nil {
 			return nil, err
 		}
-		for _, n := range neighbors {
-			nodes, ok := nids[n.ID]
-			if !ok {
-				return nil, fmt.Errorf(`unexpected "guilds" node returned %v`, n.ID)
-			}
-			for kn := range nodes {
-				kn.Edges.Guilds = append(kn.Edges.Guilds, n)
-			}
-		}
 	}
-
 	if query := yttq.withRoles; query != nil {
-		fks := make([]driver.Value, 0, len(nodes))
-		nodeids := make(map[string]*YouTubeTalent)
-		for i := range nodes {
-			fks = append(fks, nodes[i].ID)
-			nodeids[nodes[i].ID] = nodes[i]
-			nodes[i].Edges.Roles = []*GuildRole{}
-		}
-		query.withFKs = true
-		query.Where(predicate.GuildRole(func(s *sql.Selector) {
-			s.Where(sql.InValues(youtubetalent.RolesColumn, fks...))
-		}))
-		neighbors, err := query.All(ctx)
-		if err != nil {
+		if err := yttq.loadRoles(ctx, query, nodes,
+			func(n *YouTubeTalent) { n.Edges.Roles = []*GuildRole{} },
+			func(n *YouTubeTalent, e *GuildRole) { n.Edges.Roles = append(n.Edges.Roles, e) }); err != nil {
 			return nil, err
 		}
-		for _, n := range neighbors {
-			fk := n.you_tube_talent_roles
-			if fk == nil {
-				return nil, fmt.Errorf(`foreign-key "you_tube_talent_roles" is nil for node %v`, n.ID)
-			}
-			node, ok := nodeids[*fk]
-			if !ok {
-				return nil, fmt.Errorf(`unexpected foreign-key "you_tube_talent_roles" returned %v for node %v`, *fk, n.ID)
-			}
-			node.Edges.Roles = append(node.Edges.Roles, n)
-		}
 	}
-
 	if query := yttq.withMemberships; query != nil {
-		fks := make([]driver.Value, 0, len(nodes))
-		nodeids := make(map[string]*YouTubeTalent)
-		for i := range nodes {
-			fks = append(fks, nodes[i].ID)
-			nodeids[nodes[i].ID] = nodes[i]
-			nodes[i].Edges.Memberships = []*UserMembership{}
-		}
-		query.withFKs = true
-		query.Where(predicate.UserMembership(func(s *sql.Selector) {
-			s.Where(sql.InValues(youtubetalent.MembershipsColumn, fks...))
-		}))
-		neighbors, err := query.All(ctx)
-		if err != nil {
+		if err := yttq.loadMemberships(ctx, query, nodes,
+			func(n *YouTubeTalent) { n.Edges.Memberships = []*UserMembership{} },
+			func(n *YouTubeTalent, e *UserMembership) { n.Edges.Memberships = append(n.Edges.Memberships, e) }); err != nil {
 			return nil, err
 		}
-		for _, n := range neighbors {
-			fk := n.user_membership_youtube_talent
-			if fk == nil {
-				return nil, fmt.Errorf(`foreign-key "user_membership_youtube_talent" is nil for node %v`, n.ID)
-			}
-			node, ok := nodeids[*fk]
-			if !ok {
-				return nil, fmt.Errorf(`unexpected foreign-key "user_membership_youtube_talent" returned %v for node %v`, *fk, n.ID)
-			}
-			node.Edges.Memberships = append(node.Edges.Memberships, n)
+	}
+	return nodes, nil
+}
+
+func (yttq *YouTubeTalentQuery) loadGuilds(ctx context.Context, query *GuildQuery, nodes []*YouTubeTalent, init func(*YouTubeTalent), assign func(*YouTubeTalent, *Guild)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[string]*YouTubeTalent)
+	nids := make(map[uint64]map[*YouTubeTalent]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
 		}
 	}
-
-	return nodes, nil
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(youtubetalent.GuildsTable)
+		s.Join(joinT).On(s.C(guild.FieldID), joinT.C(youtubetalent.GuildsPrimaryKey[1]))
+		s.Where(sql.InValues(joinT.C(youtubetalent.GuildsPrimaryKey[0]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(youtubetalent.GuildsPrimaryKey[0]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	neighbors, err := query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+		assign := spec.Assign
+		values := spec.ScanValues
+		spec.ScanValues = func(columns []string) ([]interface{}, error) {
+			values, err := values(columns[1:])
+			if err != nil {
+				return nil, err
+			}
+			return append([]interface{}{new(sql.NullString)}, values...), nil
+		}
+		spec.Assign = func(columns []string, values []interface{}) error {
+			outValue := values[0].(*sql.NullString).String
+			inValue := uint64(values[1].(*sql.NullInt64).Int64)
+			if nids[inValue] == nil {
+				nids[inValue] = map[*YouTubeTalent]struct{}{byID[outValue]: struct{}{}}
+				return assign(columns[1:], values[1:])
+			}
+			nids[inValue][byID[outValue]] = struct{}{}
+			return nil
+		}
+	})
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected "guilds" node returned %v`, n.ID)
+		}
+		for kn := range nodes {
+			assign(kn, n)
+		}
+	}
+	return nil
+}
+func (yttq *YouTubeTalentQuery) loadRoles(ctx context.Context, query *GuildRoleQuery, nodes []*YouTubeTalent, init func(*YouTubeTalent), assign func(*YouTubeTalent, *GuildRole)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*YouTubeTalent)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.GuildRole(func(s *sql.Selector) {
+		s.Where(sql.InValues(youtubetalent.RolesColumn, fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.you_tube_talent_roles
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "you_tube_talent_roles" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "you_tube_talent_roles" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (yttq *YouTubeTalentQuery) loadMemberships(ctx context.Context, query *UserMembershipQuery, nodes []*YouTubeTalent, init func(*YouTubeTalent), assign func(*YouTubeTalent, *UserMembership)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*YouTubeTalent)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.UserMembership(func(s *sql.Selector) {
+		s.Where(sql.InValues(youtubetalent.MembershipsColumn, fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.user_membership_youtube_talent
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_membership_youtube_talent" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "user_membership_youtube_talent" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (yttq *YouTubeTalentQuery) sqlCount(ctx context.Context) (int, error) {

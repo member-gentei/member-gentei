@@ -48,8 +48,7 @@ type GuildRoleEdges struct {
 func (e GuildRoleEdges) GuildOrErr() (*Guild, error) {
 	if e.loadedTypes[0] {
 		if e.Guild == nil {
-			// The edge guild was loaded in eager-loading,
-			// but was not found.
+			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: guild.Label}
 		}
 		return e.Guild, nil
@@ -71,8 +70,7 @@ func (e GuildRoleEdges) UserMembershipsOrErr() ([]*UserMembership, error) {
 func (e GuildRoleEdges) TalentOrErr() (*YouTubeTalent, error) {
 	if e.loadedTypes[2] {
 		if e.Talent == nil {
-			// The edge talent was loaded in eager-loading,
-			// but was not found.
+			// Edge was loaded but was not found.
 			return nil, &NotFoundError{label: youtubetalent.Label}
 		}
 		return e.Talent, nil

@@ -121,12 +121,6 @@ func NameIn(vs ...string) predicate.Guild {
 		v[i] = vs[i]
 	}
 	return predicate.Guild(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.In(s.C(FieldName), v...))
 	})
 }
@@ -138,12 +132,6 @@ func NameNotIn(vs ...string) predicate.Guild {
 		v[i] = vs[i]
 	}
 	return predicate.Guild(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.NotIn(s.C(FieldName), v...))
 	})
 }
@@ -232,12 +220,6 @@ func IconHashIn(vs ...string) predicate.Guild {
 		v[i] = vs[i]
 	}
 	return predicate.Guild(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.In(s.C(FieldIconHash), v...))
 	})
 }
@@ -249,12 +231,6 @@ func IconHashNotIn(vs ...string) predicate.Guild {
 		v[i] = vs[i]
 	}
 	return predicate.Guild(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.NotIn(s.C(FieldIconHash), v...))
 	})
 }
@@ -357,12 +333,6 @@ func AuditChannelIn(vs ...uint64) predicate.Guild {
 		v[i] = vs[i]
 	}
 	return predicate.Guild(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.In(s.C(FieldAuditChannel), v...))
 	})
 }
@@ -374,12 +344,6 @@ func AuditChannelNotIn(vs ...uint64) predicate.Guild {
 		v[i] = vs[i]
 	}
 	return predicate.Guild(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.NotIn(s.C(FieldAuditChannel), v...))
 	})
 }
@@ -447,12 +411,6 @@ func LanguageIn(vs ...Language) predicate.Guild {
 		v[i] = vs[i]
 	}
 	return predicate.Guild(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.In(s.C(FieldLanguage), v...))
 	})
 }
@@ -464,12 +422,6 @@ func LanguageNotIn(vs ...Language) predicate.Guild {
 		v[i] = vs[i]
 	}
 	return predicate.Guild(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.NotIn(s.C(FieldLanguage), v...))
 	})
 }

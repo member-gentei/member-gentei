@@ -328,7 +328,6 @@ func (umc *UserMembershipCreate) createSpec() (*UserMembership, *sqlgraph.Create
 //			SetFirstFailed(v+v).
 //		}).
 //		Exec(ctx)
-//
 func (umc *UserMembershipCreate) OnConflict(opts ...sql.ConflictOption) *UserMembershipUpsertOne {
 	umc.conflict = opts
 	return &UserMembershipUpsertOne{
@@ -342,7 +341,6 @@ func (umc *UserMembershipCreate) OnConflict(opts ...sql.ConflictOption) *UserMem
 //	client.UserMembership.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-//
 func (umc *UserMembershipCreate) OnConflictColumns(columns ...string) *UserMembershipUpsertOne {
 	umc.conflict = append(umc.conflict, sql.ConflictColumns(columns...))
 	return &UserMembershipUpsertOne{
@@ -419,7 +417,6 @@ func (u *UserMembershipUpsert) AddFailCount(v int) *UserMembershipUpsert {
 //			sql.ResolveWithNewValues(),
 //		).
 //		Exec(ctx)
-//
 func (u *UserMembershipUpsertOne) UpdateNewValues() *UserMembershipUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	return u
@@ -428,10 +425,9 @@ func (u *UserMembershipUpsertOne) UpdateNewValues() *UserMembershipUpsertOne {
 // Ignore sets each column to itself in case of conflict.
 // Using this option is equivalent to using:
 //
-//  client.UserMembership.Create().
-//      OnConflict(sql.ResolveWithIgnore()).
-//      Exec(ctx)
-//
+//	client.UserMembership.Create().
+//	    OnConflict(sql.ResolveWithIgnore()).
+//	    Exec(ctx)
 func (u *UserMembershipUpsertOne) Ignore() *UserMembershipUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
 	return u
@@ -643,7 +639,6 @@ func (umcb *UserMembershipCreateBulk) ExecX(ctx context.Context) {
 //			SetFirstFailed(v+v).
 //		}).
 //		Exec(ctx)
-//
 func (umcb *UserMembershipCreateBulk) OnConflict(opts ...sql.ConflictOption) *UserMembershipUpsertBulk {
 	umcb.conflict = opts
 	return &UserMembershipUpsertBulk{
@@ -657,7 +652,6 @@ func (umcb *UserMembershipCreateBulk) OnConflict(opts ...sql.ConflictOption) *Us
 //	client.UserMembership.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-//
 func (umcb *UserMembershipCreateBulk) OnConflictColumns(columns ...string) *UserMembershipUpsertBulk {
 	umcb.conflict = append(umcb.conflict, sql.ConflictColumns(columns...))
 	return &UserMembershipUpsertBulk{
@@ -679,7 +673,6 @@ type UserMembershipUpsertBulk struct {
 //			sql.ResolveWithNewValues(),
 //		).
 //		Exec(ctx)
-//
 func (u *UserMembershipUpsertBulk) UpdateNewValues() *UserMembershipUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	return u
@@ -691,7 +684,6 @@ func (u *UserMembershipUpsertBulk) UpdateNewValues() *UserMembershipUpsertBulk {
 //	client.UserMembership.Create().
 //		OnConflict(sql.ResolveWithIgnore()).
 //		Exec(ctx)
-//
 func (u *UserMembershipUpsertBulk) Ignore() *UserMembershipUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
 	return u

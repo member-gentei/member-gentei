@@ -144,12 +144,6 @@ func ChannelNameIn(vs ...string) predicate.YouTubeTalent {
 		v[i] = vs[i]
 	}
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.In(s.C(FieldChannelName), v...))
 	})
 }
@@ -161,12 +155,6 @@ func ChannelNameNotIn(vs ...string) predicate.YouTubeTalent {
 		v[i] = vs[i]
 	}
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.NotIn(s.C(FieldChannelName), v...))
 	})
 }
@@ -255,12 +243,6 @@ func ThumbnailURLIn(vs ...string) predicate.YouTubeTalent {
 		v[i] = vs[i]
 	}
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.In(s.C(FieldThumbnailURL), v...))
 	})
 }
@@ -272,12 +254,6 @@ func ThumbnailURLNotIn(vs ...string) predicate.YouTubeTalent {
 		v[i] = vs[i]
 	}
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.NotIn(s.C(FieldThumbnailURL), v...))
 	})
 }
@@ -366,12 +342,6 @@ func MembershipVideoIDIn(vs ...string) predicate.YouTubeTalent {
 		v[i] = vs[i]
 	}
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.In(s.C(FieldMembershipVideoID), v...))
 	})
 }
@@ -383,12 +353,6 @@ func MembershipVideoIDNotIn(vs ...string) predicate.YouTubeTalent {
 		v[i] = vs[i]
 	}
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.NotIn(s.C(FieldMembershipVideoID), v...))
 	})
 }
@@ -491,12 +455,6 @@ func LastMembershipVideoIDMissIn(vs ...time.Time) predicate.YouTubeTalent {
 		v[i] = vs[i]
 	}
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.In(s.C(FieldLastMembershipVideoIDMiss), v...))
 	})
 }
@@ -508,12 +466,6 @@ func LastMembershipVideoIDMissNotIn(vs ...time.Time) predicate.YouTubeTalent {
 		v[i] = vs[i]
 	}
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.NotIn(s.C(FieldLastMembershipVideoIDMiss), v...))
 	})
 }
@@ -581,12 +533,6 @@ func LastUpdatedIn(vs ...time.Time) predicate.YouTubeTalent {
 		v[i] = vs[i]
 	}
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.In(s.C(FieldLastUpdated), v...))
 	})
 }
@@ -598,12 +544,6 @@ func LastUpdatedNotIn(vs ...time.Time) predicate.YouTubeTalent {
 		v[i] = vs[i]
 	}
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.NotIn(s.C(FieldLastUpdated), v...))
 	})
 }
@@ -657,12 +597,6 @@ func DisabledIn(vs ...time.Time) predicate.YouTubeTalent {
 		v[i] = vs[i]
 	}
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.In(s.C(FieldDisabled), v...))
 	})
 }
@@ -674,12 +608,6 @@ func DisabledNotIn(vs ...time.Time) predicate.YouTubeTalent {
 		v[i] = vs[i]
 	}
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
-		// if not arguments were provided, append the FALSE constants,
-		// since we can't apply "IN ()". This will make this predicate falsy.
-		if len(v) == 0 {
-			s.Where(sql.False())
-			return
-		}
 		s.Where(sql.NotIn(s.C(FieldDisabled), v...))
 	})
 }

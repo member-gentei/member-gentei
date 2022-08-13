@@ -22,13 +22,12 @@ import (
 // GuildRoleQuery is the builder for querying GuildRole entities.
 type GuildRoleQuery struct {
 	config
-	limit      *int
-	offset     *int
-	unique     *bool
-	order      []OrderFunc
-	fields     []string
-	predicates []predicate.GuildRole
-	// eager-loading edges.
+	limit               *int
+	offset              *int
+	unique              *bool
+	order               []OrderFunc
+	fields              []string
+	predicates          []predicate.GuildRole
 	withGuild           *GuildQuery
 	withUserMemberships *UserMembershipQuery
 	withTalent          *YouTubeTalentQuery
@@ -374,7 +373,6 @@ func (grq *GuildRoleQuery) WithTalent(opts ...func(*YouTubeTalentQuery)) *GuildR
 //		GroupBy(guildrole.FieldName).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
-//
 func (grq *GuildRoleQuery) GroupBy(field string, fields ...string) *GuildRoleGroupBy {
 	grbuild := &GuildRoleGroupBy{config: grq.config}
 	grbuild.fields = append([]string{field}, fields...)
@@ -401,7 +399,6 @@ func (grq *GuildRoleQuery) GroupBy(field string, fields ...string) *GuildRoleGro
 //	client.GuildRole.Query().
 //		Select(guildrole.FieldName).
 //		Scan(ctx, &v)
-//
 func (grq *GuildRoleQuery) Select(fields ...string) *GuildRoleSelect {
 	grq.fields = append(grq.fields, fields...)
 	selbuild := &GuildRoleSelect{GuildRoleQuery: grq}
@@ -464,119 +461,143 @@ func (grq *GuildRoleQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*G
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-
 	if query := grq.withGuild; query != nil {
-		ids := make([]uint64, 0, len(nodes))
-		nodeids := make(map[uint64][]*GuildRole)
-		for i := range nodes {
-			if nodes[i].guild_roles == nil {
-				continue
-			}
-			fk := *nodes[i].guild_roles
-			if _, ok := nodeids[fk]; !ok {
-				ids = append(ids, fk)
-			}
-			nodeids[fk] = append(nodeids[fk], nodes[i])
-		}
-		query.Where(guild.IDIn(ids...))
-		neighbors, err := query.All(ctx)
-		if err != nil {
+		if err := grq.loadGuild(ctx, query, nodes, nil,
+			func(n *GuildRole, e *Guild) { n.Edges.Guild = e }); err != nil {
 			return nil, err
 		}
-		for _, n := range neighbors {
-			nodes, ok := nodeids[n.ID]
-			if !ok {
-				return nil, fmt.Errorf(`unexpected foreign-key "guild_roles" returned %v`, n.ID)
-			}
-			for i := range nodes {
-				nodes[i].Edges.Guild = n
-			}
-		}
 	}
-
 	if query := grq.withUserMemberships; query != nil {
-		edgeids := make([]driver.Value, len(nodes))
-		byid := make(map[uint64]*GuildRole)
-		nids := make(map[int]map[*GuildRole]struct{})
-		for i, node := range nodes {
-			edgeids[i] = node.ID
-			byid[node.ID] = node
-			node.Edges.UserMemberships = []*UserMembership{}
-		}
-		query.Where(func(s *sql.Selector) {
-			joinT := sql.Table(guildrole.UserMembershipsTable)
-			s.Join(joinT).On(s.C(usermembership.FieldID), joinT.C(guildrole.UserMembershipsPrimaryKey[0]))
-			s.Where(sql.InValues(joinT.C(guildrole.UserMembershipsPrimaryKey[1]), edgeids...))
-			columns := s.SelectedColumns()
-			s.Select(joinT.C(guildrole.UserMembershipsPrimaryKey[1]))
-			s.AppendSelect(columns...)
-			s.SetDistinct(false)
-		})
-		neighbors, err := query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
-			assign := spec.Assign
-			values := spec.ScanValues
-			spec.ScanValues = func(columns []string) ([]interface{}, error) {
-				values, err := values(columns[1:])
-				if err != nil {
-					return nil, err
-				}
-				return append([]interface{}{new(sql.NullInt64)}, values...), nil
-			}
-			spec.Assign = func(columns []string, values []interface{}) error {
-				outValue := uint64(values[0].(*sql.NullInt64).Int64)
-				inValue := int(values[1].(*sql.NullInt64).Int64)
-				if nids[inValue] == nil {
-					nids[inValue] = map[*GuildRole]struct{}{byid[outValue]: struct{}{}}
-					return assign(columns[1:], values[1:])
-				}
-				nids[inValue][byid[outValue]] = struct{}{}
-				return nil
-			}
-		})
-		if err != nil {
+		if err := grq.loadUserMemberships(ctx, query, nodes,
+			func(n *GuildRole) { n.Edges.UserMemberships = []*UserMembership{} },
+			func(n *GuildRole, e *UserMembership) { n.Edges.UserMemberships = append(n.Edges.UserMemberships, e) }); err != nil {
 			return nil, err
 		}
-		for _, n := range neighbors {
-			nodes, ok := nids[n.ID]
-			if !ok {
-				return nil, fmt.Errorf(`unexpected "user_memberships" node returned %v`, n.ID)
-			}
-			for kn := range nodes {
-				kn.Edges.UserMemberships = append(kn.Edges.UserMemberships, n)
-			}
-		}
 	}
-
 	if query := grq.withTalent; query != nil {
-		ids := make([]string, 0, len(nodes))
-		nodeids := make(map[string][]*GuildRole)
-		for i := range nodes {
-			if nodes[i].you_tube_talent_roles == nil {
-				continue
-			}
-			fk := *nodes[i].you_tube_talent_roles
-			if _, ok := nodeids[fk]; !ok {
-				ids = append(ids, fk)
-			}
-			nodeids[fk] = append(nodeids[fk], nodes[i])
-		}
-		query.Where(youtubetalent.IDIn(ids...))
-		neighbors, err := query.All(ctx)
-		if err != nil {
+		if err := grq.loadTalent(ctx, query, nodes, nil,
+			func(n *GuildRole, e *YouTubeTalent) { n.Edges.Talent = e }); err != nil {
 			return nil, err
 		}
-		for _, n := range neighbors {
-			nodes, ok := nodeids[n.ID]
-			if !ok {
-				return nil, fmt.Errorf(`unexpected foreign-key "you_tube_talent_roles" returned %v`, n.ID)
-			}
-			for i := range nodes {
-				nodes[i].Edges.Talent = n
-			}
+	}
+	return nodes, nil
+}
+
+func (grq *GuildRoleQuery) loadGuild(ctx context.Context, query *GuildQuery, nodes []*GuildRole, init func(*GuildRole), assign func(*GuildRole, *Guild)) error {
+	ids := make([]uint64, 0, len(nodes))
+	nodeids := make(map[uint64][]*GuildRole)
+	for i := range nodes {
+		if nodes[i].guild_roles == nil {
+			continue
+		}
+		fk := *nodes[i].guild_roles
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	query.Where(guild.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "guild_roles" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
 		}
 	}
-
-	return nodes, nil
+	return nil
+}
+func (grq *GuildRoleQuery) loadUserMemberships(ctx context.Context, query *UserMembershipQuery, nodes []*GuildRole, init func(*GuildRole), assign func(*GuildRole, *UserMembership)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[uint64]*GuildRole)
+	nids := make(map[int]map[*GuildRole]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
+		}
+	}
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(guildrole.UserMembershipsTable)
+		s.Join(joinT).On(s.C(usermembership.FieldID), joinT.C(guildrole.UserMembershipsPrimaryKey[0]))
+		s.Where(sql.InValues(joinT.C(guildrole.UserMembershipsPrimaryKey[1]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(guildrole.UserMembershipsPrimaryKey[1]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	neighbors, err := query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+		assign := spec.Assign
+		values := spec.ScanValues
+		spec.ScanValues = func(columns []string) ([]interface{}, error) {
+			values, err := values(columns[1:])
+			if err != nil {
+				return nil, err
+			}
+			return append([]interface{}{new(sql.NullInt64)}, values...), nil
+		}
+		spec.Assign = func(columns []string, values []interface{}) error {
+			outValue := uint64(values[0].(*sql.NullInt64).Int64)
+			inValue := int(values[1].(*sql.NullInt64).Int64)
+			if nids[inValue] == nil {
+				nids[inValue] = map[*GuildRole]struct{}{byID[outValue]: struct{}{}}
+				return assign(columns[1:], values[1:])
+			}
+			nids[inValue][byID[outValue]] = struct{}{}
+			return nil
+		}
+	})
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected "user_memberships" node returned %v`, n.ID)
+		}
+		for kn := range nodes {
+			assign(kn, n)
+		}
+	}
+	return nil
+}
+func (grq *GuildRoleQuery) loadTalent(ctx context.Context, query *YouTubeTalentQuery, nodes []*GuildRole, init func(*GuildRole), assign func(*GuildRole, *YouTubeTalent)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*GuildRole)
+	for i := range nodes {
+		if nodes[i].you_tube_talent_roles == nil {
+			continue
+		}
+		fk := *nodes[i].you_tube_talent_roles
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	query.Where(youtubetalent.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "you_tube_talent_roles" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
 }
 
 func (grq *GuildRoleQuery) sqlCount(ctx context.Context) (int, error) {

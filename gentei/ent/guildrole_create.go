@@ -318,7 +318,6 @@ func (grc *GuildRoleCreate) createSpec() (*GuildRole, *sqlgraph.CreateSpec) {
 //			SetName(v+v).
 //		}).
 //		Exec(ctx)
-//
 func (grc *GuildRoleCreate) OnConflict(opts ...sql.ConflictOption) *GuildRoleUpsertOne {
 	grc.conflict = opts
 	return &GuildRoleUpsertOne{
@@ -332,7 +331,6 @@ func (grc *GuildRoleCreate) OnConflict(opts ...sql.ConflictOption) *GuildRoleUps
 //	client.GuildRole.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-//
 func (grc *GuildRoleCreate) OnConflictColumns(columns ...string) *GuildRoleUpsertOne {
 	grc.conflict = append(grc.conflict, sql.ConflictColumns(columns...))
 	return &GuildRoleUpsertOne{
@@ -388,7 +386,6 @@ func (u *GuildRoleUpsert) UpdateLastUpdated() *GuildRoleUpsert {
 //			}),
 //		).
 //		Exec(ctx)
-//
 func (u *GuildRoleUpsertOne) UpdateNewValues() *GuildRoleUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
@@ -402,10 +399,9 @@ func (u *GuildRoleUpsertOne) UpdateNewValues() *GuildRoleUpsertOne {
 // Ignore sets each column to itself in case of conflict.
 // Using this option is equivalent to using:
 //
-//  client.GuildRole.Create().
-//      OnConflict(sql.ResolveWithIgnore()).
-//      Exec(ctx)
-//
+//	client.GuildRole.Create().
+//	    OnConflict(sql.ResolveWithIgnore()).
+//	    Exec(ctx)
 func (u *GuildRoleUpsertOne) Ignore() *GuildRoleUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
 	return u
@@ -589,7 +585,6 @@ func (grcb *GuildRoleCreateBulk) ExecX(ctx context.Context) {
 //			SetName(v+v).
 //		}).
 //		Exec(ctx)
-//
 func (grcb *GuildRoleCreateBulk) OnConflict(opts ...sql.ConflictOption) *GuildRoleUpsertBulk {
 	grcb.conflict = opts
 	return &GuildRoleUpsertBulk{
@@ -603,7 +598,6 @@ func (grcb *GuildRoleCreateBulk) OnConflict(opts ...sql.ConflictOption) *GuildRo
 //	client.GuildRole.Create().
 //		OnConflict(sql.ConflictColumns(columns...)).
 //		Exec(ctx)
-//
 func (grcb *GuildRoleCreateBulk) OnConflictColumns(columns ...string) *GuildRoleUpsertBulk {
 	grcb.conflict = append(grcb.conflict, sql.ConflictColumns(columns...))
 	return &GuildRoleUpsertBulk{
@@ -628,7 +622,6 @@ type GuildRoleUpsertBulk struct {
 //			}),
 //		).
 //		Exec(ctx)
-//
 func (u *GuildRoleUpsertBulk) UpdateNewValues() *GuildRoleUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
 	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
@@ -648,7 +641,6 @@ func (u *GuildRoleUpsertBulk) UpdateNewValues() *GuildRoleUpsertBulk {
 //	client.GuildRole.Create().
 //		OnConflict(sql.ResolveWithIgnore()).
 //		Exec(ctx)
-//
 func (u *GuildRoleUpsertBulk) Ignore() *GuildRoleUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithIgnore())
 	return u

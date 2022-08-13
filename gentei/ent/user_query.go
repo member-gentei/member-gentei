@@ -21,13 +21,12 @@ import (
 // UserQuery is the builder for querying User entities.
 type UserQuery struct {
 	config
-	limit      *int
-	offset     *int
-	unique     *bool
-	order      []OrderFunc
-	fields     []string
-	predicates []predicate.User
-	// eager-loading edges.
+	limit           *int
+	offset          *int
+	unique          *bool
+	order           []OrderFunc
+	fields          []string
+	predicates      []predicate.User
 	withGuilds      *GuildQuery
 	withGuildsAdmin *GuildQuery
 	withMemberships *UserMembershipQuery
@@ -372,7 +371,6 @@ func (uq *UserQuery) WithMemberships(opts ...func(*UserMembershipQuery)) *UserQu
 //		GroupBy(user.FieldFullName).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
-//
 func (uq *UserQuery) GroupBy(field string, fields ...string) *UserGroupBy {
 	grbuild := &UserGroupBy{config: uq.config}
 	grbuild.fields = append([]string{field}, fields...)
@@ -399,7 +397,6 @@ func (uq *UserQuery) GroupBy(field string, fields ...string) *UserGroupBy {
 //	client.User.Query().
 //		Select(user.FieldFullName).
 //		Scan(ctx, &v)
-//
 func (uq *UserQuery) Select(fields ...string) *UserSelect {
 	uq.fields = append(uq.fields, fields...)
 	selbuild := &UserSelect{UserQuery: uq}
@@ -455,143 +452,176 @@ func (uq *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-
 	if query := uq.withGuilds; query != nil {
-		edgeids := make([]driver.Value, len(nodes))
-		byid := make(map[uint64]*User)
-		nids := make(map[uint64]map[*User]struct{})
-		for i, node := range nodes {
-			edgeids[i] = node.ID
-			byid[node.ID] = node
-			node.Edges.Guilds = []*Guild{}
-		}
-		query.Where(func(s *sql.Selector) {
-			joinT := sql.Table(user.GuildsTable)
-			s.Join(joinT).On(s.C(guild.FieldID), joinT.C(user.GuildsPrimaryKey[0]))
-			s.Where(sql.InValues(joinT.C(user.GuildsPrimaryKey[1]), edgeids...))
-			columns := s.SelectedColumns()
-			s.Select(joinT.C(user.GuildsPrimaryKey[1]))
-			s.AppendSelect(columns...)
-			s.SetDistinct(false)
-		})
-		neighbors, err := query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
-			assign := spec.Assign
-			values := spec.ScanValues
-			spec.ScanValues = func(columns []string) ([]interface{}, error) {
-				values, err := values(columns[1:])
-				if err != nil {
-					return nil, err
-				}
-				return append([]interface{}{new(sql.NullInt64)}, values...), nil
-			}
-			spec.Assign = func(columns []string, values []interface{}) error {
-				outValue := uint64(values[0].(*sql.NullInt64).Int64)
-				inValue := uint64(values[1].(*sql.NullInt64).Int64)
-				if nids[inValue] == nil {
-					nids[inValue] = map[*User]struct{}{byid[outValue]: struct{}{}}
-					return assign(columns[1:], values[1:])
-				}
-				nids[inValue][byid[outValue]] = struct{}{}
-				return nil
-			}
-		})
-		if err != nil {
+		if err := uq.loadGuilds(ctx, query, nodes,
+			func(n *User) { n.Edges.Guilds = []*Guild{} },
+			func(n *User, e *Guild) { n.Edges.Guilds = append(n.Edges.Guilds, e) }); err != nil {
 			return nil, err
 		}
-		for _, n := range neighbors {
-			nodes, ok := nids[n.ID]
-			if !ok {
-				return nil, fmt.Errorf(`unexpected "guilds" node returned %v`, n.ID)
-			}
-			for kn := range nodes {
-				kn.Edges.Guilds = append(kn.Edges.Guilds, n)
-			}
-		}
 	}
-
 	if query := uq.withGuildsAdmin; query != nil {
-		edgeids := make([]driver.Value, len(nodes))
-		byid := make(map[uint64]*User)
-		nids := make(map[uint64]map[*User]struct{})
-		for i, node := range nodes {
-			edgeids[i] = node.ID
-			byid[node.ID] = node
-			node.Edges.GuildsAdmin = []*Guild{}
-		}
-		query.Where(func(s *sql.Selector) {
-			joinT := sql.Table(user.GuildsAdminTable)
-			s.Join(joinT).On(s.C(guild.FieldID), joinT.C(user.GuildsAdminPrimaryKey[0]))
-			s.Where(sql.InValues(joinT.C(user.GuildsAdminPrimaryKey[1]), edgeids...))
-			columns := s.SelectedColumns()
-			s.Select(joinT.C(user.GuildsAdminPrimaryKey[1]))
-			s.AppendSelect(columns...)
-			s.SetDistinct(false)
-		})
-		neighbors, err := query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
-			assign := spec.Assign
-			values := spec.ScanValues
-			spec.ScanValues = func(columns []string) ([]interface{}, error) {
-				values, err := values(columns[1:])
-				if err != nil {
-					return nil, err
-				}
-				return append([]interface{}{new(sql.NullInt64)}, values...), nil
-			}
-			spec.Assign = func(columns []string, values []interface{}) error {
-				outValue := uint64(values[0].(*sql.NullInt64).Int64)
-				inValue := uint64(values[1].(*sql.NullInt64).Int64)
-				if nids[inValue] == nil {
-					nids[inValue] = map[*User]struct{}{byid[outValue]: struct{}{}}
-					return assign(columns[1:], values[1:])
-				}
-				nids[inValue][byid[outValue]] = struct{}{}
-				return nil
-			}
-		})
-		if err != nil {
+		if err := uq.loadGuildsAdmin(ctx, query, nodes,
+			func(n *User) { n.Edges.GuildsAdmin = []*Guild{} },
+			func(n *User, e *Guild) { n.Edges.GuildsAdmin = append(n.Edges.GuildsAdmin, e) }); err != nil {
 			return nil, err
 		}
-		for _, n := range neighbors {
-			nodes, ok := nids[n.ID]
-			if !ok {
-				return nil, fmt.Errorf(`unexpected "guilds_admin" node returned %v`, n.ID)
-			}
-			for kn := range nodes {
-				kn.Edges.GuildsAdmin = append(kn.Edges.GuildsAdmin, n)
-			}
-		}
 	}
-
 	if query := uq.withMemberships; query != nil {
-		fks := make([]driver.Value, 0, len(nodes))
-		nodeids := make(map[uint64]*User)
-		for i := range nodes {
-			fks = append(fks, nodes[i].ID)
-			nodeids[nodes[i].ID] = nodes[i]
-			nodes[i].Edges.Memberships = []*UserMembership{}
-		}
-		query.withFKs = true
-		query.Where(predicate.UserMembership(func(s *sql.Selector) {
-			s.Where(sql.InValues(user.MembershipsColumn, fks...))
-		}))
-		neighbors, err := query.All(ctx)
-		if err != nil {
+		if err := uq.loadMemberships(ctx, query, nodes,
+			func(n *User) { n.Edges.Memberships = []*UserMembership{} },
+			func(n *User, e *UserMembership) { n.Edges.Memberships = append(n.Edges.Memberships, e) }); err != nil {
 			return nil, err
 		}
-		for _, n := range neighbors {
-			fk := n.user_memberships
-			if fk == nil {
-				return nil, fmt.Errorf(`foreign-key "user_memberships" is nil for node %v`, n.ID)
-			}
-			node, ok := nodeids[*fk]
-			if !ok {
-				return nil, fmt.Errorf(`unexpected foreign-key "user_memberships" returned %v for node %v`, *fk, n.ID)
-			}
-			node.Edges.Memberships = append(node.Edges.Memberships, n)
+	}
+	return nodes, nil
+}
+
+func (uq *UserQuery) loadGuilds(ctx context.Context, query *GuildQuery, nodes []*User, init func(*User), assign func(*User, *Guild)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[uint64]*User)
+	nids := make(map[uint64]map[*User]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
 		}
 	}
-
-	return nodes, nil
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(user.GuildsTable)
+		s.Join(joinT).On(s.C(guild.FieldID), joinT.C(user.GuildsPrimaryKey[0]))
+		s.Where(sql.InValues(joinT.C(user.GuildsPrimaryKey[1]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(user.GuildsPrimaryKey[1]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	neighbors, err := query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+		assign := spec.Assign
+		values := spec.ScanValues
+		spec.ScanValues = func(columns []string) ([]interface{}, error) {
+			values, err := values(columns[1:])
+			if err != nil {
+				return nil, err
+			}
+			return append([]interface{}{new(sql.NullInt64)}, values...), nil
+		}
+		spec.Assign = func(columns []string, values []interface{}) error {
+			outValue := uint64(values[0].(*sql.NullInt64).Int64)
+			inValue := uint64(values[1].(*sql.NullInt64).Int64)
+			if nids[inValue] == nil {
+				nids[inValue] = map[*User]struct{}{byID[outValue]: struct{}{}}
+				return assign(columns[1:], values[1:])
+			}
+			nids[inValue][byID[outValue]] = struct{}{}
+			return nil
+		}
+	})
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected "guilds" node returned %v`, n.ID)
+		}
+		for kn := range nodes {
+			assign(kn, n)
+		}
+	}
+	return nil
+}
+func (uq *UserQuery) loadGuildsAdmin(ctx context.Context, query *GuildQuery, nodes []*User, init func(*User), assign func(*User, *Guild)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[uint64]*User)
+	nids := make(map[uint64]map[*User]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
+		}
+	}
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(user.GuildsAdminTable)
+		s.Join(joinT).On(s.C(guild.FieldID), joinT.C(user.GuildsAdminPrimaryKey[0]))
+		s.Where(sql.InValues(joinT.C(user.GuildsAdminPrimaryKey[1]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(user.GuildsAdminPrimaryKey[1]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	neighbors, err := query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+		assign := spec.Assign
+		values := spec.ScanValues
+		spec.ScanValues = func(columns []string) ([]interface{}, error) {
+			values, err := values(columns[1:])
+			if err != nil {
+				return nil, err
+			}
+			return append([]interface{}{new(sql.NullInt64)}, values...), nil
+		}
+		spec.Assign = func(columns []string, values []interface{}) error {
+			outValue := uint64(values[0].(*sql.NullInt64).Int64)
+			inValue := uint64(values[1].(*sql.NullInt64).Int64)
+			if nids[inValue] == nil {
+				nids[inValue] = map[*User]struct{}{byID[outValue]: struct{}{}}
+				return assign(columns[1:], values[1:])
+			}
+			nids[inValue][byID[outValue]] = struct{}{}
+			return nil
+		}
+	})
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected "guilds_admin" node returned %v`, n.ID)
+		}
+		for kn := range nodes {
+			assign(kn, n)
+		}
+	}
+	return nil
+}
+func (uq *UserQuery) loadMemberships(ctx context.Context, query *UserMembershipQuery, nodes []*User, init func(*User), assign func(*User, *UserMembership)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[uint64]*User)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.UserMembership(func(s *sql.Selector) {
+		s.Where(sql.InValues(user.MembershipsColumn, fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.user_memberships
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "user_memberships" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "user_memberships" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (uq *UserQuery) sqlCount(ctx context.Context) (int, error) {
