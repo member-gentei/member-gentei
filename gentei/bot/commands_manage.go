@@ -89,7 +89,7 @@ func (b *DiscordBot) handleManageAuditOff(
 		}, nil
 	}
 	err = b.db.Guild.UpdateOneID(dg.ID).
-		SetAuditChannel(0).
+		ClearAuditChannel().
 		Exec(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error unsetting audit log channel: %w", err)
