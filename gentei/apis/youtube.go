@@ -49,6 +49,7 @@ func youTubeAPIRetryPolicy(ctx context.Context, r *http.Response, err error) (bo
 			json.Unmarshal(rErr.Body, &errResponse)
 			switch errResponse.ErrorDescription {
 			case
+				"Account has been deleted",
 				"Token has been expired or revoked.",
 				"Bad Request":
 				if r != nil && r.Body != nil {
