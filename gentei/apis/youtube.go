@@ -62,6 +62,14 @@ func youTubeAPIRetryPolicy(ctx context.Context, r *http.Response, err error) (bo
 				return false, err
 			}
 		}
+		if gErr, ok := err.(*googleapi.Error); ok {
+			if gErr.Code == http.StatusBadRequest {
+				// "While this can be a transient error" with YouTube is likely always a transient error
+				if strings.HasSuffix(gErr.Message, "processingFailure") {
+					return true, nil
+				}
+			}
+		}
 	}
 	return retryablehttp.DefaultRetryPolicy(ctx, r, err)
 }
