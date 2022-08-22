@@ -111,9 +111,9 @@ func SelectRandomMembersOnlyVideoID(
 	svc *youtube.Service,
 	channelID string,
 ) (string, error) {
-	membersOnlyPlaylistID := fmt.Sprintf("UUMO%s", channelID[2:])
 	var (
-		membersOnlyVideoID string
+		membersOnlyVideoID    string
+		membersOnlyPlaylistID = fmt.Sprintf("UUMO%s", channelID[2:])
 	)
 	err := svc.PlaylistItems.List([]string{"snippet"}).
 		PlaylistId(membersOnlyPlaylistID).
@@ -128,6 +128,10 @@ func SelectRandomMembersOnlyVideoID(
 			})
 			for _, item := range pilr.Items {
 				videoID := item.Snippet.ResourceId.VideoId
+				if videoID == "" {
+					// youtube api sometimes be like this
+					continue
+				}
 				// perform membership check
 				_, ctlErr := svc.CommentThreads.
 					List([]string{"id"}).
@@ -144,6 +148,7 @@ func SelectRandomMembersOnlyVideoID(
 						if gErr.Code == 403 {
 							// this is fine! we just don't have permissions on this video.
 							membersOnlyVideoID = videoID
+							logger.Info().Str("videoID", videoID).Msg("selected members-only video ID")
 							return errStopPagination
 						}
 					}
