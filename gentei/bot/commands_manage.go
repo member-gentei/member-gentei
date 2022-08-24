@@ -49,13 +49,16 @@ func (b *DiscordBot) handleManageAuditSet(
 	if err != nil {
 		var restErr *discordgo.RESTError
 		if errors.As(err, &restErr) {
-			if restErr.Message != nil && restErr.Message.Code == discordgo.ErrCodeMissingAccess {
-				return &discordgo.WebhookEdit{
-					Content: "We don't have permission to send embed messages to that test channel. Please re-run this command after granting the bot or its role the `Send Messages` and `Embed Links` permissions on that channel.",
-				}, nil
+			if restErr.Message != nil {
+				switch restErr.Message.Code {
+				case discordgo.ErrCodeMissingAccess, discordgo.ErrCodeMissingPermissions:
+					return &discordgo.WebhookEdit{
+						Content: "We don't have permission to send embed messages to that test channel. Please re-run this command after granting the bot or its role the `Send Messages` and `Embed Links` permissions on that channel.",
+					}, nil
+				}
 			}
 		}
-		return nil, err
+		return nil, fmt.Errorf("error sending test message: %w", err)
 	}
 	err = b.db.Guild.UpdateOneID(dg.ID).
 		SetAuditChannel(targetChannelID).
@@ -121,7 +124,7 @@ func (b *DiscordBot) handleManageMap(
 		First(ctx)
 	if ent.IsNotFound(err) {
 		return &discordgo.WebhookEdit{
-			Content: fmt.Sprintf("Unknown channel - please check for a typo in the channel ID or add the channel first through https://gentei.tindabox.net/app/enroll?server=%s", i.GuildID),
+			Content: fmt.Sprintf("Unknown YouTube channel - please check for a typo in the channel ID or add the channel first through https://gentei.tindabox.net/app/enroll?server=%s", i.GuildID),
 		}, nil
 	} else if err != nil {
 		return nil, err
