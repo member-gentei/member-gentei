@@ -9,6 +9,9 @@ import { useDiscordLoginURL } from "../../components/LoginURL";
 import { LoadState, useWindowSize } from "../../lib/lib";
 import { useUser } from "../../stores/UserStore";
 
+
+const discordInviteURL = "https://discord.gg/xJd9Der"
+
 function AppIndex() {
   const actions = useUser()[1];
   const [navActive, setNavActive] = useState(false);
@@ -54,7 +57,7 @@ function AppIndex() {
               Missing features and documentation will be slowly turned on over
               the next couple of weeks. Please see the{" "}
               <code>#gentei-announce</code> channel in the{" "}
-              <a href="https://discord.gg/xJd9De">
+              <a href={discordInviteURL}>
                 Hololive Creators Club Discord
               </a>{" "}
               server for updates and instructions - both for users and community
