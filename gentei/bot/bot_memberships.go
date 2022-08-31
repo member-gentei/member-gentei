@@ -38,6 +38,7 @@ func (b *DiscordBot) enforceAllRoles(ctx context.Context, dryRun bool, reason st
 			roleIDStr  = strconv.FormatUint(gr.ID, 10)
 			logger     = log.With().Str("guildID", guildIDStr).Str("roleID", roleIDStr).Logger()
 		)
+		logger.Info().Msg("enforcing members-only role")
 		if err = b.enforceRole(ctx, gr, dryRun, reason); err != nil {
 			// TODO: inform point of contact about permissions failure
 			var restErr *discordgo.RESTError

@@ -156,6 +156,10 @@ func CheckForUser(
 		}
 		checkTimestamps[talent.ID] = time.Now()
 		if isMember {
+			if tokenInvalid {
+				logger.Warn().Msg("token invalid but isMember")
+				continue
+			}
 			verifiedMembershipChannelIDs = append(verifiedMembershipChannelIDs, talent.ID)
 		} else {
 			nonMemberChannelIDs = append(nonMemberChannelIDs, talent.ID)
@@ -215,6 +219,9 @@ func CheckForUser(
 		return
 	}
 	for _, cid := range retainedIDs {
+		if wasLost[cid] {
+			continue
+		}
 		results.Retained = append(results.Retained, CheckResult{
 			ChannelID: cid,
 			Time:      checkTimestamps[cid],
