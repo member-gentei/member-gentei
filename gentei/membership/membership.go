@@ -41,6 +41,9 @@ type CheckResultSet struct {
 
 	// Disabled contains channel IDs that were skipped due to disabled membership checks.
 	DisabledChannels []string
+
+	// YouTubeTokenInvalid notes that check failures are due to token expiry or revocation.
+	YouTubeTokenInvalid bool
 }
 
 func (c *CheckResultSet) HasResults() bool {
@@ -156,10 +159,6 @@ func CheckForUser(
 		}
 		checkTimestamps[talent.ID] = time.Now()
 		if isMember {
-			if tokenInvalid {
-				logger.Warn().Msg("token invalid but isMember")
-				continue
-			}
 			verifiedMembershipChannelIDs = append(verifiedMembershipChannelIDs, talent.ID)
 		} else {
 			nonMemberChannelIDs = append(nonMemberChannelIDs, talent.ID)
@@ -167,7 +166,8 @@ func CheckForUser(
 	}
 	// merge in results
 	results = &CheckResultSet{
-		DisabledChannels: disabledChannelIDs,
+		DisabledChannels:    disabledChannelIDs,
+		YouTubeTokenInvalid: tokenInvalid,
 	}
 	// 1. get changes
 	// 1a. get lost
@@ -240,7 +240,7 @@ func CheckForUser(
 	return
 }
 
-// SaveMemberships maintains UserMembership objects, but not its GuildRole edges. It also sets User.LastCheck to the current time after effecting changes.
+// SaveMemberships maintains UserMembership objects and YouTube association info, but not its GuildRole edges. It also sets User.LastCheck to the current time after effecting changes.
 func SaveMemberships(
 	ctx context.Context,
 	db *ent.Client,
@@ -340,9 +340,14 @@ func SaveMemberships(
 		logger.Debug().Int("count", count).Time("firstFailed", c.Time).
 			Msg("incremented non-membership")
 	}
-	err = db.User.UpdateOneID(userID).
-		SetLastCheck(time.Now()).
-		Exec(ctx)
+	updateOne := db.User.UpdateOneID(userID).
+		SetLastCheck(time.Now())
+	if results.YouTubeTokenInvalid {
+		updateOne = updateOne.
+			ClearYoutubeID().
+			ClearYoutubeToken()
+	}
+	err = updateOne.Exec(ctx)
 	return
 }
 
@@ -400,6 +405,8 @@ func checkSingleMembership(
 				return false, nil
 			}
 		}
+		// the caller should decide what to do on errors
+		return
 	}
 	isMember = true
 	return
