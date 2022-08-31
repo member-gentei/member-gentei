@@ -149,6 +149,10 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 			return fmt.Errorf("error calling GuildMember: %w", err)
 		}
 	}
+	if member == nil {
+		log.Debug().Msg("member not in Guild, no change required")
+		return nil
+	}
 	var roleExists bool
 	for _, existingRoleID := range member.Roles {
 		if existingRoleID == roleIDStr {
