@@ -41,7 +41,7 @@ func (b *DiscordBot) handleManageAuditSet(
 	}
 	if dg.AuditChannel == targetChannelID {
 		return &discordgo.WebhookEdit{
-			Content: fmt.Sprintf("%s is already the configured audit log channel for this Discord server.", targetChannel.Mention()),
+			Content: ptr(fmt.Sprintf("%s is already the configured audit log channel for this Discord server.", targetChannel.Mention())),
 		}, nil
 	}
 	// test that we can actually send messages to this channel
@@ -53,7 +53,7 @@ func (b *DiscordBot) handleManageAuditSet(
 				switch restErr.Message.Code {
 				case discordgo.ErrCodeMissingAccess, discordgo.ErrCodeMissingPermissions:
 					return &discordgo.WebhookEdit{
-						Content: "We don't have permission to send embed messages to that test channel. Please re-run this command after granting the bot or its role the `Send Messages` and `Embed Links` permissions on that channel.",
+						Content: ptr("We don't have permission to send embed messages to that test channel. Please re-run this command after granting the bot or its role the `Send Messages` and `Embed Links` permissions on that channel."),
 					}, nil
 				}
 			}
@@ -67,7 +67,7 @@ func (b *DiscordBot) handleManageAuditSet(
 		return nil, fmt.Errorf("error setting Guild.AuditChannel: %w", err)
 	}
 	return &discordgo.WebhookEdit{
-		Content: fmt.Sprintf("Role changes performed by this bot will now be posted to %s.", targetChannel.Mention()),
+		Content: ptr(fmt.Sprintf("Role changes performed by this bot will now be posted to %s.", targetChannel.Mention())),
 	}, nil
 }
 
@@ -88,7 +88,7 @@ func (b *DiscordBot) handleManageAuditOff(
 	}
 	if dg.AuditChannel == 0 {
 		return &discordgo.WebhookEdit{
-			Content: "No audit log channel is configured for this server.",
+			Content: ptr("No audit log channel is configured for this server."),
 		}, nil
 	}
 	err = b.db.Guild.UpdateOneID(dg.ID).
@@ -98,7 +98,7 @@ func (b *DiscordBot) handleManageAuditOff(
 		return nil, fmt.Errorf("error unsetting audit log channel: %w", err)
 	}
 	return &discordgo.WebhookEdit{
-		Content: fmt.Sprintf("<#%d> will no longer receive audit log messages.", dg.AuditChannel),
+		Content: ptr(fmt.Sprintf("<#%d> will no longer receive audit log messages.", dg.AuditChannel)),
 	}, nil
 }
 
@@ -124,7 +124,7 @@ func (b *DiscordBot) handleManageMap(
 		First(ctx)
 	if ent.IsNotFound(err) {
 		return &discordgo.WebhookEdit{
-			Content: fmt.Sprintf("Unknown YouTube channel - please check for a typo in the channel ID or add the channel first through https://gentei.tindabox.net/app/enroll?server=%s", i.GuildID),
+			Content: ptr(fmt.Sprintf("Unknown YouTube channel - please check for a typo in the channel ID or add the channel first through https://gentei.tindabox.net/app/enroll?server=%s", i.GuildID)),
 		}, nil
 	} else if err != nil {
 		return nil, err
@@ -144,16 +144,16 @@ func (b *DiscordBot) handleManageMap(
 		// already mapped
 		if existingRole.Edges.Talent.ID == channelID {
 			return &discordgo.WebhookEdit{
-				Content: fmt.Sprintf("%s is already the role mapped to this YouTube channel.", role.Mention()),
+				Content: ptr(fmt.Sprintf("%s is already the role mapped to this YouTube channel.", role.Mention())),
 			}, nil
 		} else {
 			existingTalent := existingRole.Edges.Talent
 			return &discordgo.WebhookEdit{
-				Content: templates.MustRender(templates.RoleAlreadyMapped, templates.RoleAlreadyMappedContext{
+				Content: ptr(templates.MustRender(templates.RoleAlreadyMapped, templates.RoleAlreadyMappedContext{
 					ChannelID:   existingTalent.ID,
 					ChannelName: existingTalent.ChannelName,
 					RoleMention: role.Mention(),
-				}),
+				})),
 			}, nil
 		}
 	}
@@ -166,19 +166,19 @@ func (b *DiscordBot) handleManageMap(
 	err = b.applyRole(ctx, guildID, roleID, botUserID, true, "role permissions test")
 	if err != nil {
 		return &discordgo.WebhookEdit{
-			Content: templates.MustRender(templates.RolePermissionFailure, templates.RolePermissionFailureContext{
+			Content: ptr(templates.MustRender(templates.RolePermissionFailure, templates.RolePermissionFailureContext{
 				Action:      "add",
 				RoleMention: role.Mention(),
-			}),
+			})),
 		}, err
 	}
 	err = b.applyRole(ctx, guildID, roleID, botUserID, false, "role permissions test")
 	if err != nil {
 		return &discordgo.WebhookEdit{
-			Content: templates.MustRender(templates.RolePermissionFailure, templates.RolePermissionFailureContext{
+			Content: ptr(templates.MustRender(templates.RolePermissionFailure, templates.RolePermissionFailureContext{
 				Action:      "remove",
 				RoleMention: role.Mention(),
-			}),
+			})),
 		}, err
 	}
 	// save
@@ -192,10 +192,10 @@ func (b *DiscordBot) handleManageMap(
 		return nil, err
 	}
 	return &discordgo.WebhookEdit{
-		Content: templates.MustRender(templates.RoleApplied, templates.RoleAppliedContext{
+		Content: ptr(templates.MustRender(templates.RoleApplied, templates.RoleAppliedContext{
 			ChannelName: talent.ChannelName,
 			RoleMention: role.Mention(),
-		}),
+		})),
 	}, nil
 }
 
@@ -224,7 +224,7 @@ func (b *DiscordBot) handleManageUnmap(
 			First(ctx)
 		if ent.IsNotFound(err) {
 			return &discordgo.WebhookEdit{
-				Content: fmt.Sprintf("There is no role mapping in this Discord server to unmap for the specified YouTube channel (`%s`).", youtubeID),
+				Content: ptr(fmt.Sprintf("There is no role mapping in this Discord server to unmap for the specified YouTube channel (`%s`).", youtubeID)),
 			}, nil
 		} else if err != nil {
 			return nil, err
@@ -236,7 +236,7 @@ func (b *DiscordBot) handleManageUnmap(
 					return nil, err
 				}
 				return &discordgo.WebhookEdit{
-					Content: fmt.Sprintf("<@&%d> has been unmapped.", role.ID),
+					Content: ptr(fmt.Sprintf("<@&%d> has been unmapped.", role.ID)),
 				}, nil
 			}
 		}
@@ -260,14 +260,14 @@ func (b *DiscordBot) handleManageUnmap(
 		}
 		if count == 0 {
 			return &discordgo.WebhookEdit{
-				Content: fmt.Sprintf("%s is not currently mapped to a YouTube talent.", role.Mention()),
+				Content: ptr(fmt.Sprintf("%s is not currently mapped to a YouTube talent.", role.Mention())),
 			}, nil
 		}
 		return &discordgo.WebhookEdit{
-			Content: fmt.Sprintf("%s has been unmapped.", role.Mention()),
+			Content: ptr(fmt.Sprintf("%s has been unmapped.", role.Mention())),
 		}, nil
 	}
 	return &discordgo.WebhookEdit{
-		Content: "Please specify either the `youtube-channel-id` or `role` option.",
+		Content: ptr("Please specify either the `youtube-channel-id` or `role` option."),
 	}, nil
 }
