@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	irand "math/rand"
 	"net/http"
 	"strconv"
@@ -208,11 +210,25 @@ func (l *zlgLeveledLoggerWrapper) logEvent(event *zerolog.Event, msg string, key
 	for i := range keysAndValues {
 		if i%2 == 0 {
 			key = keysAndValues[i].(string)
-		} else {
+			continue
+		}
+		switch v := keysAndValues[i].(type) {
+		case func() (io.ReadCloser, error):
+			// keys to skip
+			continue
+		case io.ReadCloser:
+			content, err := ioutil.ReadAll(v)
+			if err != nil {
+				log.Warn().Str("key", key).Msg("zlgLeveledLoggerWrapper could not read io.ReadCloser")
+				continue
+			}
+			v.Close()
+			event = event.Str(key, string(content))
+		default:
 			event = event.Interface(key, keysAndValues[i])
 		}
 	}
-	event.Msg(msg)
+	event.Bool("retryableHttp", true).Msg(msg)
 }
 
 func (l *zlgLeveledLoggerWrapper) Error(msg string, keysAndValues ...interface{}) {
