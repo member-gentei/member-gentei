@@ -34,6 +34,7 @@ func GetYouTubeService(ctx context.Context, db *ent.Client, userID uint64, confi
 	}
 	client := retryablehttp.NewClient()
 	client.HTTPClient = notify.Client(ctx)
+	client.Logger = &zlgLeveledLoggerWrapper{logger: log.Logger}
 	client.CheckRetry = youTubeAPIRetryPolicy
 	return youtube.NewService(ctx, option.WithHTTPClient(client.StandardClient()))
 }
@@ -163,7 +164,7 @@ func SelectRandomMembersOnlyVideoID(
 					vidLogger.Err(ctlErr).Msg("error checking members-only video validity")
 					return ctlErr
 				}
-
+				membersOnlyVideoID = videoID
 			}
 			return nil
 		})
@@ -192,4 +193,40 @@ func IsCommentsDisabledErr(err *googleapi.Error) bool {
 		}
 	}
 	return false
+}
+
+type zlgLeveledLoggerWrapper struct {
+	logger zerolog.Logger
+
+	retryablehttp.LeveledLogger
+}
+
+func (l *zlgLeveledLoggerWrapper) logEvent(event *zerolog.Event, msg string, keysAndValues ...interface{}) {
+	var (
+		key string
+	)
+	for i := range keysAndValues {
+		if i%2 == 0 {
+			key = keysAndValues[i].(string)
+		} else {
+			event = event.Interface(key, keysAndValues[i])
+		}
+	}
+	event.Msg(msg)
+}
+
+func (l *zlgLeveledLoggerWrapper) Error(msg string, keysAndValues ...interface{}) {
+	l.logEvent(l.logger.Error(), msg, keysAndValues...)
+}
+
+func (l *zlgLeveledLoggerWrapper) Info(msg string, keysAndValues ...interface{}) {
+	l.logEvent(l.logger.Info(), msg, keysAndValues...)
+}
+
+func (l *zlgLeveledLoggerWrapper) Debug(msg string, keysAndValues ...interface{}) {
+	l.logEvent(l.logger.Debug(), msg, keysAndValues...)
+}
+
+func (l *zlgLeveledLoggerWrapper) Warn(msg string, keysAndValues ...interface{}) {
+	l.logEvent(l.logger.Warn(), msg, keysAndValues...)
 }

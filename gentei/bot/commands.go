@@ -241,7 +241,10 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 			}
 			ensureRegisteredUserHasGuildEdge(context.Background(), b.db, guildID, userID)
 			if time.Since(u.LastCheck).Minutes() < 1 {
-				return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
+				tryAgainIn := u.LastCheck.Add(time.Minute).Unix()
+				return &discordgo.WebhookEdit{
+					Content: fmt.Sprintf("Membership checks are rate limited. Please try again <t:%d:R>.", tryAgainIn),
+				}, nil
 			}
 			var (
 				logger = log.With().
@@ -359,7 +362,7 @@ func (b *DiscordBot) handleInfo(ctx context.Context, i *discordgo.InteractionCre
 		var response *discordgo.WebhookEdit
 		// if this is a DM, fetch user info
 		if i.User != nil {
-			// TODO
+			b.replyNoDM(i)
 		} else {
 			// fetch guild info + user-relevant info
 			guildID, userID, err := getMessageAttributionIDs(i)
@@ -479,12 +482,15 @@ func (b *DiscordBot) deferredReply(ctx context.Context, i *discordgo.Interaction
 }
 
 func (b *DiscordBot) replyNoDM(i *discordgo.InteractionCreate) {
-	b.session.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+	err := b.session.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: "This command can only be used in a Discord server",
+			Content: "This command can only be used in a Discord server.",
 		},
 	})
+	if err != nil {
+		log.Err(err).Msg("error replying to slash command DM")
+	}
 }
 
 var (
