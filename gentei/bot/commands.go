@@ -207,7 +207,9 @@ func (b *DiscordBot) ClearCommands(global, earlyAccess bool) error {
 // slashResponseFunc should return an error message if error != nil. If not, it's treated as a real error.
 type slashResponseFunc func(logger zerolog.Logger) (*discordgo.WebhookEdit, error)
 
-const mysteriousErrorMessage = "A mysterious error occured, and this bot's author has been notified. Try again later? :("
+var (
+	mysteriousErrorMessage = ptr("A mysterious error occured, and this bot's author has been notified. Try again later? :(")
+)
 
 func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCreate) {
 	b.deferredReply(ctx, i, "info", true, func(logger zerolog.Logger) (*discordgo.WebhookEdit, error) {
@@ -234,7 +236,7 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 				First(ctx)
 			if ent.IsNotFound(err) {
 				return &discordgo.WebhookEdit{
-					Content: "Please register and link your YouTube account to https://gentei.tindabox.net to check memberships.",
+					Content: ptr("Please register and link your YouTube account to https://gentei.tindabox.net to check memberships."),
 				}, nil
 			} else if err != nil {
 				return nil, err
@@ -243,7 +245,7 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 			if time.Since(u.LastCheck).Minutes() < 1 {
 				tryAgainIn := u.LastCheck.Add(time.Minute).Unix()
 				return &discordgo.WebhookEdit{
-					Content: fmt.Sprintf("Membership checks are rate limited. Please try again <t:%d:R>.", tryAgainIn),
+					Content: ptr(fmt.Sprintf("Membership checks are rate limited. Please try again <t:%d:R>.", tryAgainIn)),
 				}, nil
 			}
 			var (
@@ -260,7 +262,7 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 			}
 			if len(talents) == 0 {
 				return &discordgo.WebhookEdit{
-					Content: "This server has not configured memberships yet or has paused membership management. Please be discreet until server moderation announces something!",
+					Content: ptr("This server has not configured memberships yet or has paused membership management. Please be discreet until server moderation announces something!"),
 				}, nil
 			}
 			talentIDs := make([]string, len(talents))
@@ -323,7 +325,7 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 					if IsDiscordError(err, discordgo.ErrCodeMissingPermissions) {
 						logger.Warn().Err(err).Msg("Gentei lost permissions to manage a role - informing user")
 						response = &discordgo.WebhookEdit{
-							Content: fmt.Sprintf("The bot has lost permission to manage <@&%d>, so Gentei cannot apply role changes! Please contact admins/moderators to restore permissions - once that's done, you can run `/gentei check` again to apply changes.", role.ID),
+							Content: ptr(fmt.Sprintf("The bot has lost permission to manage <@&%d>, so Gentei cannot apply role changes! Please contact admins/moderators to restore permissions - once that's done, you can run `/gentei check` again to apply changes.", role.ID)),
 						}
 						return response, nil
 					}
@@ -343,13 +345,13 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 					return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
 				}
 				response = &discordgo.WebhookEdit{
-					Content: "Discord roles have been applied, but membership checks are currently disabled for one or more channels. See below for details.",
-					Embeds:  append(embeds, disabledEmbeds...),
+					Content: ptr("Discord roles have been applied, but membership checks are currently disabled for one or more channels. See below for details."),
+					Embeds:  ptr(append(embeds, disabledEmbeds...)),
 				}
 			} else {
 				response = &discordgo.WebhookEdit{
-					Content: "Discord roles have been applied - see below for details.",
-					Embeds:  embeds,
+					Content: ptr("Discord roles have been applied - see below for details."),
+					Embeds:  ptr(embeds),
 				}
 			}
 		}
@@ -383,13 +385,13 @@ func (b *DiscordBot) handleInfo(ctx context.Context, i *discordgo.InteractionCre
 			)
 			if len(embeds) > 10 {
 				response = &discordgo.WebhookEdit{
-					Content: fmt.Sprintf("Due to technical Discord limitations, we can only show 10 of the %d memberships configured for this server. Please go to https://gentei.tindabox.net/app to view membership info for the rest.", len(embeds)),
-					Embeds:  embeds[:10],
+					Content: ptr(fmt.Sprintf("Due to technical Discord limitations, we can only show 10 of the %d memberships configured for this server. Please go to https://gentei.tindabox.net/app to view membership info for the rest.", len(embeds))),
+					Embeds:  ptr(embeds[:10]),
 				}
 			} else {
 				response = &discordgo.WebhookEdit{
-					Content: "Here's how this server is configured.",
-					Embeds:  embeds,
+					Content: ptr("Here's how this server is configured."),
+					Embeds:  ptr(embeds),
 				}
 			}
 		}
@@ -421,7 +423,7 @@ func (b *DiscordBot) handleManage(ctx context.Context, i *discordgo.InteractionC
 				return b.handleManageUnmap(ctx, logger, i, subcommand)
 			default:
 				return &discordgo.WebhookEdit{
-					Content: "You've somehow sent an unknown `/gentei manage` command. Discord is not supposed to allow this to happen so... try reloading this browser window or your Discord client? :thinking:",
+					Content: ptr("You've somehow sent an unknown `/gentei manage` command. Discord is not supposed to allow this to happen so... try reloading this browser window or your Discord client? :thinking:"),
 				}, nil
 			}
 		},
@@ -464,7 +466,7 @@ func (b *DiscordBot) deferredReply(ctx context.Context, i *discordgo.Interaction
 			if response == nil {
 				logger.Err(err).Msg("responseFunc did not return an error response, sending oops message")
 				response = &discordgo.WebhookEdit{
-					Content: "A mysterious error occured, and this bot's author has been notified. Try again later? :(",
+					Content: mysteriousErrorMessage,
 				}
 			} else {
 				logger.Warn().Err(err).Msg("sending responseFunc error response")
@@ -495,7 +497,7 @@ func (b *DiscordBot) replyNoDM(i *discordgo.InteractionCreate) {
 
 var (
 	insufficientPermissionsWebhookEdit = &discordgo.WebhookEdit{
-		Content: "You do not have permission to run this command in this server.",
+		Content: ptr("You do not have permission to run this command in this server."),
 	}
 )
 
@@ -570,4 +572,8 @@ func ensureRegisteredUserHasGuildEdge(ctx context.Context, db *ent.Client, guild
 			logger.Err(err).Msg("error adding edge between User and Guild")
 		}
 	}
+}
+
+func ptr[T any](o T) *T {
+	return &o
 }
