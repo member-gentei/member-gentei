@@ -201,6 +201,7 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 	}
 	log.Err(err).
 		Str("guildID", strconv.FormatUint(guildID, 10)).Str("userID", strconv.FormatUint(userID, 10)).Str("roleID", strconv.FormatUint(roleID, 10)).
+		Bool("add", add).
 		Int("attempts", result.Attempts).
 		Msg("role apply attempt finished")
 	return err
