@@ -8,3 +8,5 @@ images:
   - name: ghcr.io/member-gentei/gentei
     newName: ghcr.io/member-gentei/gentei
     newTag: latest
+commonAnnotations:
+  ignacio.io/cloud: "true"
