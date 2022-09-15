@@ -117,6 +117,17 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 		// update if guild and info exists
 		b.handleCommonGuildCreateUpdate(context.Background(), logger, s, gu.Guild)
 	})
+	b.session.AddHandler(func(s *discordgo.Session, gl *discordgo.GuildDelete) {
+		logger := log.With().
+			Str("guildID", gl.ID).
+			Logger()
+		logger.Info().Msg("departed Guild")
+		guildID, _ := strconv.ParseUint(gl.ID, 10, 64)
+		err = b.db.Guild.DeleteOneID(guildID).Exec(context.Background())
+		if err != nil && !ent.IsNotFound(err) {
+			logger.Err(err).Msg("error deleting Guild at departure")
+		}
+	})
 	// register intents (new for v8 gateway)
 	b.session.Identify.Intents = discordgo.IntentsGuilds | discordgo.IntentsGuildMembers
 	if err = b.session.Open(); err != nil {
