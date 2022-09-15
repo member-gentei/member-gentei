@@ -3,8 +3,10 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/member-gentei/member-gentei/gentei/apis"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
@@ -41,6 +43,14 @@ var repairCmd = &cobra.Command{
 				if err := repairChannelID(ctx, db, channelID); err != nil {
 					log.Err(err).Msg("error repairing channel")
 				}
+			}
+			session, err := discordgo.New(fmt.Sprintf("Bot %s", os.Getenv(envNameDiscordBotToken)))
+			if err != nil {
+				log.Fatal().Err(err).Msg("error creating discordgo client")
+			}
+			err = repairGuilds(ctx, db, session)
+			if err != nil {
+				log.Fatal().Err(err).Msg("error repairing Guild set")
 			}
 			return
 		}
@@ -97,11 +107,50 @@ func repairChannelID(ctx context.Context, db *ent.Client, channelID string) erro
 	return nil
 }
 
+func repairGuilds(ctx context.Context, db *ent.Client, session *discordgo.Session) error {
+	var (
+		guildIDSlice   = db.Guild.Query().IDsX(ctx)
+		storedGuildIDs = make(map[string]bool, len(guildIDSlice))
+	)
+	for _, gid := range guildIDSlice {
+		storedGuildIDs[strconv.FormatUint(gid, 10)] = true
+	}
+	var afterID string
+	for {
+		guilds, err := session.UserGuilds(100, "", afterID)
+		if err != nil {
+			return err
+		}
+		for _, dg := range guilds {
+			delete(storedGuildIDs, dg.ID)
+		}
+		if len(guilds) < 100 {
+			break
+		}
+		afterID = guilds[len(guilds)-1].ID
+	}
+	if len(storedGuildIDs) > 0 {
+		log.Info().Int("count", len(storedGuildIDs)).Msg("removing guilds from database")
+	}
+	for gid := range storedGuildIDs {
+		guildID, err := strconv.ParseUint(gid, 10, 64)
+		if err != nil {
+			return err
+		}
+		err = db.Guild.DeleteOneID(guildID).Exec(ctx)
+		if err != nil {
+			return err
+		}
+		log.Info().Str("guildID", gid).Msg("deleted Guild")
+	}
+	return nil
+}
+
 func init() {
 	adminCmd.AddCommand(repairCmd)
 	flags := repairCmd.Flags()
 	flags.StringVarP(&flagRepairChannelID, "channel-id", "c", "", "YouTube channel ID to repair")
-	flags.BoolVar(&flagRepairAll, "all", false, "attempt to repair all disabled channels")
+	flags.BoolVar(&flagRepairAll, "all", false, "perform all repair actions")
 	// the default is my Discord user ID...
 	flags.Uint64VarP(&flagRepairFallbackUserID, "fallback-user-id", "f", 196078350496825345, "Fallback user ID for membership video filling")
 }
