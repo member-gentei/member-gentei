@@ -28,6 +28,7 @@ func (b *DiscordBot) enforceAllRoles(ctx context.Context, dryRun bool, reason st
 		Where(
 			guildrole.HasTalentWith(youtubetalent.DisabledIsNil()),
 		).
+		Order(ent.Asc(guildrole.FieldID)).
 		All(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting GuildRoles: %w", err)
