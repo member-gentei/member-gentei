@@ -3,10 +3,13 @@ package roles
 import "sync"
 
 type DefaultMapRWMutex struct {
-	mutexes map[string]*sync.RWMutex
+	mapMutex *sync.Mutex
+	mutexes  map[string]*sync.RWMutex
 }
 
 func (d *DefaultMapRWMutex) GetOrCreate(key string) *sync.RWMutex {
+	d.mapMutex.Lock()
+	defer d.mapMutex.Unlock()
 	mutex, exists := d.mutexes[key]
 	if exists {
 		return mutex
@@ -18,6 +21,7 @@ func (d *DefaultMapRWMutex) GetOrCreate(key string) *sync.RWMutex {
 
 func NewDefaultMapRWMutex() *DefaultMapRWMutex {
 	return &DefaultMapRWMutex{
-		mutexes: map[string]*sync.RWMutex{},
+		mapMutex: &sync.Mutex{},
+		mutexes:  map[string]*sync.RWMutex{},
 	}
 }
