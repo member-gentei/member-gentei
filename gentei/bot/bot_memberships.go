@@ -32,8 +32,9 @@ func (b *DiscordBot) enforceAllRoles(ctx context.Context, dryRun bool, reason st
 	if err != nil {
 		return fmt.Errorf("error getting GuildRoles: %w", err)
 	}
-	for _, gr := range grs {
+	for i := range grs {
 		var (
+			gr         = grs[i]
 			guildIDStr = strconv.FormatUint(gr.Edges.Guild.ID, 10)
 			roleIDStr  = strconv.FormatUint(gr.ID, 10)
 			logger     = log.With().Str("guildID", guildIDStr).Str("roleID", roleIDStr).Logger()
