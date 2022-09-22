@@ -22,6 +22,8 @@ import (
 )
 
 func (b *DiscordBot) enforceAllRoles(ctx context.Context, dryRun bool, reason string) error {
+	b.roleEnforcementMutex.Lock()
+	defer b.roleEnforcementMutex.Unlock()
 	// iterate through all configured roles
 	grs, err := b.db.GuildRole.Query().
 		WithGuild().

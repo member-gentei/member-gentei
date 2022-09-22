@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -28,6 +29,9 @@ type DiscordBot struct {
 
 	// roleRWMutex is held 'W' by role-wide operations, like daily enforcement. 'R' is held by all other operations that 'W' would overrun or interrupt.
 	roleRWMutex *roles.DefaultMapRWMutex
+
+	// roleEnforcementMutex is held by overall role enforcement runs.
+	roleEnforcementMutex *sync.Mutex
 }
 
 func New(db *ent.Client, token string, youTubeConfig *oauth2.Config) (*DiscordBot, error) {
@@ -37,11 +41,12 @@ func New(db *ent.Client, token string, youTubeConfig *oauth2.Config) (*DiscordBo
 	}
 	rut := roles.NewRoleUpdateTracker(session)
 	return &DiscordBot{
-		session:       session,
-		db:            db,
-		rut:           rut,
-		youTubeConfig: youTubeConfig,
-		roleRWMutex:   roles.NewDefaultMapRWMutex(),
+		session:              session,
+		db:                   db,
+		rut:                  rut,
+		youTubeConfig:        youTubeConfig,
+		roleRWMutex:          roles.NewDefaultMapRWMutex(),
+		roleEnforcementMutex: &sync.Mutex{},
 	}, nil
 }
 
