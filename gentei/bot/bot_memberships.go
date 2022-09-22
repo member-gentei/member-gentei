@@ -33,6 +33,7 @@ func (b *DiscordBot) enforceAllRoles(ctx context.Context, dryRun bool, reason st
 	if err != nil {
 		return fmt.Errorf("error getting GuildRoles: %w", err)
 	}
+	log.Info().Int("count", len(grs)).Msg("enforcing members-only roles")
 	for i := range grs {
 		var (
 			gr         = grs[i]
@@ -65,6 +66,7 @@ func (b *DiscordBot) enforceAllRoles(ctx context.Context, dryRun bool, reason st
 			// n.b. rollup log is emitted by the enforceRole() call
 		}
 	}
+	log.Info().Msg("members-only role enforcement run complete")
 	return nil
 }
 
