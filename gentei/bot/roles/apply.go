@@ -59,17 +59,15 @@ func ApplyRole(applyCtx context.Context, session *discordgo.Session, guildID, us
 		)
 		defer cancel()
 		defer ticker.Stop()
-		for attempts = 1; ; attempts++ {
+		attempt := func(i int) (bool, error) {
 			var (
-				breakOut bool
-				logger   = baseLogger.With().Int("attempt", attempts).Logger()
+				logger = baseLogger.With().Int("attempt", i).Logger()
 			)
 			logger.Debug().Msg("attempting to apply role")
 			select {
 			case <-ctx.Done():
-				logger.Debug().Msg("role apply timed out/cancelled")
-				err = ctx.Err()
-				breakOut = true
+				logger.Info().Msg("role apply timed out/cancelled")
+				return true, ctx.Err()
 			case <-ticker.C:
 				if attempts > 1 {
 					// check if the last attempt worked
@@ -77,27 +75,27 @@ func ApplyRole(applyCtx context.Context, session *discordgo.Session, guildID, us
 					member, err = session.GuildMember(guildIDStr, userIDStr)
 					if err != nil {
 						logger.Debug().Msg("error fetching user roles during apply")
-						breakOut = true
-						break
+						return false, err
 					}
 					for _, role := range member.Roles {
 						if role == roleIDStr {
 							logger.Info().Msg("query informed succesful role apply")
-							breakOut = true
-							break
+							return true, nil
 						}
-					}
-					if breakOut {
-						break
 					}
 				}
 				err = applyRole()
 				if err != nil {
 					logger.Debug().Msg("error attempting to apply role")
-					breakOut = true
+					return false, err
 				}
+				return true, nil
 			}
-			if breakOut {
+		}
+		var done bool
+		for attempts = 1; !done; attempts++ {
+			done, err = attempt(attempts)
+			if err != nil {
 				break
 			}
 		}

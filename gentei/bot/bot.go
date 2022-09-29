@@ -192,16 +192,16 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 	)
 	mutex.RLock()
 	defer mutex.RUnlock()
-	b.rut.TrackHook(guildIDStr, userIDStr, func(gmu *discordgo.GuildMemberUpdate) (removeHook bool) {
+	b.rut.TrackHook(guildIDStr, userIDStr, func(rtu roles.RoleUpdateTrackData) (removeHook bool) {
 		if add {
 			// check this update for the target role that should exist
-			if sliceContains(roleIDStr, gmu.Roles) {
+			if sliceContains(roleIDStr, rtu.Roles) {
 				cancelApplyCtx()
 				return true
 			}
 		} else {
 			// check that the role does not exist
-			if sliceContains(roleIDStr, gmu.Roles) {
+			if sliceContains(roleIDStr, rtu.Roles) {
 				return false
 			}
 			cancelApplyCtx()
