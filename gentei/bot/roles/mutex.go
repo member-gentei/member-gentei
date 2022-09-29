@@ -1,6 +1,8 @@
 package roles
 
-import "sync"
+import (
+	"sync"
+)
 
 type DefaultMapRWMutex struct {
 	mapMutex *sync.Mutex
