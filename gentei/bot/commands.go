@@ -320,7 +320,7 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 					Str("roleID", strconv.FormatUint(role.ID, 10)).
 					Bool("shouldHaveRole", shouldHaveRole).
 					Msg("check: applying role")
-				err = b.applyRole(ctx, guildID, role.ID, userID, shouldHaveRole, "/gentei check (on-demand)")
+				err = b.applyRole(ctx, guildID, role.ID, userID, shouldHaveRole, "/gentei check (on-demand)", true)
 				if err != nil {
 					if IsDiscordError(err, discordgo.ErrCodeMissingPermissions) {
 						logger.Warn().Err(err).Msg("Gentei lost permissions to manage a role - informing user")

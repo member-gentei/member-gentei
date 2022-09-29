@@ -163,7 +163,7 @@ func (b *DiscordBot) handleManageMap(
 		return nil, err
 	}
 	// add and remove self from role to make sure it works
-	err = b.applyRole(ctx, guildID, roleID, botUserID, true, "role permissions test")
+	err = b.applyRole(ctx, guildID, roleID, botUserID, true, "role permissions test", true)
 	if err != nil {
 		return &discordgo.WebhookEdit{
 			Content: ptr(templates.MustRender(templates.RolePermissionFailure, templates.RolePermissionFailureContext{
@@ -172,7 +172,7 @@ func (b *DiscordBot) handleManageMap(
 			})),
 		}, err
 	}
-	err = b.applyRole(ctx, guildID, roleID, botUserID, false, "role permissions test")
+	err = b.applyRole(ctx, guildID, roleID, botUserID, false, "role permissions test", true)
 	if err != nil {
 		return &discordgo.WebhookEdit{
 			Content: ptr(templates.MustRender(templates.RolePermissionFailure, templates.RolePermissionFailureContext{
