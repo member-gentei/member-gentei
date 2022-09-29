@@ -150,8 +150,8 @@ func CheckForUser(
 		var isMember bool
 		if !tokenInvalid {
 			isMember, err = checkSingleMembership(ctx, logger, db, svc, talent.ID, talent.MembershipVideoID)
-			if errors.Is(err, apis.ErrInvalidGrant) {
-				logger.Warn().Msg("YouTube token expired/revoked for user, all memberships will be lost")
+			if apis.IsUnusableYouTubeTokenErr(err) {
+				logger.Warn().Err(err).Msg("YouTube token invalid for user, all memberships will be lost")
 				tokenInvalid = true
 			} else if err != nil {
 				return nil, fmt.Errorf("error checking membership: %w", err)
@@ -399,6 +399,9 @@ func checkSingleMembership(
 				}
 				logger.Info().Str("videoID", newVideoID).Msg("checking with new video")
 				return checkSingleMembership(ctx, logger, db, svc, channelID, membershipVideoID)
+			}
+			if apis.IsYouTubeSignupRequiredErr(gErr) {
+				return false, apis.ErrYouTubeSignupRequired
 			}
 			if gErr.Code == 403 {
 				// not a member

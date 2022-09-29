@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 
+	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
@@ -34,6 +35,7 @@ var infoCmd = &cobra.Command{
 			Where(
 				guildrole.HasTalentWith(youtubetalent.DisabledIsNil()),
 			).
+			Order(ent.Asc(guildrole.FieldID)).
 			IDsX(ctx)
 		log.Info().Uints64("guildRoles", grs).Int("len", len(grs)).Msg("matches")
 	},

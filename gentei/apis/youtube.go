@@ -26,6 +26,7 @@ import (
 var (
 	ErrNoYouTubeTokenForUser = errors.New("user does not have a YouTube token")
 	ErrInvalidGrant          = errors.New("invalid_grant - token expired or revoked")
+	ErrYouTubeSignupRequired = errors.New("youtubeSignupRequired - Google account does not have YouTube account")
 	ErrNoMembersOnlyVideos   = errors.New("YouTube channel has membership enabled, but no members-only videos")
 )
 
@@ -187,14 +188,27 @@ func SelectRandomMembersOnlyVideoID(
 }
 
 func IsCommentsDisabledErr(err *googleapi.Error) bool {
-	if err.Code == 403 {
-		for _, item := range err.Errors {
-			if item.Reason == "commentsDisabled" {
-				return true
-			}
+	return GoogleErrHasReason(err, 403, "commentsDisabled")
+}
+
+func IsYouTubeSignupRequiredErr(err *googleapi.Error) bool {
+	return GoogleErrHasReason(err, 401, "youtubeSignupRequired")
+}
+
+func GoogleErrHasReason(err *googleapi.Error, code int, reason string) bool {
+	if err.Code != code {
+		return false
+	}
+	for _, item := range err.Errors {
+		if item.Reason == reason {
+			return true
 		}
 	}
 	return false
+}
+
+func IsUnusableYouTubeTokenErr(err error) bool {
+	return errors.Is(err, ErrInvalidGrant) || errors.Is(err, ErrYouTubeSignupRequired)
 }
 
 type zlgLeveledLoggerWrapper struct {
