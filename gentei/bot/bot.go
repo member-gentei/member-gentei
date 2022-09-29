@@ -148,7 +148,8 @@ func (b *DiscordBot) Close() error {
 	return b.session.Close()
 }
 
-func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint64, add bool, auditReason string) error {
+// The one place where roles get applied. Set acquireMutex to false for whole-role enforcement.
+func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint64, add bool, auditReason string, lockRoleMutex bool) error {
 	var (
 		guildIDStr = strconv.FormatUint(guildID, 10)
 		roleIDStr  = strconv.FormatUint(roleID, 10)
@@ -188,10 +189,13 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 	logger.Info().Msg("role apply starting")
 	var (
 		applyCtx, cancelApplyCtx = context.WithCancel(ctx)
-		mutex                    = b.roleRWMutex.GetOrCreate(roleIDStr)
 	)
-	mutex.RLock()
-	defer mutex.RUnlock()
+	if lockRoleMutex {
+		mutex := b.roleRWMutex.GetOrCreate(roleIDStr)
+		logger.Debug().Msg("acquiring RWMutex for role apply")
+		mutex.RLock()
+		defer mutex.RUnlock()
+	}
 	b.rut.TrackHook(guildIDStr, userIDStr, func(rtu roles.RoleUpdateTrackData) (removeHook bool) {
 		if add {
 			// check this update for the target role that should exist

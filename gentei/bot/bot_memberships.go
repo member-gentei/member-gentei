@@ -84,7 +84,7 @@ func (b *DiscordBot) enforceRole(ctx context.Context, gr *ent.GuildRole, dryRun 
 		logger     = log.With().Str("guildID", guildIDStr).Str("roleID", roleIDStr).Logger()
 		mutex      = b.roleRWMutex.GetOrCreate(roleIDStr)
 	)
-	logger.Debug().Msg("acquiring RWMutex for role")
+	logger.Debug().Msg("acquiring RWMutex for role enforcement")
 	mutex.Lock()
 	defer mutex.Unlock()
 	// gather users who should have this role
@@ -150,7 +150,7 @@ func (b *DiscordBot) enforceRole(ctx context.Context, gr *ent.GuildRole, dryRun 
 			return err
 		}
 		eg.Go(func() error {
-			return b.applyRole(egCtx, guildID, roleID, userID, true, reason)
+			return b.applyRole(egCtx, guildID, roleID, userID, true, reason, false)
 		})
 	}
 	for _, uid := range toRemove {
@@ -159,7 +159,7 @@ func (b *DiscordBot) enforceRole(ctx context.Context, gr *ent.GuildRole, dryRun 
 			return err
 		}
 		eg.Go(func() error {
-			return b.applyRole(egCtx, guildID, roleID, userID, false, reason)
+			return b.applyRole(egCtx, guildID, roleID, userID, false, reason, false)
 		})
 	}
 	if err = eg.Wait(); err != nil {
@@ -287,7 +287,7 @@ func (b *DiscordBot) revokeMembership(ctx context.Context, baseLogger zerolog.Lo
 			Str("roleID", strconv.FormatUint(roleID, 10)).
 			Logger()
 	)
-	err := b.applyRole(ctx, guildID, roleID, userID, false, reason)
+	err := b.applyRole(ctx, guildID, roleID, userID, false, reason, true)
 	if err != nil {
 		logger.Err(err).Msg("failed to revoke role membership")
 	} else {
@@ -313,7 +313,7 @@ func (b *DiscordBot) grantRole(
 				Str("talentID", guildRole.Edges.Talent.ID).
 				Logger()
 	)
-	err := b.applyRole(ctx, guildID, roleID, userID, true, reason)
+	err := b.applyRole(ctx, guildID, roleID, userID, true, reason, true)
 	if err != nil {
 		roleLogger.Err(err).Msg("failed to grant role membership")
 		return err
