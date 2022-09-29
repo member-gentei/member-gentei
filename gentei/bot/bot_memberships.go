@@ -18,7 +18,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/sync/semaphore"
 )
 
 func (b *DiscordBot) enforceAllRoles(ctx context.Context, dryRun bool, reason string) error {
@@ -43,7 +42,7 @@ func (b *DiscordBot) enforceAllRoles(ctx context.Context, dryRun bool, reason st
 			roleIDStr  = strconv.FormatUint(gr.ID, 10)
 			logger     = log.With().Str("guildID", guildIDStr).Str("roleID", roleIDStr).Logger()
 		)
-		logger.Info().Msg("enforcing members-only role")
+		logger.Info().Int("i", i).Msg("enforcing members-only role")
 		if err = b.enforceRole(ctx, gr, dryRun, reason); err != nil {
 			// TODO: inform point of contact about permissions failure
 			var restErr *discordgo.RESTError
@@ -140,22 +139,17 @@ func (b *DiscordBot) enforceRole(ctx context.Context, gr *ent.GuildRole, dryRun 
 	if dryRun {
 		return nil
 	}
-	// smash through the queue
+	// smash through the queue, 4 applications at a time
 	var (
-		sem       = semaphore.NewWeighted(4)
 		eg, egCtx = errgroup.WithContext(ctx)
 	)
+	eg.SetLimit(4)
 	for _, uid := range toAdd {
 		userID, err := strconv.ParseUint(uid, 10, 64)
 		if err != nil {
 			return err
 		}
 		eg.Go(func() error {
-			e := sem.Acquire(egCtx, 1)
-			if e != nil {
-				return e
-			}
-			defer sem.Release(1)
 			return b.applyRole(egCtx, guildID, roleID, userID, true, reason)
 		})
 	}
@@ -165,17 +159,13 @@ func (b *DiscordBot) enforceRole(ctx context.Context, gr *ent.GuildRole, dryRun 
 			return err
 		}
 		eg.Go(func() error {
-			e := sem.Acquire(egCtx, 1)
-			if e != nil {
-				return e
-			}
-			defer sem.Release(1)
 			return b.applyRole(egCtx, guildID, roleID, userID, false, reason)
 		})
 	}
 	if err = eg.Wait(); err != nil {
 		return fmt.Errorf("error applying changes for role, aborted: %w", err)
 	}
+	logger.Info().Msg("role enforcement complete")
 	return nil
 }
 
