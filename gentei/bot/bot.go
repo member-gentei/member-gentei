@@ -153,6 +153,11 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 		guildIDStr = strconv.FormatUint(guildID, 10)
 		roleIDStr  = strconv.FormatUint(roleID, 10)
 		userIDStr  = strconv.FormatUint(userID, 10)
+		logger     = log.With().
+				Str("guildID", guildIDStr).
+				Str("roleID", roleIDStr).
+				Str("userID", userIDStr).
+				Bool("add", add).Logger()
 	)
 	// first, check if we even need to do this
 	member, err := b.session.GuildMember(guildIDStr, userIDStr)
@@ -160,13 +165,13 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 		var restErr *discordgo.RESTError
 		if errors.As(err, &restErr) && restErr.Response.StatusCode == http.StatusNotFound {
 			// member does not exist
-			log.Debug().Err(err).Msg("GuildMember not found, no change required")
+			logger.Debug().Err(err).Msg("GuildMember not found, no change required")
 		} else {
 			return fmt.Errorf("error calling GuildMember: %w", err)
 		}
 	}
 	if member == nil {
-		log.Debug().Msg("member not in Guild, no change required")
+		logger.Debug().Msg("member not in Guild, no change required")
 		return nil
 	}
 	var roleExists bool
@@ -177,9 +182,10 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 		}
 	}
 	if (roleExists && add) || (!roleExists && !add) {
-		log.Debug().Msg("no change required")
+		logger.Debug().Msg("no change required")
 		return nil
 	}
+	logger.Info().Msg("role apply starting")
 	var (
 		applyCtx, cancelApplyCtx = context.WithCancel(ctx)
 		mutex                    = b.roleRWMutex.GetOrCreate(roleIDStr)
@@ -189,18 +195,14 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 	b.rut.TrackHook(guildIDStr, userIDStr, func(gmu *discordgo.GuildMemberUpdate) (removeHook bool) {
 		if add {
 			// check this update for the target role that should exist
-			for _, roleID := range gmu.Roles {
-				if roleID == roleIDStr {
-					cancelApplyCtx()
-					return true
-				}
+			if sliceContains(roleIDStr, gmu.Roles) {
+				cancelApplyCtx()
+				return true
 			}
 		} else {
 			// check that the role does not exist
-			for _, roleID := range gmu.Roles {
-				if roleID == roleIDStr {
-					return false
-				}
+			if sliceContains(roleIDStr, gmu.Roles) {
+				return false
 			}
 			cancelApplyCtx()
 			return true
@@ -215,9 +217,7 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 	if err == nil {
 		b.auditLog(ctx, guildID, userID, roleID, add, auditReason)
 	}
-	log.Err(err).
-		Str("guildID", strconv.FormatUint(guildID, 10)).Str("userID", strconv.FormatUint(userID, 10)).Str("roleID", strconv.FormatUint(roleID, 10)).
-		Bool("add", add).
+	logger.Err(err).
 		Int("attempts", result.Attempts).
 		Msg("role apply attempt finished")
 	return err
@@ -281,6 +281,15 @@ func IsDiscordError(err error, code int) bool {
 	var restErr *discordgo.RESTError
 	if errors.As(err, &restErr) {
 		return restErr.Message != nil && restErr.Message.Code == code
+	}
+	return false
+}
+
+func sliceContains[T comparable](needle T, haystack []T) bool {
+	for _, hay := range haystack {
+		if needle == hay {
+			return true
+		}
 	}
 	return false
 }

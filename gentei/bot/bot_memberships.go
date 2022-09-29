@@ -125,9 +125,9 @@ func (b *DiscordBot) enforceRole(ctx context.Context, gr *ent.GuildRole, dryRun 
 			return err
 		}
 		// determine if this user should be granted / removed the role
-		if shouldHaveRole[uid] && !sSliceContains(roleIDStr, member.Roles) {
+		if shouldHaveRole[uid] && sliceContains(roleIDStr, member.Roles) {
 			toAdd = append(toAdd, member.User.ID)
-		} else if sSliceContains(roleIDStr, member.Roles) {
+		} else if sliceContains(roleIDStr, member.Roles) {
 			toRemove = append(toRemove, member.User.ID)
 		}
 	}
@@ -373,13 +373,4 @@ func userVerifiedFor(userMembershipID int) []predicate.GuildRole {
 			),
 		),
 	}
-}
-
-func sSliceContains(needle string, haystack []string) bool {
-	for _, hay := range haystack {
-		if needle == hay {
-			return true
-		}
-	}
-	return false
 }

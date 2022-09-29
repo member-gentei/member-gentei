@@ -193,6 +193,10 @@ func refreshUserGuildEdgesWithPredicates(ctx context.Context, db *ent.Client, di
 			return userTokensInvalid, totalCount, err
 		}
 		totalCount += len(userIDs)
+		log.Info().
+			Int("count", len(userIDs)).
+			Int("total", totalCount).
+			Msg("refresh progress")
 		if len(userIDs) < pageSize {
 			break
 		}
