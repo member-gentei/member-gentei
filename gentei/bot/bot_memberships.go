@@ -67,7 +67,7 @@ func (b *DiscordBot) enforceAllRoles(ctx context.Context, dryRun bool, reason st
 			// n.b. rollup log is emitted by the enforceRole() call
 		}
 	}
-	log.Info().Msg("members-only role enforcement run complete")
+	log.Info().Int("count", len(grs)).Msg("members-only role enforcement run complete")
 	return nil
 }
 
