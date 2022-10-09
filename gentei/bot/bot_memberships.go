@@ -82,11 +82,7 @@ func (b *DiscordBot) enforceRole(ctx context.Context, gr *ent.GuildRole, dryRun 
 		guildIDStr = strconv.FormatUint(guildID, 10)
 		roleIDStr  = strconv.FormatUint(roleID, 10)
 		logger     = log.With().Str("guildID", guildIDStr).Str("roleID", roleIDStr).Logger()
-		mutex      = b.roleRWMutex.GetOrCreate(roleIDStr)
 	)
-	logger.Debug().Msg("acquiring RWMutex for role enforcement")
-	mutex.Lock()
-	defer mutex.Unlock()
 	// gather users who should have this role
 	var (
 		shouldHaveRole = map[uint64]bool{}

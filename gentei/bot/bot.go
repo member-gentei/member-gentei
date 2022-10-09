@@ -27,9 +27,6 @@ type DiscordBot struct {
 	cancelPSApplier context.CancelFunc
 	youTubeConfig   *oauth2.Config
 
-	// roleRWMutex is held 'W' by role-wide operations, like daily enforcement. 'R' is held by all other operations that 'W' would overrun or interrupt.
-	roleRWMutex *roles.DefaultMapRWMutex
-
 	// roleEnforcementMutex is held by overall role enforcement runs.
 	roleEnforcementMutex *sync.Mutex
 }
@@ -45,7 +42,6 @@ func New(db *ent.Client, token string, youTubeConfig *oauth2.Config) (*DiscordBo
 		db:                   db,
 		rut:                  rut,
 		youTubeConfig:        youTubeConfig,
-		roleRWMutex:          roles.NewDefaultMapRWMutex(),
 		roleEnforcementMutex: &sync.Mutex{},
 	}, nil
 }
@@ -191,10 +187,7 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 		applyCtx, cancelApplyCtx = context.WithCancel(ctx)
 	)
 	if lockRoleMutex {
-		mutex := b.roleRWMutex.GetOrCreate(roleIDStr)
 		logger.Debug().Msg("acquiring RWMutex for role apply")
-		mutex.RLock()
-		defer mutex.RUnlock()
 	}
 	b.rut.TrackHook(guildIDStr, userIDStr, func(rtu roles.RoleUpdateTrackData) (removeHook bool) {
 		if add {
