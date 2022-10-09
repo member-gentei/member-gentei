@@ -50,6 +50,20 @@ func (c *CheckResultSet) HasResults() bool {
 	return len(c.Gained)+len(c.Retained)+len(c.Lost)+len(c.Not) > 0
 }
 
+func (c CheckResultSet) IsMember(channelID string) bool {
+	for _, gained := range c.Gained {
+		if channelID == gained.ChannelID {
+			return true
+		}
+	}
+	for _, retained := range c.Retained {
+		if channelID == retained.ChannelID {
+			return true
+		}
+	}
+	return false
+}
+
 type CheckResult struct {
 	ChannelID string
 	Time      time.Time

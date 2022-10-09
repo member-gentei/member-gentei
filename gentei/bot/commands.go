@@ -16,7 +16,6 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
 	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
-	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 	"github.com/member-gentei/member-gentei/gentei/membership"
 	"github.com/rs/zerolog"
@@ -302,20 +301,18 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 				return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
 			}
 			// apply all managed roles for this server only
-			roles, err := b.db.GuildRole.Query().
-				WithUserMemberships(func(umq *ent.UserMembershipQuery) {
-					umq.Where(usermembership.HasUserWith(user.ID(userID)))
-				}).
+			grs, err := b.db.GuildRole.Query().
+				WithTalent().
 				Where(
 					guildrole.HasGuildWith(guild.ID(guildID)),
-					guildrole.HasTalentWith(youtubetalent.IDIn(talentIDs...)),
 				).
 				All(ctx)
 			if err != nil {
-				logger.Err(err).Msg("error querying for GuildRoles during check")
+				logger.Err(err).Msg("error fetching GuildRole objects for /gentei check apply")
+				return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
 			}
-			for _, role := range roles {
-				shouldHaveRole := len(role.Edges.UserMemberships) > 0
+			for _, role := range grs {
+				shouldHaveRole := results.IsMember(role.Edges.Talent.ID)
 				logger.Debug().
 					Str("roleID", strconv.FormatUint(role.ID, 10)).
 					Bool("shouldHaveRole", shouldHaveRole).
