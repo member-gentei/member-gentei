@@ -322,7 +322,14 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 					if IsDiscordError(err, discordgo.ErrCodeMissingPermissions) {
 						logger.Warn().Err(err).Msg("Gentei lost permissions to manage a role - informing user")
 						response = &discordgo.WebhookEdit{
-							Content: ptr(fmt.Sprintf("The bot has lost permission to manage <@&%d>, so Gentei cannot apply role changes! Please contact admins/moderators to restore permissions - once that's done, you can run `/gentei check` again to apply changes.", role.ID)),
+							Content: ptr(fmt.Sprintf("The bot has lost permission to manage <@&%d>, so Gentei cannot apply all role changes! Please contact admins/moderators to restore permissions - once that's done, you can run `/gentei check` again to apply changes.", role.ID)),
+						}
+						return response, nil
+					}
+					if IsDiscordError(err, discordgo.ErrCodeUnknownRole) {
+						logger.Warn().Err(err).Msg("Gentei was assigned a now removed role - informing user")
+						response = &discordgo.WebhookEdit{
+							Content: ptr(fmt.Sprintf("The role assigned to Gentei to manage membership to \"%s\" - which used to be <@&%d> - no longer exists, so Gentei cannot apply all role changes. Please contact admins/moderators to either assign a new role or remove role management - once that's done, you can run `/gentei check` again if a new role has been assigned.", role.Edges.Talent.ChannelName, role.ID)),
 						}
 						return response, nil
 					}
