@@ -156,12 +156,18 @@ var checkCmd = &cobra.Command{
 				StaleThreshold:           membership.DefaultCheckStaleOptions.StaleThreshold,
 				AdditionalUserPredicates: excludeToBeDeleted,
 			})
-			defer async.PublishApplyMembershipMessage(ctx, asyncTopic, async.ApplyMembershipPSMessage{
+			if err != nil {
+				log.Fatal().Err(err).Msg("error checking memberships")
+			}
+			err = async.PublishApplyMembershipMessage(ctx, asyncTopic, async.ApplyMembershipPSMessage{
 				EnforceAll: &async.EnforceAllMessage{
 					DryRun: flagCheckNoEnforce,
 					Reason: "daily role enforcement",
 				},
 			})
+			if err != nil {
+				log.Fatal().Err(err).Msg("error publishing apply message")
+			}
 		}
 		if err != nil {
 			log.Fatal().Err(err).Msg("error saving memberships")
