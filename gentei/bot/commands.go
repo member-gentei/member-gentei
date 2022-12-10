@@ -211,7 +211,7 @@ var (
 )
 
 func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCreate) {
-	b.deferredReply(ctx, i, "info", true, func(logger zerolog.Logger) (*discordgo.WebhookEdit, error) {
+	b.deferredReply(ctx, i, "check", true, func(logger zerolog.Logger) (*discordgo.WebhookEdit, error) {
 		var response *discordgo.WebhookEdit
 		// if this is a DM, fetch user info
 		if i.User != nil {
@@ -341,6 +341,7 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 				logger.Err(err).Msg("error creating embeds for reply")
 				return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
 			}
+			var message string
 			if len(results.DisabledChannels) > 0 {
 				// append embeds for channels
 				disabledEmbeds, err := commands.GetDisabledChannelEmbeds(ctx, b.db, results.DisabledChannels)
@@ -348,15 +349,24 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 					logger.Err(err).Msg("error getting disabled channel embeds")
 					return &discordgo.WebhookEdit{Content: mysteriousErrorMessage}, nil
 				}
-				response = &discordgo.WebhookEdit{
-					Content: ptr("Discord roles have been applied, but membership checks are currently disabled for one or more channels. See below for details."),
-					Embeds:  ptr(append(embeds, disabledEmbeds...)),
+				embeds = append(embeds, disabledEmbeds...)
+				if len(embeds) > 10 {
+					message = fmt.Sprintf("Discord roles have been applied, but membership checks are currently disabled for one or more channels and Discord limitations prevent us from showing all %d. Please go to https://gentei.tindabox.net/app to see the rest.", len(embeds))
+					embeds = embeds[:10]
+				} else {
+					message = "Discord roles have been applied, but membership checks are currently disabled for one or more channels. See below for details."
 				}
 			} else {
-				response = &discordgo.WebhookEdit{
-					Content: ptr("Discord roles have been applied - see below for details."),
-					Embeds:  ptr(embeds),
+				if len(embeds) > 10 {
+					message = fmt.Sprintf("Discord roles have been applied, but Discord limitations prevent us from showing all %d. Please go to https://gentei.tindabox.net/app to see the rest.", len(embeds))
+					embeds = embeds[:10]
+				} else {
+					message = "Discord roles have been applied - see below for details."
 				}
+			}
+			response = &discordgo.WebhookEdit{
+				Content: &message,
+				Embeds:  ptr(embeds),
 			}
 		}
 		return response, nil
@@ -389,7 +399,7 @@ func (b *DiscordBot) handleInfo(ctx context.Context, i *discordgo.InteractionCre
 			)
 			if len(embeds) > 10 {
 				response = &discordgo.WebhookEdit{
-					Content: ptr(fmt.Sprintf("Due to technical Discord limitations, we can only show 10 of the %d memberships configured for this server. Please go to https://gentei.tindabox.net/app to view membership info for the rest.", len(embeds))),
+					Content: ptr(fmt.Sprintf("Due to technical Discord limitations, we can only show 10 of the %d memberships configured for this server. Please go to https://gentei.tindabox.net/app to the rest.", len(embeds))),
 					Embeds:  ptr(embeds[:10]),
 				}
 			} else {
