@@ -333,6 +333,13 @@ func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCr
 						}
 						return response, nil
 					}
+					if IsDiscordError(err, discordgo.ErrCodeMissingAccess) {
+						logger.Warn().Err(err).Msg("Gentei is missing access (scope revoked?)")
+						response = &discordgo.WebhookEdit{
+							Content: ptr("The bot has lost role management capabilities on this server, so Gentei cannot apply role changes! Please contact admins/moderators to restore permissions - once that's done, you can run `/gentei check` again to apply changes."),
+						}
+						return response, nil
+					}
 					logger.Err(err).Msg("error applying role during check")
 				}
 			}
