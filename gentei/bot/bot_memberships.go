@@ -311,7 +311,7 @@ func (b *DiscordBot) grantRole(
 	)
 	err := b.applyRole(ctx, guildID, roleID, userID, true, reason, true)
 	if err != nil {
-		roleLogger.Err(err).Msg("failed to grant role membership")
+		roleLogger.Warn().Err(err).Msg("failed to grant role membership")
 		return err
 	}
 	roleLogger.Info().Msg("granted newly verified membership")
