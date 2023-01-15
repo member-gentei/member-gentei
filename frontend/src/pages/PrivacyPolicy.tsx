@@ -30,7 +30,12 @@ function PrivacyPolicy() {
             </ul>
             <p>
               The service requires transmission of information to Google and
-              Discord to verify membership status.
+              Discord to verify membership status, which you can revoke at any
+              time via either requesting account deletion or using the{" "}
+              <a href="https://myaccount.google.com/permissions">
+                Google Security Settings
+              </a>{" "}
+              page and Discord Authorized Apps pages respectively.
             </p>
             <p>Yeah, that's it. No sale of information or anything.</p>
             <hr />
@@ -119,6 +124,12 @@ function PrivacyPolicy() {
                 perform the tasks assigned to them on our behalf. However, they
                 are obligated not to disclose or use the information for any
                 other purpose.
+              </p>
+              <p>
+                Users that connect their account to YouTube agree to be bound by
+                YouTube's Terms of Service, which can be found at
+                https://www.youtube.com/t/terms. This includes Googles's Privacy
+                Policy, available at https://policies.google.com/privacy.
               </p>
               <p>
                 <strong>Security</strong>
