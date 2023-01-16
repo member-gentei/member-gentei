@@ -9,7 +9,7 @@ require (
 	github.com/cbroglie/mustache v1.4.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/hashicorp/go-retryablehttp v0.7.1
-	github.com/jedib0t/go-pretty/v6 v6.4.3
+	github.com/jedib0t/go-pretty/v6 v6.4.4
 	github.com/labstack/echo/v4 v4.9.0
 	github.com/lib/pq v1.10.7
 	github.com/mark-ignacio/zerolog-gcp v0.4.0
