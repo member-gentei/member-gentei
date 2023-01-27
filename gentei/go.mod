@@ -24,7 +24,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783
 	golang.org/x/sync v0.1.0
 	google.golang.org/api v0.102.0
-	libs.altipla.consulting v1.182.0
+	libs.altipla.consulting v1.184.0
 )
 
 require (
