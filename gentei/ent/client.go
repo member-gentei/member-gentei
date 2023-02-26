@@ -40,7 +40,7 @@ type Client struct {
 
 // NewClient creates a new client configured with the given options.
 func NewClient(opts ...Option) *Client {
-	cfg := config{log: log.Println, hooks: &hooks{}}
+	cfg := config{log: log.Println, hooks: &hooks{}, inters: &inters{}}
 	cfg.options(opts...)
 	client := &Client{config: cfg}
 	client.init()
@@ -151,6 +151,34 @@ func (c *Client) Use(hooks ...Hook) {
 	c.YouTubeTalent.Use(hooks...)
 }
 
+// Intercept adds the query interceptors to all the entity clients.
+// In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
+func (c *Client) Intercept(interceptors ...Interceptor) {
+	c.Guild.Intercept(interceptors...)
+	c.GuildRole.Intercept(interceptors...)
+	c.User.Intercept(interceptors...)
+	c.UserMembership.Intercept(interceptors...)
+	c.YouTubeTalent.Intercept(interceptors...)
+}
+
+// Mutate implements the ent.Mutator interface.
+func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
+	switch m := m.(type) {
+	case *GuildMutation:
+		return c.Guild.mutate(ctx, m)
+	case *GuildRoleMutation:
+		return c.GuildRole.mutate(ctx, m)
+	case *UserMutation:
+		return c.User.mutate(ctx, m)
+	case *UserMembershipMutation:
+		return c.UserMembership.mutate(ctx, m)
+	case *YouTubeTalentMutation:
+		return c.YouTubeTalent.mutate(ctx, m)
+	default:
+		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
 // GuildClient is a client for the Guild schema.
 type GuildClient struct {
 	config
@@ -165,6 +193,12 @@ func NewGuildClient(c config) *GuildClient {
 // A call to `Use(f, g, h)` equals to `guild.Hooks(f(g(h())))`.
 func (c *GuildClient) Use(hooks ...Hook) {
 	c.hooks.Guild = append(c.hooks.Guild, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `guild.Intercept(f(g(h())))`.
+func (c *GuildClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Guild = append(c.inters.Guild, interceptors...)
 }
 
 // Create returns a builder for creating a Guild entity.
@@ -207,7 +241,7 @@ func (c *GuildClient) DeleteOne(gu *Guild) *GuildDeleteOne {
 	return c.DeleteOneID(gu.ID)
 }
 
-// DeleteOne returns a builder for deleting the given entity by its id.
+// DeleteOneID returns a builder for deleting the given entity by its id.
 func (c *GuildClient) DeleteOneID(id uint64) *GuildDeleteOne {
 	builder := c.Delete().Where(guild.ID(id))
 	builder.mutation.id = &id
@@ -219,6 +253,8 @@ func (c *GuildClient) DeleteOneID(id uint64) *GuildDeleteOne {
 func (c *GuildClient) Query() *GuildQuery {
 	return &GuildQuery{
 		config: c.config,
+		ctx:    &QueryContext{Type: TypeGuild},
+		inters: c.Interceptors(),
 	}
 }
 
@@ -238,8 +274,8 @@ func (c *GuildClient) GetX(ctx context.Context, id uint64) *Guild {
 
 // QueryMembers queries the members edge of a Guild.
 func (c *GuildClient) QueryMembers(gu *Guild) *UserQuery {
-	query := &UserQuery{config: c.config}
-	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := gu.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(guild.Table, guild.FieldID, id),
@@ -254,8 +290,8 @@ func (c *GuildClient) QueryMembers(gu *Guild) *UserQuery {
 
 // QueryAdmins queries the admins edge of a Guild.
 func (c *GuildClient) QueryAdmins(gu *Guild) *UserQuery {
-	query := &UserQuery{config: c.config}
-	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := gu.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(guild.Table, guild.FieldID, id),
@@ -270,8 +306,8 @@ func (c *GuildClient) QueryAdmins(gu *Guild) *UserQuery {
 
 // QueryRoles queries the roles edge of a Guild.
 func (c *GuildClient) QueryRoles(gu *Guild) *GuildRoleQuery {
-	query := &GuildRoleQuery{config: c.config}
-	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+	query := (&GuildRoleClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := gu.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(guild.Table, guild.FieldID, id),
@@ -286,8 +322,8 @@ func (c *GuildClient) QueryRoles(gu *Guild) *GuildRoleQuery {
 
 // QueryYoutubeTalents queries the youtube_talents edge of a Guild.
 func (c *GuildClient) QueryYoutubeTalents(gu *Guild) *YouTubeTalentQuery {
-	query := &YouTubeTalentQuery{config: c.config}
-	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+	query := (&YouTubeTalentClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := gu.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(guild.Table, guild.FieldID, id),
@@ -305,6 +341,26 @@ func (c *GuildClient) Hooks() []Hook {
 	return c.hooks.Guild
 }
 
+// Interceptors returns the client interceptors.
+func (c *GuildClient) Interceptors() []Interceptor {
+	return c.inters.Guild
+}
+
+func (c *GuildClient) mutate(ctx context.Context, m *GuildMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&GuildCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&GuildUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&GuildUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&GuildDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Guild mutation op: %q", m.Op())
+	}
+}
+
 // GuildRoleClient is a client for the GuildRole schema.
 type GuildRoleClient struct {
 	config
@@ -319,6 +375,12 @@ func NewGuildRoleClient(c config) *GuildRoleClient {
 // A call to `Use(f, g, h)` equals to `guildrole.Hooks(f(g(h())))`.
 func (c *GuildRoleClient) Use(hooks ...Hook) {
 	c.hooks.GuildRole = append(c.hooks.GuildRole, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `guildrole.Intercept(f(g(h())))`.
+func (c *GuildRoleClient) Intercept(interceptors ...Interceptor) {
+	c.inters.GuildRole = append(c.inters.GuildRole, interceptors...)
 }
 
 // Create returns a builder for creating a GuildRole entity.
@@ -361,7 +423,7 @@ func (c *GuildRoleClient) DeleteOne(gr *GuildRole) *GuildRoleDeleteOne {
 	return c.DeleteOneID(gr.ID)
 }
 
-// DeleteOne returns a builder for deleting the given entity by its id.
+// DeleteOneID returns a builder for deleting the given entity by its id.
 func (c *GuildRoleClient) DeleteOneID(id uint64) *GuildRoleDeleteOne {
 	builder := c.Delete().Where(guildrole.ID(id))
 	builder.mutation.id = &id
@@ -373,6 +435,8 @@ func (c *GuildRoleClient) DeleteOneID(id uint64) *GuildRoleDeleteOne {
 func (c *GuildRoleClient) Query() *GuildRoleQuery {
 	return &GuildRoleQuery{
 		config: c.config,
+		ctx:    &QueryContext{Type: TypeGuildRole},
+		inters: c.Interceptors(),
 	}
 }
 
@@ -392,8 +456,8 @@ func (c *GuildRoleClient) GetX(ctx context.Context, id uint64) *GuildRole {
 
 // QueryGuild queries the guild edge of a GuildRole.
 func (c *GuildRoleClient) QueryGuild(gr *GuildRole) *GuildQuery {
-	query := &GuildQuery{config: c.config}
-	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+	query := (&GuildClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := gr.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(guildrole.Table, guildrole.FieldID, id),
@@ -408,8 +472,8 @@ func (c *GuildRoleClient) QueryGuild(gr *GuildRole) *GuildQuery {
 
 // QueryUserMemberships queries the user_memberships edge of a GuildRole.
 func (c *GuildRoleClient) QueryUserMemberships(gr *GuildRole) *UserMembershipQuery {
-	query := &UserMembershipQuery{config: c.config}
-	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+	query := (&UserMembershipClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := gr.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(guildrole.Table, guildrole.FieldID, id),
@@ -424,8 +488,8 @@ func (c *GuildRoleClient) QueryUserMemberships(gr *GuildRole) *UserMembershipQue
 
 // QueryTalent queries the talent edge of a GuildRole.
 func (c *GuildRoleClient) QueryTalent(gr *GuildRole) *YouTubeTalentQuery {
-	query := &YouTubeTalentQuery{config: c.config}
-	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+	query := (&YouTubeTalentClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := gr.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(guildrole.Table, guildrole.FieldID, id),
@@ -443,6 +507,26 @@ func (c *GuildRoleClient) Hooks() []Hook {
 	return c.hooks.GuildRole
 }
 
+// Interceptors returns the client interceptors.
+func (c *GuildRoleClient) Interceptors() []Interceptor {
+	return c.inters.GuildRole
+}
+
+func (c *GuildRoleClient) mutate(ctx context.Context, m *GuildRoleMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&GuildRoleCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&GuildRoleUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&GuildRoleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&GuildRoleDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown GuildRole mutation op: %q", m.Op())
+	}
+}
+
 // UserClient is a client for the User schema.
 type UserClient struct {
 	config
@@ -457,6 +541,12 @@ func NewUserClient(c config) *UserClient {
 // A call to `Use(f, g, h)` equals to `user.Hooks(f(g(h())))`.
 func (c *UserClient) Use(hooks ...Hook) {
 	c.hooks.User = append(c.hooks.User, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `user.Intercept(f(g(h())))`.
+func (c *UserClient) Intercept(interceptors ...Interceptor) {
+	c.inters.User = append(c.inters.User, interceptors...)
 }
 
 // Create returns a builder for creating a User entity.
@@ -499,7 +589,7 @@ func (c *UserClient) DeleteOne(u *User) *UserDeleteOne {
 	return c.DeleteOneID(u.ID)
 }
 
-// DeleteOne returns a builder for deleting the given entity by its id.
+// DeleteOneID returns a builder for deleting the given entity by its id.
 func (c *UserClient) DeleteOneID(id uint64) *UserDeleteOne {
 	builder := c.Delete().Where(user.ID(id))
 	builder.mutation.id = &id
@@ -511,6 +601,8 @@ func (c *UserClient) DeleteOneID(id uint64) *UserDeleteOne {
 func (c *UserClient) Query() *UserQuery {
 	return &UserQuery{
 		config: c.config,
+		ctx:    &QueryContext{Type: TypeUser},
+		inters: c.Interceptors(),
 	}
 }
 
@@ -530,8 +622,8 @@ func (c *UserClient) GetX(ctx context.Context, id uint64) *User {
 
 // QueryGuilds queries the guilds edge of a User.
 func (c *UserClient) QueryGuilds(u *User) *GuildQuery {
-	query := &GuildQuery{config: c.config}
-	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+	query := (&GuildClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := u.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, id),
@@ -546,8 +638,8 @@ func (c *UserClient) QueryGuilds(u *User) *GuildQuery {
 
 // QueryGuildsAdmin queries the guilds_admin edge of a User.
 func (c *UserClient) QueryGuildsAdmin(u *User) *GuildQuery {
-	query := &GuildQuery{config: c.config}
-	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+	query := (&GuildClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := u.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, id),
@@ -562,8 +654,8 @@ func (c *UserClient) QueryGuildsAdmin(u *User) *GuildQuery {
 
 // QueryMemberships queries the memberships edge of a User.
 func (c *UserClient) QueryMemberships(u *User) *UserMembershipQuery {
-	query := &UserMembershipQuery{config: c.config}
-	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+	query := (&UserMembershipClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := u.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, id),
@@ -581,6 +673,26 @@ func (c *UserClient) Hooks() []Hook {
 	return c.hooks.User
 }
 
+// Interceptors returns the client interceptors.
+func (c *UserClient) Interceptors() []Interceptor {
+	return c.inters.User
+}
+
+func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&UserCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&UserUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&UserUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&UserDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown User mutation op: %q", m.Op())
+	}
+}
+
 // UserMembershipClient is a client for the UserMembership schema.
 type UserMembershipClient struct {
 	config
@@ -595,6 +707,12 @@ func NewUserMembershipClient(c config) *UserMembershipClient {
 // A call to `Use(f, g, h)` equals to `usermembership.Hooks(f(g(h())))`.
 func (c *UserMembershipClient) Use(hooks ...Hook) {
 	c.hooks.UserMembership = append(c.hooks.UserMembership, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `usermembership.Intercept(f(g(h())))`.
+func (c *UserMembershipClient) Intercept(interceptors ...Interceptor) {
+	c.inters.UserMembership = append(c.inters.UserMembership, interceptors...)
 }
 
 // Create returns a builder for creating a UserMembership entity.
@@ -637,7 +755,7 @@ func (c *UserMembershipClient) DeleteOne(um *UserMembership) *UserMembershipDele
 	return c.DeleteOneID(um.ID)
 }
 
-// DeleteOne returns a builder for deleting the given entity by its id.
+// DeleteOneID returns a builder for deleting the given entity by its id.
 func (c *UserMembershipClient) DeleteOneID(id int) *UserMembershipDeleteOne {
 	builder := c.Delete().Where(usermembership.ID(id))
 	builder.mutation.id = &id
@@ -649,6 +767,8 @@ func (c *UserMembershipClient) DeleteOneID(id int) *UserMembershipDeleteOne {
 func (c *UserMembershipClient) Query() *UserMembershipQuery {
 	return &UserMembershipQuery{
 		config: c.config,
+		ctx:    &QueryContext{Type: TypeUserMembership},
+		inters: c.Interceptors(),
 	}
 }
 
@@ -668,8 +788,8 @@ func (c *UserMembershipClient) GetX(ctx context.Context, id int) *UserMembership
 
 // QueryUser queries the user edge of a UserMembership.
 func (c *UserMembershipClient) QueryUser(um *UserMembership) *UserQuery {
-	query := &UserQuery{config: c.config}
-	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+	query := (&UserClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := um.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(usermembership.Table, usermembership.FieldID, id),
@@ -684,8 +804,8 @@ func (c *UserMembershipClient) QueryUser(um *UserMembership) *UserQuery {
 
 // QueryYoutubeTalent queries the youtube_talent edge of a UserMembership.
 func (c *UserMembershipClient) QueryYoutubeTalent(um *UserMembership) *YouTubeTalentQuery {
-	query := &YouTubeTalentQuery{config: c.config}
-	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+	query := (&YouTubeTalentClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := um.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(usermembership.Table, usermembership.FieldID, id),
@@ -700,8 +820,8 @@ func (c *UserMembershipClient) QueryYoutubeTalent(um *UserMembership) *YouTubeTa
 
 // QueryRoles queries the roles edge of a UserMembership.
 func (c *UserMembershipClient) QueryRoles(um *UserMembership) *GuildRoleQuery {
-	query := &GuildRoleQuery{config: c.config}
-	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+	query := (&GuildRoleClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := um.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(usermembership.Table, usermembership.FieldID, id),
@@ -719,6 +839,26 @@ func (c *UserMembershipClient) Hooks() []Hook {
 	return c.hooks.UserMembership
 }
 
+// Interceptors returns the client interceptors.
+func (c *UserMembershipClient) Interceptors() []Interceptor {
+	return c.inters.UserMembership
+}
+
+func (c *UserMembershipClient) mutate(ctx context.Context, m *UserMembershipMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&UserMembershipCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&UserMembershipUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&UserMembershipUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&UserMembershipDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown UserMembership mutation op: %q", m.Op())
+	}
+}
+
 // YouTubeTalentClient is a client for the YouTubeTalent schema.
 type YouTubeTalentClient struct {
 	config
@@ -733,6 +873,12 @@ func NewYouTubeTalentClient(c config) *YouTubeTalentClient {
 // A call to `Use(f, g, h)` equals to `youtubetalent.Hooks(f(g(h())))`.
 func (c *YouTubeTalentClient) Use(hooks ...Hook) {
 	c.hooks.YouTubeTalent = append(c.hooks.YouTubeTalent, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `youtubetalent.Intercept(f(g(h())))`.
+func (c *YouTubeTalentClient) Intercept(interceptors ...Interceptor) {
+	c.inters.YouTubeTalent = append(c.inters.YouTubeTalent, interceptors...)
 }
 
 // Create returns a builder for creating a YouTubeTalent entity.
@@ -775,7 +921,7 @@ func (c *YouTubeTalentClient) DeleteOne(ytt *YouTubeTalent) *YouTubeTalentDelete
 	return c.DeleteOneID(ytt.ID)
 }
 
-// DeleteOne returns a builder for deleting the given entity by its id.
+// DeleteOneID returns a builder for deleting the given entity by its id.
 func (c *YouTubeTalentClient) DeleteOneID(id string) *YouTubeTalentDeleteOne {
 	builder := c.Delete().Where(youtubetalent.ID(id))
 	builder.mutation.id = &id
@@ -787,6 +933,8 @@ func (c *YouTubeTalentClient) DeleteOneID(id string) *YouTubeTalentDeleteOne {
 func (c *YouTubeTalentClient) Query() *YouTubeTalentQuery {
 	return &YouTubeTalentQuery{
 		config: c.config,
+		ctx:    &QueryContext{Type: TypeYouTubeTalent},
+		inters: c.Interceptors(),
 	}
 }
 
@@ -806,8 +954,8 @@ func (c *YouTubeTalentClient) GetX(ctx context.Context, id string) *YouTubeTalen
 
 // QueryGuilds queries the guilds edge of a YouTubeTalent.
 func (c *YouTubeTalentClient) QueryGuilds(ytt *YouTubeTalent) *GuildQuery {
-	query := &GuildQuery{config: c.config}
-	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+	query := (&GuildClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := ytt.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(youtubetalent.Table, youtubetalent.FieldID, id),
@@ -822,8 +970,8 @@ func (c *YouTubeTalentClient) QueryGuilds(ytt *YouTubeTalent) *GuildQuery {
 
 // QueryRoles queries the roles edge of a YouTubeTalent.
 func (c *YouTubeTalentClient) QueryRoles(ytt *YouTubeTalent) *GuildRoleQuery {
-	query := &GuildRoleQuery{config: c.config}
-	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+	query := (&GuildRoleClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := ytt.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(youtubetalent.Table, youtubetalent.FieldID, id),
@@ -838,8 +986,8 @@ func (c *YouTubeTalentClient) QueryRoles(ytt *YouTubeTalent) *GuildRoleQuery {
 
 // QueryMemberships queries the memberships edge of a YouTubeTalent.
 func (c *YouTubeTalentClient) QueryMemberships(ytt *YouTubeTalent) *UserMembershipQuery {
-	query := &UserMembershipQuery{config: c.config}
-	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+	query := (&UserMembershipClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
 		id := ytt.ID
 		step := sqlgraph.NewStep(
 			sqlgraph.From(youtubetalent.Table, youtubetalent.FieldID, id),
@@ -855,4 +1003,24 @@ func (c *YouTubeTalentClient) QueryMemberships(ytt *YouTubeTalent) *UserMembersh
 // Hooks returns the client hooks.
 func (c *YouTubeTalentClient) Hooks() []Hook {
 	return c.hooks.YouTubeTalent
+}
+
+// Interceptors returns the client interceptors.
+func (c *YouTubeTalentClient) Interceptors() []Interceptor {
+	return c.inters.YouTubeTalent
+}
+
+func (c *YouTubeTalentClient) mutate(ctx context.Context, m *YouTubeTalentMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&YouTubeTalentCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&YouTubeTalentUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&YouTubeTalentUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&YouTubeTalentDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown YouTubeTalent mutation op: %q", m.Op())
+	}
 }

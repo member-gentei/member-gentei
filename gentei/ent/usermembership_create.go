@@ -111,50 +111,8 @@ func (umc *UserMembershipCreate) Mutation() *UserMembershipMutation {
 
 // Save creates the UserMembership in the database.
 func (umc *UserMembershipCreate) Save(ctx context.Context) (*UserMembership, error) {
-	var (
-		err  error
-		node *UserMembership
-	)
 	umc.defaults()
-	if len(umc.hooks) == 0 {
-		if err = umc.check(); err != nil {
-			return nil, err
-		}
-		node, err = umc.sqlSave(ctx)
-	} else {
-		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
-			mutation, ok := m.(*UserMembershipMutation)
-			if !ok {
-				return nil, fmt.Errorf("unexpected mutation type %T", m)
-			}
-			if err = umc.check(); err != nil {
-				return nil, err
-			}
-			umc.mutation = mutation
-			if node, err = umc.sqlSave(ctx); err != nil {
-				return nil, err
-			}
-			mutation.id = &node.ID
-			mutation.done = true
-			return node, err
-		})
-		for i := len(umc.hooks) - 1; i >= 0; i-- {
-			if umc.hooks[i] == nil {
-				return nil, fmt.Errorf("ent: uninitialized hook (forgotten import ent/runtime?)")
-			}
-			mut = umc.hooks[i](mut)
-		}
-		v, err := mut.Mutate(ctx, umc.mutation)
-		if err != nil {
-			return nil, err
-		}
-		nv, ok := v.(*UserMembership)
-		if !ok {
-			return nil, fmt.Errorf("unexpected node type %T returned from UserMembershipMutation", v)
-		}
-		node = nv
-	}
-	return node, err
+	return withHooks[*UserMembership, UserMembershipMutation](ctx, umc.sqlSave, umc.mutation, umc.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
@@ -202,6 +160,9 @@ func (umc *UserMembershipCreate) check() error {
 }
 
 func (umc *UserMembershipCreate) sqlSave(ctx context.Context) (*UserMembership, error) {
+	if err := umc.check(); err != nil {
+		return nil, err
+	}
 	_node, _spec := umc.createSpec()
 	if err := sqlgraph.CreateNode(ctx, umc.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
@@ -211,43 +172,27 @@ func (umc *UserMembershipCreate) sqlSave(ctx context.Context) (*UserMembership, 
 	}
 	id := _spec.ID.Value.(int64)
 	_node.ID = int(id)
+	umc.mutation.id = &_node.ID
+	umc.mutation.done = true
 	return _node, nil
 }
 
 func (umc *UserMembershipCreate) createSpec() (*UserMembership, *sqlgraph.CreateSpec) {
 	var (
 		_node = &UserMembership{config: umc.config}
-		_spec = &sqlgraph.CreateSpec{
-			Table: usermembership.Table,
-			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeInt,
-				Column: usermembership.FieldID,
-			},
-		}
+		_spec = sqlgraph.NewCreateSpec(usermembership.Table, sqlgraph.NewFieldSpec(usermembership.FieldID, field.TypeInt))
 	)
 	_spec.OnConflict = umc.conflict
 	if value, ok := umc.mutation.FirstFailed(); ok {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Value:  value,
-			Column: usermembership.FieldFirstFailed,
-		})
+		_spec.SetField(usermembership.FieldFirstFailed, field.TypeTime, value)
 		_node.FirstFailed = value
 	}
 	if value, ok := umc.mutation.LastVerified(); ok {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Value:  value,
-			Column: usermembership.FieldLastVerified,
-		})
+		_spec.SetField(usermembership.FieldLastVerified, field.TypeTime, value)
 		_node.LastVerified = value
 	}
 	if value, ok := umc.mutation.FailCount(); ok {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeInt,
-			Value:  value,
-			Column: usermembership.FieldFailCount,
-		})
+		_spec.SetField(usermembership.FieldFailCount, field.TypeInt, value)
 		_node.FailCount = value
 	}
 	if nodes := umc.mutation.UserIDs(); len(nodes) > 0 {

@@ -22,11 +22,9 @@ import (
 // GuildRoleQuery is the builder for querying GuildRole entities.
 type GuildRoleQuery struct {
 	config
-	limit               *int
-	offset              *int
-	unique              *bool
+	ctx                 *QueryContext
 	order               []OrderFunc
-	fields              []string
+	inters              []Interceptor
 	predicates          []predicate.GuildRole
 	withGuild           *GuildQuery
 	withUserMemberships *UserMembershipQuery
@@ -44,26 +42,26 @@ func (grq *GuildRoleQuery) Where(ps ...predicate.GuildRole) *GuildRoleQuery {
 	return grq
 }
 
-// Limit adds a limit step to the query.
+// Limit the number of records to be returned by this query.
 func (grq *GuildRoleQuery) Limit(limit int) *GuildRoleQuery {
-	grq.limit = &limit
+	grq.ctx.Limit = &limit
 	return grq
 }
 
-// Offset adds an offset step to the query.
+// Offset to start from.
 func (grq *GuildRoleQuery) Offset(offset int) *GuildRoleQuery {
-	grq.offset = &offset
+	grq.ctx.Offset = &offset
 	return grq
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
 func (grq *GuildRoleQuery) Unique(unique bool) *GuildRoleQuery {
-	grq.unique = &unique
+	grq.ctx.Unique = &unique
 	return grq
 }
 
-// Order adds an order step to the query.
+// Order specifies how the records should be ordered.
 func (grq *GuildRoleQuery) Order(o ...OrderFunc) *GuildRoleQuery {
 	grq.order = append(grq.order, o...)
 	return grq
@@ -71,7 +69,7 @@ func (grq *GuildRoleQuery) Order(o ...OrderFunc) *GuildRoleQuery {
 
 // QueryGuild chains the current query on the "guild" edge.
 func (grq *GuildRoleQuery) QueryGuild() *GuildQuery {
-	query := &GuildQuery{config: grq.config}
+	query := (&GuildClient{config: grq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := grq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -93,7 +91,7 @@ func (grq *GuildRoleQuery) QueryGuild() *GuildQuery {
 
 // QueryUserMemberships chains the current query on the "user_memberships" edge.
 func (grq *GuildRoleQuery) QueryUserMemberships() *UserMembershipQuery {
-	query := &UserMembershipQuery{config: grq.config}
+	query := (&UserMembershipClient{config: grq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := grq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -115,7 +113,7 @@ func (grq *GuildRoleQuery) QueryUserMemberships() *UserMembershipQuery {
 
 // QueryTalent chains the current query on the "talent" edge.
 func (grq *GuildRoleQuery) QueryTalent() *YouTubeTalentQuery {
-	query := &YouTubeTalentQuery{config: grq.config}
+	query := (&YouTubeTalentClient{config: grq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := grq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -138,7 +136,7 @@ func (grq *GuildRoleQuery) QueryTalent() *YouTubeTalentQuery {
 // First returns the first GuildRole entity from the query.
 // Returns a *NotFoundError when no GuildRole was found.
 func (grq *GuildRoleQuery) First(ctx context.Context) (*GuildRole, error) {
-	nodes, err := grq.Limit(1).All(ctx)
+	nodes, err := grq.Limit(1).All(setContextOp(ctx, grq.ctx, "First"))
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +159,7 @@ func (grq *GuildRoleQuery) FirstX(ctx context.Context) *GuildRole {
 // Returns a *NotFoundError when no GuildRole ID was found.
 func (grq *GuildRoleQuery) FirstID(ctx context.Context) (id uint64, err error) {
 	var ids []uint64
-	if ids, err = grq.Limit(1).IDs(ctx); err != nil {
+	if ids, err = grq.Limit(1).IDs(setContextOp(ctx, grq.ctx, "FirstID")); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -184,7 +182,7 @@ func (grq *GuildRoleQuery) FirstIDX(ctx context.Context) uint64 {
 // Returns a *NotSingularError when more than one GuildRole entity is found.
 // Returns a *NotFoundError when no GuildRole entities are found.
 func (grq *GuildRoleQuery) Only(ctx context.Context) (*GuildRole, error) {
-	nodes, err := grq.Limit(2).All(ctx)
+	nodes, err := grq.Limit(2).All(setContextOp(ctx, grq.ctx, "Only"))
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +210,7 @@ func (grq *GuildRoleQuery) OnlyX(ctx context.Context) *GuildRole {
 // Returns a *NotFoundError when no entities are found.
 func (grq *GuildRoleQuery) OnlyID(ctx context.Context) (id uint64, err error) {
 	var ids []uint64
-	if ids, err = grq.Limit(2).IDs(ctx); err != nil {
+	if ids, err = grq.Limit(2).IDs(setContextOp(ctx, grq.ctx, "OnlyID")); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -237,10 +235,12 @@ func (grq *GuildRoleQuery) OnlyIDX(ctx context.Context) uint64 {
 
 // All executes the query and returns a list of GuildRoles.
 func (grq *GuildRoleQuery) All(ctx context.Context) ([]*GuildRole, error) {
+	ctx = setContextOp(ctx, grq.ctx, "All")
 	if err := grq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	return grq.sqlAll(ctx)
+	qr := querierAll[[]*GuildRole, *GuildRoleQuery]()
+	return withInterceptors[[]*GuildRole](ctx, grq, qr, grq.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
@@ -253,9 +253,12 @@ func (grq *GuildRoleQuery) AllX(ctx context.Context) []*GuildRole {
 }
 
 // IDs executes the query and returns a list of GuildRole IDs.
-func (grq *GuildRoleQuery) IDs(ctx context.Context) ([]uint64, error) {
-	var ids []uint64
-	if err := grq.Select(guildrole.FieldID).Scan(ctx, &ids); err != nil {
+func (grq *GuildRoleQuery) IDs(ctx context.Context) (ids []uint64, err error) {
+	if grq.ctx.Unique == nil && grq.path != nil {
+		grq.Unique(true)
+	}
+	ctx = setContextOp(ctx, grq.ctx, "IDs")
+	if err = grq.Select(guildrole.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
@@ -272,10 +275,11 @@ func (grq *GuildRoleQuery) IDsX(ctx context.Context) []uint64 {
 
 // Count returns the count of the given query.
 func (grq *GuildRoleQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, grq.ctx, "Count")
 	if err := grq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return grq.sqlCount(ctx)
+	return withInterceptors[int](ctx, grq, querierCount[*GuildRoleQuery](), grq.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
@@ -289,10 +293,15 @@ func (grq *GuildRoleQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (grq *GuildRoleQuery) Exist(ctx context.Context) (bool, error) {
-	if err := grq.prepareQuery(ctx); err != nil {
-		return false, err
+	ctx = setContextOp(ctx, grq.ctx, "Exist")
+	switch _, err := grq.FirstID(ctx); {
+	case IsNotFound(err):
+		return false, nil
+	case err != nil:
+		return false, fmt.Errorf("ent: check existence: %w", err)
+	default:
+		return true, nil
 	}
-	return grq.sqlExist(ctx)
 }
 
 // ExistX is like Exist, but panics if an error occurs.
@@ -312,24 +321,23 @@ func (grq *GuildRoleQuery) Clone() *GuildRoleQuery {
 	}
 	return &GuildRoleQuery{
 		config:              grq.config,
-		limit:               grq.limit,
-		offset:              grq.offset,
+		ctx:                 grq.ctx.Clone(),
 		order:               append([]OrderFunc{}, grq.order...),
+		inters:              append([]Interceptor{}, grq.inters...),
 		predicates:          append([]predicate.GuildRole{}, grq.predicates...),
 		withGuild:           grq.withGuild.Clone(),
 		withUserMemberships: grq.withUserMemberships.Clone(),
 		withTalent:          grq.withTalent.Clone(),
 		// clone intermediate query.
-		sql:    grq.sql.Clone(),
-		path:   grq.path,
-		unique: grq.unique,
+		sql:  grq.sql.Clone(),
+		path: grq.path,
 	}
 }
 
 // WithGuild tells the query-builder to eager-load the nodes that are connected to
 // the "guild" edge. The optional arguments are used to configure the query builder of the edge.
 func (grq *GuildRoleQuery) WithGuild(opts ...func(*GuildQuery)) *GuildRoleQuery {
-	query := &GuildQuery{config: grq.config}
+	query := (&GuildClient{config: grq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
@@ -340,7 +348,7 @@ func (grq *GuildRoleQuery) WithGuild(opts ...func(*GuildQuery)) *GuildRoleQuery 
 // WithUserMemberships tells the query-builder to eager-load the nodes that are connected to
 // the "user_memberships" edge. The optional arguments are used to configure the query builder of the edge.
 func (grq *GuildRoleQuery) WithUserMemberships(opts ...func(*UserMembershipQuery)) *GuildRoleQuery {
-	query := &UserMembershipQuery{config: grq.config}
+	query := (&UserMembershipClient{config: grq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
@@ -351,7 +359,7 @@ func (grq *GuildRoleQuery) WithUserMemberships(opts ...func(*UserMembershipQuery
 // WithTalent tells the query-builder to eager-load the nodes that are connected to
 // the "talent" edge. The optional arguments are used to configure the query builder of the edge.
 func (grq *GuildRoleQuery) WithTalent(opts ...func(*YouTubeTalentQuery)) *GuildRoleQuery {
-	query := &YouTubeTalentQuery{config: grq.config}
+	query := (&YouTubeTalentClient{config: grq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
@@ -374,16 +382,11 @@ func (grq *GuildRoleQuery) WithTalent(opts ...func(*YouTubeTalentQuery)) *GuildR
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (grq *GuildRoleQuery) GroupBy(field string, fields ...string) *GuildRoleGroupBy {
-	grbuild := &GuildRoleGroupBy{config: grq.config}
-	grbuild.fields = append([]string{field}, fields...)
-	grbuild.path = func(ctx context.Context) (prev *sql.Selector, err error) {
-		if err := grq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		return grq.sqlQuery(ctx), nil
-	}
+	grq.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &GuildRoleGroupBy{build: grq}
+	grbuild.flds = &grq.ctx.Fields
 	grbuild.label = guildrole.Label
-	grbuild.flds, grbuild.scan = &grbuild.fields, grbuild.Scan
+	grbuild.scan = grbuild.Scan
 	return grbuild
 }
 
@@ -400,15 +403,30 @@ func (grq *GuildRoleQuery) GroupBy(field string, fields ...string) *GuildRoleGro
 //		Select(guildrole.FieldName).
 //		Scan(ctx, &v)
 func (grq *GuildRoleQuery) Select(fields ...string) *GuildRoleSelect {
-	grq.fields = append(grq.fields, fields...)
-	selbuild := &GuildRoleSelect{GuildRoleQuery: grq}
-	selbuild.label = guildrole.Label
-	selbuild.flds, selbuild.scan = &grq.fields, selbuild.Scan
-	return selbuild
+	grq.ctx.Fields = append(grq.ctx.Fields, fields...)
+	sbuild := &GuildRoleSelect{GuildRoleQuery: grq}
+	sbuild.label = guildrole.Label
+	sbuild.flds, sbuild.scan = &grq.ctx.Fields, sbuild.Scan
+	return sbuild
+}
+
+// Aggregate returns a GuildRoleSelect configured with the given aggregations.
+func (grq *GuildRoleQuery) Aggregate(fns ...AggregateFunc) *GuildRoleSelect {
+	return grq.Select().Aggregate(fns...)
 }
 
 func (grq *GuildRoleQuery) prepareQuery(ctx context.Context) error {
-	for _, f := range grq.fields {
+	for _, inter := range grq.inters {
+		if inter == nil {
+			return fmt.Errorf("ent: uninitialized interceptor (forgotten import ent/runtime?)")
+		}
+		if trv, ok := inter.(Traverser); ok {
+			if err := trv.Traverse(ctx, grq); err != nil {
+				return err
+			}
+		}
+	}
+	for _, f := range grq.ctx.Fields {
 		if !guildrole.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("ent: invalid field %q for query", f)}
 		}
@@ -440,10 +458,10 @@ func (grq *GuildRoleQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*G
 	if withFKs {
 		_spec.Node.Columns = append(_spec.Node.Columns, guildrole.ForeignKeys...)
 	}
-	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
+	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*GuildRole).scanValues(nil, columns)
 	}
-	_spec.Assign = func(columns []string, values []interface{}) error {
+	_spec.Assign = func(columns []string, values []any) error {
 		node := &GuildRole{config: grq.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
@@ -496,6 +514,9 @@ func (grq *GuildRoleQuery) loadGuild(ctx context.Context, query *GuildQuery, nod
 		}
 		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
+	if len(ids) == 0 {
+		return nil
+	}
 	query.Where(guild.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -535,27 +556,30 @@ func (grq *GuildRoleQuery) loadUserMemberships(ctx context.Context, query *UserM
 	if err := query.prepareQuery(ctx); err != nil {
 		return err
 	}
-	neighbors, err := query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
-		assign := spec.Assign
-		values := spec.ScanValues
-		spec.ScanValues = func(columns []string) ([]interface{}, error) {
-			values, err := values(columns[1:])
-			if err != nil {
-				return nil, err
+	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
+		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+			assign := spec.Assign
+			values := spec.ScanValues
+			spec.ScanValues = func(columns []string) ([]any, error) {
+				values, err := values(columns[1:])
+				if err != nil {
+					return nil, err
+				}
+				return append([]any{new(sql.NullInt64)}, values...), nil
 			}
-			return append([]interface{}{new(sql.NullInt64)}, values...), nil
-		}
-		spec.Assign = func(columns []string, values []interface{}) error {
-			outValue := uint64(values[0].(*sql.NullInt64).Int64)
-			inValue := int(values[1].(*sql.NullInt64).Int64)
-			if nids[inValue] == nil {
-				nids[inValue] = map[*GuildRole]struct{}{byID[outValue]: struct{}{}}
-				return assign(columns[1:], values[1:])
+			spec.Assign = func(columns []string, values []any) error {
+				outValue := uint64(values[0].(*sql.NullInt64).Int64)
+				inValue := int(values[1].(*sql.NullInt64).Int64)
+				if nids[inValue] == nil {
+					nids[inValue] = map[*GuildRole]struct{}{byID[outValue]: {}}
+					return assign(columns[1:], values[1:])
+				}
+				nids[inValue][byID[outValue]] = struct{}{}
+				return nil
 			}
-			nids[inValue][byID[outValue]] = struct{}{}
-			return nil
-		}
+		})
 	})
+	neighbors, err := withInterceptors[[]*UserMembership](ctx, query, qr, query.inters)
 	if err != nil {
 		return err
 	}
@@ -583,6 +607,9 @@ func (grq *GuildRoleQuery) loadTalent(ctx context.Context, query *YouTubeTalentQ
 		}
 		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
+	if len(ids) == 0 {
+		return nil
+	}
 	query.Where(youtubetalent.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -605,38 +632,22 @@ func (grq *GuildRoleQuery) sqlCount(ctx context.Context) (int, error) {
 	if len(grq.modifiers) > 0 {
 		_spec.Modifiers = grq.modifiers
 	}
-	_spec.Node.Columns = grq.fields
-	if len(grq.fields) > 0 {
-		_spec.Unique = grq.unique != nil && *grq.unique
+	_spec.Node.Columns = grq.ctx.Fields
+	if len(grq.ctx.Fields) > 0 {
+		_spec.Unique = grq.ctx.Unique != nil && *grq.ctx.Unique
 	}
 	return sqlgraph.CountNodes(ctx, grq.driver, _spec)
 }
 
-func (grq *GuildRoleQuery) sqlExist(ctx context.Context) (bool, error) {
-	n, err := grq.sqlCount(ctx)
-	if err != nil {
-		return false, fmt.Errorf("ent: check existence: %w", err)
-	}
-	return n > 0, nil
-}
-
 func (grq *GuildRoleQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := &sqlgraph.QuerySpec{
-		Node: &sqlgraph.NodeSpec{
-			Table:   guildrole.Table,
-			Columns: guildrole.Columns,
-			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeUint64,
-				Column: guildrole.FieldID,
-			},
-		},
-		From:   grq.sql,
-		Unique: true,
-	}
-	if unique := grq.unique; unique != nil {
+	_spec := sqlgraph.NewQuerySpec(guildrole.Table, guildrole.Columns, sqlgraph.NewFieldSpec(guildrole.FieldID, field.TypeUint64))
+	_spec.From = grq.sql
+	if unique := grq.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
+	} else if grq.path != nil {
+		_spec.Unique = true
 	}
-	if fields := grq.fields; len(fields) > 0 {
+	if fields := grq.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, guildrole.FieldID)
 		for i := range fields {
@@ -652,10 +663,10 @@ func (grq *GuildRoleQuery) querySpec() *sqlgraph.QuerySpec {
 			}
 		}
 	}
-	if limit := grq.limit; limit != nil {
+	if limit := grq.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := grq.offset; offset != nil {
+	if offset := grq.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
 	if ps := grq.order; len(ps) > 0 {
@@ -671,7 +682,7 @@ func (grq *GuildRoleQuery) querySpec() *sqlgraph.QuerySpec {
 func (grq *GuildRoleQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(grq.driver.Dialect())
 	t1 := builder.Table(guildrole.Table)
-	columns := grq.fields
+	columns := grq.ctx.Fields
 	if len(columns) == 0 {
 		columns = guildrole.Columns
 	}
@@ -680,7 +691,7 @@ func (grq *GuildRoleQuery) sqlQuery(ctx context.Context) *sql.Selector {
 		selector = grq.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if grq.unique != nil && *grq.unique {
+	if grq.ctx.Unique != nil && *grq.ctx.Unique {
 		selector.Distinct()
 	}
 	for _, m := range grq.modifiers {
@@ -692,12 +703,12 @@ func (grq *GuildRoleQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	for _, p := range grq.order {
 		p(selector)
 	}
-	if offset := grq.offset; offset != nil {
+	if offset := grq.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := grq.limit; limit != nil {
+	if limit := grq.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -731,13 +742,8 @@ func (grq *GuildRoleQuery) ForShare(opts ...sql.LockOption) *GuildRoleQuery {
 
 // GuildRoleGroupBy is the group-by builder for GuildRole entities.
 type GuildRoleGroupBy struct {
-	config
 	selector
-	fields []string
-	fns    []AggregateFunc
-	// intermediate query (i.e. traversal path).
-	sql  *sql.Selector
-	path func(context.Context) (*sql.Selector, error)
+	build *GuildRoleQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
@@ -746,74 +752,77 @@ func (grgb *GuildRoleGroupBy) Aggregate(fns ...AggregateFunc) *GuildRoleGroupBy 
 	return grgb
 }
 
-// Scan applies the group-by query and scans the result into the given value.
-func (grgb *GuildRoleGroupBy) Scan(ctx context.Context, v interface{}) error {
-	query, err := grgb.path(ctx)
-	if err != nil {
+// Scan applies the selector query and scans the result into the given value.
+func (grgb *GuildRoleGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, grgb.build.ctx, "GroupBy")
+	if err := grgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	grgb.sql = query
-	return grgb.sqlScan(ctx, v)
+	return scanWithInterceptors[*GuildRoleQuery, *GuildRoleGroupBy](ctx, grgb.build, grgb, grgb.build.inters, v)
 }
 
-func (grgb *GuildRoleGroupBy) sqlScan(ctx context.Context, v interface{}) error {
-	for _, f := range grgb.fields {
-		if !guildrole.ValidColumn(f) {
-			return &ValidationError{Name: f, err: fmt.Errorf("invalid field %q for group-by", f)}
-		}
+func (grgb *GuildRoleGroupBy) sqlScan(ctx context.Context, root *GuildRoleQuery, v any) error {
+	selector := root.sqlQuery(ctx).Select()
+	aggregation := make([]string, 0, len(grgb.fns))
+	for _, fn := range grgb.fns {
+		aggregation = append(aggregation, fn(selector))
 	}
-	selector := grgb.sqlQuery()
+	if len(selector.SelectedColumns()) == 0 {
+		columns := make([]string, 0, len(*grgb.flds)+len(grgb.fns))
+		for _, f := range *grgb.flds {
+			columns = append(columns, selector.C(f))
+		}
+		columns = append(columns, aggregation...)
+		selector.Select(columns...)
+	}
+	selector.GroupBy(selector.Columns(*grgb.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := grgb.driver.Query(ctx, query, args, rows); err != nil {
+	if err := grgb.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
 	return sql.ScanSlice(rows, v)
 }
 
-func (grgb *GuildRoleGroupBy) sqlQuery() *sql.Selector {
-	selector := grgb.sql.Select()
-	aggregation := make([]string, 0, len(grgb.fns))
-	for _, fn := range grgb.fns {
-		aggregation = append(aggregation, fn(selector))
-	}
-	// If no columns were selected in a custom aggregation function, the default
-	// selection is the fields used for "group-by", and the aggregation functions.
-	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(grgb.fields)+len(grgb.fns))
-		for _, f := range grgb.fields {
-			columns = append(columns, selector.C(f))
-		}
-		columns = append(columns, aggregation...)
-		selector.Select(columns...)
-	}
-	return selector.GroupBy(selector.Columns(grgb.fields...)...)
-}
-
 // GuildRoleSelect is the builder for selecting fields of GuildRole entities.
 type GuildRoleSelect struct {
 	*GuildRoleQuery
 	selector
-	// intermediate query (i.e. traversal path).
-	sql *sql.Selector
+}
+
+// Aggregate adds the given aggregation functions to the selector query.
+func (grs *GuildRoleSelect) Aggregate(fns ...AggregateFunc) *GuildRoleSelect {
+	grs.fns = append(grs.fns, fns...)
+	return grs
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (grs *GuildRoleSelect) Scan(ctx context.Context, v interface{}) error {
+func (grs *GuildRoleSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, grs.ctx, "Select")
 	if err := grs.prepareQuery(ctx); err != nil {
 		return err
 	}
-	grs.sql = grs.GuildRoleQuery.sqlQuery(ctx)
-	return grs.sqlScan(ctx, v)
+	return scanWithInterceptors[*GuildRoleQuery, *GuildRoleSelect](ctx, grs.GuildRoleQuery, grs, grs.inters, v)
 }
 
-func (grs *GuildRoleSelect) sqlScan(ctx context.Context, v interface{}) error {
+func (grs *GuildRoleSelect) sqlScan(ctx context.Context, root *GuildRoleQuery, v any) error {
+	selector := root.sqlQuery(ctx)
+	aggregation := make([]string, 0, len(grs.fns))
+	for _, fn := range grs.fns {
+		aggregation = append(aggregation, fn(selector))
+	}
+	switch n := len(*grs.selector.flds); {
+	case n == 0 && len(aggregation) > 0:
+		selector.Select(aggregation...)
+	case n != 0 && len(aggregation) > 0:
+		selector.AppendSelect(aggregation...)
+	}
 	rows := &sql.Rows{}
-	query, args := grs.sql.Query()
+	query, args := selector.Query()
 	if err := grs.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}

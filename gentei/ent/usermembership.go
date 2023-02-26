@@ -80,8 +80,8 @@ func (e UserMembershipEdges) RolesOrErr() ([]*GuildRole, error) {
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
-func (*UserMembership) scanValues(columns []string) ([]interface{}, error) {
-	values := make([]interface{}, len(columns))
+func (*UserMembership) scanValues(columns []string) ([]any, error) {
+	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
 		case usermembership.FieldID, usermembership.FieldFailCount:
@@ -101,7 +101,7 @@ func (*UserMembership) scanValues(columns []string) ([]interface{}, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the UserMembership fields.
-func (um *UserMembership) assignValues(columns []string, values []interface{}) error {
+func (um *UserMembership) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -152,24 +152,24 @@ func (um *UserMembership) assignValues(columns []string, values []interface{}) e
 
 // QueryUser queries the "user" edge of the UserMembership entity.
 func (um *UserMembership) QueryUser() *UserQuery {
-	return (&UserMembershipClient{config: um.config}).QueryUser(um)
+	return NewUserMembershipClient(um.config).QueryUser(um)
 }
 
 // QueryYoutubeTalent queries the "youtube_talent" edge of the UserMembership entity.
 func (um *UserMembership) QueryYoutubeTalent() *YouTubeTalentQuery {
-	return (&UserMembershipClient{config: um.config}).QueryYoutubeTalent(um)
+	return NewUserMembershipClient(um.config).QueryYoutubeTalent(um)
 }
 
 // QueryRoles queries the "roles" edge of the UserMembership entity.
 func (um *UserMembership) QueryRoles() *GuildRoleQuery {
-	return (&UserMembershipClient{config: um.config}).QueryRoles(um)
+	return NewUserMembershipClient(um.config).QueryRoles(um)
 }
 
 // Update returns a builder for updating this UserMembership.
 // Note that you need to call UserMembership.Unwrap() before calling this method if this UserMembership
 // was returned from a transaction, and the transaction was committed or rolled back.
 func (um *UserMembership) Update() *UserMembershipUpdateOne {
-	return (&UserMembershipClient{config: um.config}).UpdateOne(um)
+	return NewUserMembershipClient(um.config).UpdateOne(um)
 }
 
 // Unwrap unwraps the UserMembership entity that was returned from a transaction after it was closed,
@@ -202,9 +202,3 @@ func (um *UserMembership) String() string {
 
 // UserMemberships is a parsable slice of UserMembership.
 type UserMemberships []*UserMembership
-
-func (um UserMemberships) config(cfg config) {
-	for _i := range um {
-		um[_i].config = cfg
-	}
-}

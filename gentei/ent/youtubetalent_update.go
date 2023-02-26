@@ -232,34 +232,7 @@ func (yttu *YouTubeTalentUpdate) RemoveMemberships(u ...*UserMembership) *YouTub
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (yttu *YouTubeTalentUpdate) Save(ctx context.Context) (int, error) {
-	var (
-		err      error
-		affected int
-	)
-	if len(yttu.hooks) == 0 {
-		affected, err = yttu.sqlSave(ctx)
-	} else {
-		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
-			mutation, ok := m.(*YouTubeTalentMutation)
-			if !ok {
-				return nil, fmt.Errorf("unexpected mutation type %T", m)
-			}
-			yttu.mutation = mutation
-			affected, err = yttu.sqlSave(ctx)
-			mutation.done = true
-			return affected, err
-		})
-		for i := len(yttu.hooks) - 1; i >= 0; i-- {
-			if yttu.hooks[i] == nil {
-				return 0, fmt.Errorf("ent: uninitialized hook (forgotten import ent/runtime?)")
-			}
-			mut = yttu.hooks[i](mut)
-		}
-		if _, err := mut.Mutate(ctx, yttu.mutation); err != nil {
-			return 0, err
-		}
-	}
-	return affected, err
+	return withHooks[int, YouTubeTalentMutation](ctx, yttu.sqlSave, yttu.mutation, yttu.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
@@ -285,16 +258,7 @@ func (yttu *YouTubeTalentUpdate) ExecX(ctx context.Context) {
 }
 
 func (yttu *YouTubeTalentUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	_spec := &sqlgraph.UpdateSpec{
-		Node: &sqlgraph.NodeSpec{
-			Table:   youtubetalent.Table,
-			Columns: youtubetalent.Columns,
-			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeString,
-				Column: youtubetalent.FieldID,
-			},
-		},
-	}
+	_spec := sqlgraph.NewUpdateSpec(youtubetalent.Table, youtubetalent.Columns, sqlgraph.NewFieldSpec(youtubetalent.FieldID, field.TypeString))
 	if ps := yttu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -303,64 +267,31 @@ func (yttu *YouTubeTalentUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 	}
 	if value, ok := yttu.mutation.ChannelName(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: youtubetalent.FieldChannelName,
-		})
+		_spec.SetField(youtubetalent.FieldChannelName, field.TypeString, value)
 	}
 	if value, ok := yttu.mutation.ThumbnailURL(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: youtubetalent.FieldThumbnailURL,
-		})
+		_spec.SetField(youtubetalent.FieldThumbnailURL, field.TypeString, value)
 	}
 	if value, ok := yttu.mutation.MembershipVideoID(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: youtubetalent.FieldMembershipVideoID,
-		})
+		_spec.SetField(youtubetalent.FieldMembershipVideoID, field.TypeString, value)
 	}
 	if yttu.mutation.MembershipVideoIDCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Column: youtubetalent.FieldMembershipVideoID,
-		})
+		_spec.ClearField(youtubetalent.FieldMembershipVideoID, field.TypeString)
 	}
 	if value, ok := yttu.mutation.LastMembershipVideoIDMiss(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Value:  value,
-			Column: youtubetalent.FieldLastMembershipVideoIDMiss,
-		})
+		_spec.SetField(youtubetalent.FieldLastMembershipVideoIDMiss, field.TypeTime, value)
 	}
 	if yttu.mutation.LastMembershipVideoIDMissCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Column: youtubetalent.FieldLastMembershipVideoIDMiss,
-		})
+		_spec.ClearField(youtubetalent.FieldLastMembershipVideoIDMiss, field.TypeTime)
 	}
 	if value, ok := yttu.mutation.LastUpdated(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Value:  value,
-			Column: youtubetalent.FieldLastUpdated,
-		})
+		_spec.SetField(youtubetalent.FieldLastUpdated, field.TypeTime, value)
 	}
 	if value, ok := yttu.mutation.Disabled(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Value:  value,
-			Column: youtubetalent.FieldDisabled,
-		})
+		_spec.SetField(youtubetalent.FieldDisabled, field.TypeTime, value)
 	}
 	if yttu.mutation.DisabledCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Column: youtubetalent.FieldDisabled,
-		})
+		_spec.ClearField(youtubetalent.FieldDisabled, field.TypeTime)
 	}
 	if yttu.mutation.GuildsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -532,6 +463,7 @@ func (yttu *YouTubeTalentUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		return 0, err
 	}
+	yttu.mutation.done = true
 	return n, nil
 }
 
@@ -742,6 +674,12 @@ func (yttuo *YouTubeTalentUpdateOne) RemoveMemberships(u ...*UserMembership) *Yo
 	return yttuo.RemoveMembershipIDs(ids...)
 }
 
+// Where appends a list predicates to the YouTubeTalentUpdate builder.
+func (yttuo *YouTubeTalentUpdateOne) Where(ps ...predicate.YouTubeTalent) *YouTubeTalentUpdateOne {
+	yttuo.mutation.Where(ps...)
+	return yttuo
+}
+
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
 func (yttuo *YouTubeTalentUpdateOne) Select(field string, fields ...string) *YouTubeTalentUpdateOne {
@@ -751,40 +689,7 @@ func (yttuo *YouTubeTalentUpdateOne) Select(field string, fields ...string) *You
 
 // Save executes the query and returns the updated YouTubeTalent entity.
 func (yttuo *YouTubeTalentUpdateOne) Save(ctx context.Context) (*YouTubeTalent, error) {
-	var (
-		err  error
-		node *YouTubeTalent
-	)
-	if len(yttuo.hooks) == 0 {
-		node, err = yttuo.sqlSave(ctx)
-	} else {
-		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
-			mutation, ok := m.(*YouTubeTalentMutation)
-			if !ok {
-				return nil, fmt.Errorf("unexpected mutation type %T", m)
-			}
-			yttuo.mutation = mutation
-			node, err = yttuo.sqlSave(ctx)
-			mutation.done = true
-			return node, err
-		})
-		for i := len(yttuo.hooks) - 1; i >= 0; i-- {
-			if yttuo.hooks[i] == nil {
-				return nil, fmt.Errorf("ent: uninitialized hook (forgotten import ent/runtime?)")
-			}
-			mut = yttuo.hooks[i](mut)
-		}
-		v, err := mut.Mutate(ctx, yttuo.mutation)
-		if err != nil {
-			return nil, err
-		}
-		nv, ok := v.(*YouTubeTalent)
-		if !ok {
-			return nil, fmt.Errorf("unexpected node type %T returned from YouTubeTalentMutation", v)
-		}
-		node = nv
-	}
-	return node, err
+	return withHooks[*YouTubeTalent, YouTubeTalentMutation](ctx, yttuo.sqlSave, yttuo.mutation, yttuo.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
@@ -810,16 +715,7 @@ func (yttuo *YouTubeTalentUpdateOne) ExecX(ctx context.Context) {
 }
 
 func (yttuo *YouTubeTalentUpdateOne) sqlSave(ctx context.Context) (_node *YouTubeTalent, err error) {
-	_spec := &sqlgraph.UpdateSpec{
-		Node: &sqlgraph.NodeSpec{
-			Table:   youtubetalent.Table,
-			Columns: youtubetalent.Columns,
-			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeString,
-				Column: youtubetalent.FieldID,
-			},
-		},
-	}
+	_spec := sqlgraph.NewUpdateSpec(youtubetalent.Table, youtubetalent.Columns, sqlgraph.NewFieldSpec(youtubetalent.FieldID, field.TypeString))
 	id, ok := yttuo.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "YouTubeTalent.id" for update`)}
@@ -845,64 +741,31 @@ func (yttuo *YouTubeTalentUpdateOne) sqlSave(ctx context.Context) (_node *YouTub
 		}
 	}
 	if value, ok := yttuo.mutation.ChannelName(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: youtubetalent.FieldChannelName,
-		})
+		_spec.SetField(youtubetalent.FieldChannelName, field.TypeString, value)
 	}
 	if value, ok := yttuo.mutation.ThumbnailURL(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: youtubetalent.FieldThumbnailURL,
-		})
+		_spec.SetField(youtubetalent.FieldThumbnailURL, field.TypeString, value)
 	}
 	if value, ok := yttuo.mutation.MembershipVideoID(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: youtubetalent.FieldMembershipVideoID,
-		})
+		_spec.SetField(youtubetalent.FieldMembershipVideoID, field.TypeString, value)
 	}
 	if yttuo.mutation.MembershipVideoIDCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Column: youtubetalent.FieldMembershipVideoID,
-		})
+		_spec.ClearField(youtubetalent.FieldMembershipVideoID, field.TypeString)
 	}
 	if value, ok := yttuo.mutation.LastMembershipVideoIDMiss(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Value:  value,
-			Column: youtubetalent.FieldLastMembershipVideoIDMiss,
-		})
+		_spec.SetField(youtubetalent.FieldLastMembershipVideoIDMiss, field.TypeTime, value)
 	}
 	if yttuo.mutation.LastMembershipVideoIDMissCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Column: youtubetalent.FieldLastMembershipVideoIDMiss,
-		})
+		_spec.ClearField(youtubetalent.FieldLastMembershipVideoIDMiss, field.TypeTime)
 	}
 	if value, ok := yttuo.mutation.LastUpdated(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Value:  value,
-			Column: youtubetalent.FieldLastUpdated,
-		})
+		_spec.SetField(youtubetalent.FieldLastUpdated, field.TypeTime, value)
 	}
 	if value, ok := yttuo.mutation.Disabled(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Value:  value,
-			Column: youtubetalent.FieldDisabled,
-		})
+		_spec.SetField(youtubetalent.FieldDisabled, field.TypeTime, value)
 	}
 	if yttuo.mutation.DisabledCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Column: youtubetalent.FieldDisabled,
-		})
+		_spec.ClearField(youtubetalent.FieldDisabled, field.TypeTime)
 	}
 	if yttuo.mutation.GuildsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1077,5 +940,6 @@ func (yttuo *YouTubeTalentUpdateOne) sqlSave(ctx context.Context) (_node *YouTub
 		}
 		return nil, err
 	}
+	yttuo.mutation.done = true
 	return _node, nil
 }

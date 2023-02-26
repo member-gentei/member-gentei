@@ -4,7 +4,6 @@ package ent
 
 import (
 	"context"
-	"fmt"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -28,34 +27,7 @@ func (umd *UserMembershipDelete) Where(ps ...predicate.UserMembership) *UserMemb
 
 // Exec executes the deletion query and returns how many vertices were deleted.
 func (umd *UserMembershipDelete) Exec(ctx context.Context) (int, error) {
-	var (
-		err      error
-		affected int
-	)
-	if len(umd.hooks) == 0 {
-		affected, err = umd.sqlExec(ctx)
-	} else {
-		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
-			mutation, ok := m.(*UserMembershipMutation)
-			if !ok {
-				return nil, fmt.Errorf("unexpected mutation type %T", m)
-			}
-			umd.mutation = mutation
-			affected, err = umd.sqlExec(ctx)
-			mutation.done = true
-			return affected, err
-		})
-		for i := len(umd.hooks) - 1; i >= 0; i-- {
-			if umd.hooks[i] == nil {
-				return 0, fmt.Errorf("ent: uninitialized hook (forgotten import ent/runtime?)")
-			}
-			mut = umd.hooks[i](mut)
-		}
-		if _, err := mut.Mutate(ctx, umd.mutation); err != nil {
-			return 0, err
-		}
-	}
-	return affected, err
+	return withHooks[int, UserMembershipMutation](ctx, umd.sqlExec, umd.mutation, umd.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
@@ -68,15 +40,7 @@ func (umd *UserMembershipDelete) ExecX(ctx context.Context) int {
 }
 
 func (umd *UserMembershipDelete) sqlExec(ctx context.Context) (int, error) {
-	_spec := &sqlgraph.DeleteSpec{
-		Node: &sqlgraph.NodeSpec{
-			Table: usermembership.Table,
-			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeInt,
-				Column: usermembership.FieldID,
-			},
-		},
-	}
+	_spec := sqlgraph.NewDeleteSpec(usermembership.Table, sqlgraph.NewFieldSpec(usermembership.FieldID, field.TypeInt))
 	if ps := umd.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -88,12 +52,19 @@ func (umd *UserMembershipDelete) sqlExec(ctx context.Context) (int, error) {
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
+	umd.mutation.done = true
 	return affected, err
 }
 
 // UserMembershipDeleteOne is the builder for deleting a single UserMembership entity.
 type UserMembershipDeleteOne struct {
 	umd *UserMembershipDelete
+}
+
+// Where appends a list predicates to the UserMembershipDelete builder.
+func (umdo *UserMembershipDeleteOne) Where(ps ...predicate.UserMembership) *UserMembershipDeleteOne {
+	umdo.umd.mutation.Where(ps...)
+	return umdo
 }
 
 // Exec executes the deletion query.
@@ -111,5 +82,7 @@ func (umdo *UserMembershipDeleteOne) Exec(ctx context.Context) error {
 
 // ExecX is like Exec, but panics if an error occurs.
 func (umdo *UserMembershipDeleteOne) ExecX(ctx context.Context) {
-	umdo.umd.ExecX(ctx)
+	if err := umdo.Exec(ctx); err != nil {
+		panic(err)
+	}
 }

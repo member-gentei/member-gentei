@@ -15,11 +15,10 @@ type GuildFunc func(context.Context, *ent.GuildMutation) (ent.Value, error)
 
 // Mutate calls f(ctx, m).
 func (f GuildFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	mv, ok := m.(*ent.GuildMutation)
-	if !ok {
-		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GuildMutation", m)
+	if mv, ok := m.(*ent.GuildMutation); ok {
+		return f(ctx, mv)
 	}
-	return f(ctx, mv)
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GuildMutation", m)
 }
 
 // The GuildRoleFunc type is an adapter to allow the use of ordinary
@@ -28,11 +27,10 @@ type GuildRoleFunc func(context.Context, *ent.GuildRoleMutation) (ent.Value, err
 
 // Mutate calls f(ctx, m).
 func (f GuildRoleFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	mv, ok := m.(*ent.GuildRoleMutation)
-	if !ok {
-		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GuildRoleMutation", m)
+	if mv, ok := m.(*ent.GuildRoleMutation); ok {
+		return f(ctx, mv)
 	}
-	return f(ctx, mv)
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.GuildRoleMutation", m)
 }
 
 // The UserFunc type is an adapter to allow the use of ordinary
@@ -41,11 +39,10 @@ type UserFunc func(context.Context, *ent.UserMutation) (ent.Value, error)
 
 // Mutate calls f(ctx, m).
 func (f UserFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	mv, ok := m.(*ent.UserMutation)
-	if !ok {
-		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserMutation", m)
+	if mv, ok := m.(*ent.UserMutation); ok {
+		return f(ctx, mv)
 	}
-	return f(ctx, mv)
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserMutation", m)
 }
 
 // The UserMembershipFunc type is an adapter to allow the use of ordinary
@@ -54,11 +51,10 @@ type UserMembershipFunc func(context.Context, *ent.UserMembershipMutation) (ent.
 
 // Mutate calls f(ctx, m).
 func (f UserMembershipFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	mv, ok := m.(*ent.UserMembershipMutation)
-	if !ok {
-		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserMembershipMutation", m)
+	if mv, ok := m.(*ent.UserMembershipMutation); ok {
+		return f(ctx, mv)
 	}
-	return f(ctx, mv)
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserMembershipMutation", m)
 }
 
 // The YouTubeTalentFunc type is an adapter to allow the use of ordinary
@@ -67,11 +63,10 @@ type YouTubeTalentFunc func(context.Context, *ent.YouTubeTalentMutation) (ent.Va
 
 // Mutate calls f(ctx, m).
 func (f YouTubeTalentFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	mv, ok := m.(*ent.YouTubeTalentMutation)
-	if !ok {
-		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.YouTubeTalentMutation", m)
+	if mv, ok := m.(*ent.YouTubeTalentMutation); ok {
+		return f(ctx, mv)
 	}
-	return f(ctx, mv)
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.YouTubeTalentMutation", m)
 }
 
 // Condition is a hook condition function.

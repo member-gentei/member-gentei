@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
 	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
@@ -104,9 +105,21 @@ func (gu *GuildUpdate) SetAdminSnowflakes(u []uint64) *GuildUpdate {
 	return gu
 }
 
+// AppendAdminSnowflakes appends u to the "admin_snowflakes" field.
+func (gu *GuildUpdate) AppendAdminSnowflakes(u []uint64) *GuildUpdate {
+	gu.mutation.AppendAdminSnowflakes(u)
+	return gu
+}
+
 // SetModeratorSnowflakes sets the "moderator_snowflakes" field.
 func (gu *GuildUpdate) SetModeratorSnowflakes(u []uint64) *GuildUpdate {
 	gu.mutation.SetModeratorSnowflakes(u)
+	return gu
+}
+
+// AppendModeratorSnowflakes appends u to the "moderator_snowflakes" field.
+func (gu *GuildUpdate) AppendModeratorSnowflakes(u []uint64) *GuildUpdate {
+	gu.mutation.AppendModeratorSnowflakes(u)
 	return gu
 }
 
@@ -279,40 +292,7 @@ func (gu *GuildUpdate) RemoveYoutubeTalents(y ...*YouTubeTalent) *GuildUpdate {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (gu *GuildUpdate) Save(ctx context.Context) (int, error) {
-	var (
-		err      error
-		affected int
-	)
-	if len(gu.hooks) == 0 {
-		if err = gu.check(); err != nil {
-			return 0, err
-		}
-		affected, err = gu.sqlSave(ctx)
-	} else {
-		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
-			mutation, ok := m.(*GuildMutation)
-			if !ok {
-				return nil, fmt.Errorf("unexpected mutation type %T", m)
-			}
-			if err = gu.check(); err != nil {
-				return 0, err
-			}
-			gu.mutation = mutation
-			affected, err = gu.sqlSave(ctx)
-			mutation.done = true
-			return affected, err
-		})
-		for i := len(gu.hooks) - 1; i >= 0; i-- {
-			if gu.hooks[i] == nil {
-				return 0, fmt.Errorf("ent: uninitialized hook (forgotten import ent/runtime?)")
-			}
-			mut = gu.hooks[i](mut)
-		}
-		if _, err := mut.Mutate(ctx, gu.mutation); err != nil {
-			return 0, err
-		}
-	}
-	return affected, err
+	return withHooks[int, GuildMutation](ctx, gu.sqlSave, gu.mutation, gu.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
@@ -348,16 +328,10 @@ func (gu *GuildUpdate) check() error {
 }
 
 func (gu *GuildUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	_spec := &sqlgraph.UpdateSpec{
-		Node: &sqlgraph.NodeSpec{
-			Table:   guild.Table,
-			Columns: guild.Columns,
-			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeUint64,
-				Column: guild.FieldID,
-			},
-		},
+	if err := gu.check(); err != nil {
+		return n, err
 	}
+	_spec := sqlgraph.NewUpdateSpec(guild.Table, guild.Columns, sqlgraph.NewFieldSpec(guild.FieldID, field.TypeUint64))
 	if ps := gu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -366,84 +340,50 @@ func (gu *GuildUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 	}
 	if value, ok := gu.mutation.Name(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: guild.FieldName,
-		})
+		_spec.SetField(guild.FieldName, field.TypeString, value)
 	}
 	if value, ok := gu.mutation.IconHash(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: guild.FieldIconHash,
-		})
+		_spec.SetField(guild.FieldIconHash, field.TypeString, value)
 	}
 	if gu.mutation.IconHashCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Column: guild.FieldIconHash,
-		})
+		_spec.ClearField(guild.FieldIconHash, field.TypeString)
 	}
 	if value, ok := gu.mutation.AuditChannel(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeUint64,
-			Value:  value,
-			Column: guild.FieldAuditChannel,
-		})
+		_spec.SetField(guild.FieldAuditChannel, field.TypeUint64, value)
 	}
 	if value, ok := gu.mutation.AddedAuditChannel(); ok {
-		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
-			Type:   field.TypeUint64,
-			Value:  value,
-			Column: guild.FieldAuditChannel,
-		})
+		_spec.AddField(guild.FieldAuditChannel, field.TypeUint64, value)
 	}
 	if gu.mutation.AuditChannelCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeUint64,
-			Column: guild.FieldAuditChannel,
-		})
+		_spec.ClearField(guild.FieldAuditChannel, field.TypeUint64)
 	}
 	if value, ok := gu.mutation.Language(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeEnum,
-			Value:  value,
-			Column: guild.FieldLanguage,
-		})
+		_spec.SetField(guild.FieldLanguage, field.TypeEnum, value)
 	}
 	if value, ok := gu.mutation.AdminSnowflakes(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeJSON,
-			Value:  value,
-			Column: guild.FieldAdminSnowflakes,
+		_spec.SetField(guild.FieldAdminSnowflakes, field.TypeJSON, value)
+	}
+	if value, ok := gu.mutation.AppendedAdminSnowflakes(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, guild.FieldAdminSnowflakes, value)
 		})
 	}
 	if value, ok := gu.mutation.ModeratorSnowflakes(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeJSON,
-			Value:  value,
-			Column: guild.FieldModeratorSnowflakes,
+		_spec.SetField(guild.FieldModeratorSnowflakes, field.TypeJSON, value)
+	}
+	if value, ok := gu.mutation.AppendedModeratorSnowflakes(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, guild.FieldModeratorSnowflakes, value)
 		})
 	}
 	if gu.mutation.ModeratorSnowflakesCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeJSON,
-			Column: guild.FieldModeratorSnowflakes,
-		})
+		_spec.ClearField(guild.FieldModeratorSnowflakes, field.TypeJSON)
 	}
 	if value, ok := gu.mutation.Settings(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeJSON,
-			Value:  value,
-			Column: guild.FieldSettings,
-		})
+		_spec.SetField(guild.FieldSettings, field.TypeJSON, value)
 	}
 	if gu.mutation.SettingsCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeJSON,
-			Column: guild.FieldSettings,
-		})
+		_spec.ClearField(guild.FieldSettings, field.TypeJSON)
 	}
 	if gu.mutation.MembersCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -669,6 +609,7 @@ func (gu *GuildUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		return 0, err
 	}
+	gu.mutation.done = true
 	return n, nil
 }
 
@@ -753,9 +694,21 @@ func (guo *GuildUpdateOne) SetAdminSnowflakes(u []uint64) *GuildUpdateOne {
 	return guo
 }
 
+// AppendAdminSnowflakes appends u to the "admin_snowflakes" field.
+func (guo *GuildUpdateOne) AppendAdminSnowflakes(u []uint64) *GuildUpdateOne {
+	guo.mutation.AppendAdminSnowflakes(u)
+	return guo
+}
+
 // SetModeratorSnowflakes sets the "moderator_snowflakes" field.
 func (guo *GuildUpdateOne) SetModeratorSnowflakes(u []uint64) *GuildUpdateOne {
 	guo.mutation.SetModeratorSnowflakes(u)
+	return guo
+}
+
+// AppendModeratorSnowflakes appends u to the "moderator_snowflakes" field.
+func (guo *GuildUpdateOne) AppendModeratorSnowflakes(u []uint64) *GuildUpdateOne {
+	guo.mutation.AppendModeratorSnowflakes(u)
 	return guo
 }
 
@@ -926,6 +879,12 @@ func (guo *GuildUpdateOne) RemoveYoutubeTalents(y ...*YouTubeTalent) *GuildUpdat
 	return guo.RemoveYoutubeTalentIDs(ids...)
 }
 
+// Where appends a list predicates to the GuildUpdate builder.
+func (guo *GuildUpdateOne) Where(ps ...predicate.Guild) *GuildUpdateOne {
+	guo.mutation.Where(ps...)
+	return guo
+}
+
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
 func (guo *GuildUpdateOne) Select(field string, fields ...string) *GuildUpdateOne {
@@ -935,46 +894,7 @@ func (guo *GuildUpdateOne) Select(field string, fields ...string) *GuildUpdateOn
 
 // Save executes the query and returns the updated Guild entity.
 func (guo *GuildUpdateOne) Save(ctx context.Context) (*Guild, error) {
-	var (
-		err  error
-		node *Guild
-	)
-	if len(guo.hooks) == 0 {
-		if err = guo.check(); err != nil {
-			return nil, err
-		}
-		node, err = guo.sqlSave(ctx)
-	} else {
-		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
-			mutation, ok := m.(*GuildMutation)
-			if !ok {
-				return nil, fmt.Errorf("unexpected mutation type %T", m)
-			}
-			if err = guo.check(); err != nil {
-				return nil, err
-			}
-			guo.mutation = mutation
-			node, err = guo.sqlSave(ctx)
-			mutation.done = true
-			return node, err
-		})
-		for i := len(guo.hooks) - 1; i >= 0; i-- {
-			if guo.hooks[i] == nil {
-				return nil, fmt.Errorf("ent: uninitialized hook (forgotten import ent/runtime?)")
-			}
-			mut = guo.hooks[i](mut)
-		}
-		v, err := mut.Mutate(ctx, guo.mutation)
-		if err != nil {
-			return nil, err
-		}
-		nv, ok := v.(*Guild)
-		if !ok {
-			return nil, fmt.Errorf("unexpected node type %T returned from GuildMutation", v)
-		}
-		node = nv
-	}
-	return node, err
+	return withHooks[*Guild, GuildMutation](ctx, guo.sqlSave, guo.mutation, guo.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
@@ -1010,16 +930,10 @@ func (guo *GuildUpdateOne) check() error {
 }
 
 func (guo *GuildUpdateOne) sqlSave(ctx context.Context) (_node *Guild, err error) {
-	_spec := &sqlgraph.UpdateSpec{
-		Node: &sqlgraph.NodeSpec{
-			Table:   guild.Table,
-			Columns: guild.Columns,
-			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeUint64,
-				Column: guild.FieldID,
-			},
-		},
+	if err := guo.check(); err != nil {
+		return _node, err
 	}
+	_spec := sqlgraph.NewUpdateSpec(guild.Table, guild.Columns, sqlgraph.NewFieldSpec(guild.FieldID, field.TypeUint64))
 	id, ok := guo.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "Guild.id" for update`)}
@@ -1045,84 +959,50 @@ func (guo *GuildUpdateOne) sqlSave(ctx context.Context) (_node *Guild, err error
 		}
 	}
 	if value, ok := guo.mutation.Name(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: guild.FieldName,
-		})
+		_spec.SetField(guild.FieldName, field.TypeString, value)
 	}
 	if value, ok := guo.mutation.IconHash(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: guild.FieldIconHash,
-		})
+		_spec.SetField(guild.FieldIconHash, field.TypeString, value)
 	}
 	if guo.mutation.IconHashCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Column: guild.FieldIconHash,
-		})
+		_spec.ClearField(guild.FieldIconHash, field.TypeString)
 	}
 	if value, ok := guo.mutation.AuditChannel(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeUint64,
-			Value:  value,
-			Column: guild.FieldAuditChannel,
-		})
+		_spec.SetField(guild.FieldAuditChannel, field.TypeUint64, value)
 	}
 	if value, ok := guo.mutation.AddedAuditChannel(); ok {
-		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
-			Type:   field.TypeUint64,
-			Value:  value,
-			Column: guild.FieldAuditChannel,
-		})
+		_spec.AddField(guild.FieldAuditChannel, field.TypeUint64, value)
 	}
 	if guo.mutation.AuditChannelCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeUint64,
-			Column: guild.FieldAuditChannel,
-		})
+		_spec.ClearField(guild.FieldAuditChannel, field.TypeUint64)
 	}
 	if value, ok := guo.mutation.Language(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeEnum,
-			Value:  value,
-			Column: guild.FieldLanguage,
-		})
+		_spec.SetField(guild.FieldLanguage, field.TypeEnum, value)
 	}
 	if value, ok := guo.mutation.AdminSnowflakes(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeJSON,
-			Value:  value,
-			Column: guild.FieldAdminSnowflakes,
+		_spec.SetField(guild.FieldAdminSnowflakes, field.TypeJSON, value)
+	}
+	if value, ok := guo.mutation.AppendedAdminSnowflakes(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, guild.FieldAdminSnowflakes, value)
 		})
 	}
 	if value, ok := guo.mutation.ModeratorSnowflakes(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeJSON,
-			Value:  value,
-			Column: guild.FieldModeratorSnowflakes,
+		_spec.SetField(guild.FieldModeratorSnowflakes, field.TypeJSON, value)
+	}
+	if value, ok := guo.mutation.AppendedModeratorSnowflakes(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, guild.FieldModeratorSnowflakes, value)
 		})
 	}
 	if guo.mutation.ModeratorSnowflakesCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeJSON,
-			Column: guild.FieldModeratorSnowflakes,
-		})
+		_spec.ClearField(guild.FieldModeratorSnowflakes, field.TypeJSON)
 	}
 	if value, ok := guo.mutation.Settings(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeJSON,
-			Value:  value,
-			Column: guild.FieldSettings,
-		})
+		_spec.SetField(guild.FieldSettings, field.TypeJSON, value)
 	}
 	if guo.mutation.SettingsCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeJSON,
-			Column: guild.FieldSettings,
-		})
+		_spec.ClearField(guild.FieldSettings, field.TypeJSON)
 	}
 	if guo.mutation.MembersCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -1351,5 +1231,6 @@ func (guo *GuildUpdateOne) sqlSave(ctx context.Context) (_node *Guild, err error
 		}
 		return nil, err
 	}
+	guo.mutation.done = true
 	return _node, nil
 }

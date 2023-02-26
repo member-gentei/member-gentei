@@ -79,8 +79,8 @@ func (e GuildRoleEdges) TalentOrErr() (*YouTubeTalent, error) {
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
-func (*GuildRole) scanValues(columns []string) ([]interface{}, error) {
-	values := make([]interface{}, len(columns))
+func (*GuildRole) scanValues(columns []string) ([]any, error) {
+	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
 		case guildrole.FieldID:
@@ -102,7 +102,7 @@ func (*GuildRole) scanValues(columns []string) ([]interface{}, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the GuildRole fields.
-func (gr *GuildRole) assignValues(columns []string, values []interface{}) error {
+func (gr *GuildRole) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -147,24 +147,24 @@ func (gr *GuildRole) assignValues(columns []string, values []interface{}) error 
 
 // QueryGuild queries the "guild" edge of the GuildRole entity.
 func (gr *GuildRole) QueryGuild() *GuildQuery {
-	return (&GuildRoleClient{config: gr.config}).QueryGuild(gr)
+	return NewGuildRoleClient(gr.config).QueryGuild(gr)
 }
 
 // QueryUserMemberships queries the "user_memberships" edge of the GuildRole entity.
 func (gr *GuildRole) QueryUserMemberships() *UserMembershipQuery {
-	return (&GuildRoleClient{config: gr.config}).QueryUserMemberships(gr)
+	return NewGuildRoleClient(gr.config).QueryUserMemberships(gr)
 }
 
 // QueryTalent queries the "talent" edge of the GuildRole entity.
 func (gr *GuildRole) QueryTalent() *YouTubeTalentQuery {
-	return (&GuildRoleClient{config: gr.config}).QueryTalent(gr)
+	return NewGuildRoleClient(gr.config).QueryTalent(gr)
 }
 
 // Update returns a builder for updating this GuildRole.
 // Note that you need to call GuildRole.Unwrap() before calling this method if this GuildRole
 // was returned from a transaction, and the transaction was committed or rolled back.
 func (gr *GuildRole) Update() *GuildRoleUpdateOne {
-	return (&GuildRoleClient{config: gr.config}).UpdateOne(gr)
+	return NewGuildRoleClient(gr.config).UpdateOne(gr)
 }
 
 // Unwrap unwraps the GuildRole entity that was returned from a transaction after it was closed,
@@ -194,9 +194,3 @@ func (gr *GuildRole) String() string {
 
 // GuildRoles is a parsable slice of GuildRole.
 type GuildRoles []*GuildRole
-
-func (gr GuildRoles) config(cfg config) {
-	for _i := range gr {
-		gr[_i].config = cfg
-	}
-}

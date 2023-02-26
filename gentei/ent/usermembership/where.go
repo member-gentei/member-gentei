@@ -12,300 +12,192 @@ import (
 
 // ID filters vertices based on their ID field.
 func ID(id int) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldID), id))
-	})
+	return predicate.UserMembership(sql.FieldEQ(FieldID, id))
 }
 
 // IDEQ applies the EQ predicate on the ID field.
 func IDEQ(id int) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldID), id))
-	})
+	return predicate.UserMembership(sql.FieldEQ(FieldID, id))
 }
 
 // IDNEQ applies the NEQ predicate on the ID field.
 func IDNEQ(id int) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.NEQ(s.C(FieldID), id))
-	})
+	return predicate.UserMembership(sql.FieldNEQ(FieldID, id))
 }
 
 // IDIn applies the In predicate on the ID field.
 func IDIn(ids ...int) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		v := make([]interface{}, len(ids))
-		for i := range v {
-			v[i] = ids[i]
-		}
-		s.Where(sql.In(s.C(FieldID), v...))
-	})
+	return predicate.UserMembership(sql.FieldIn(FieldID, ids...))
 }
 
 // IDNotIn applies the NotIn predicate on the ID field.
 func IDNotIn(ids ...int) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		v := make([]interface{}, len(ids))
-		for i := range v {
-			v[i] = ids[i]
-		}
-		s.Where(sql.NotIn(s.C(FieldID), v...))
-	})
+	return predicate.UserMembership(sql.FieldNotIn(FieldID, ids...))
 }
 
 // IDGT applies the GT predicate on the ID field.
 func IDGT(id int) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.GT(s.C(FieldID), id))
-	})
+	return predicate.UserMembership(sql.FieldGT(FieldID, id))
 }
 
 // IDGTE applies the GTE predicate on the ID field.
 func IDGTE(id int) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.GTE(s.C(FieldID), id))
-	})
+	return predicate.UserMembership(sql.FieldGTE(FieldID, id))
 }
 
 // IDLT applies the LT predicate on the ID field.
 func IDLT(id int) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.LT(s.C(FieldID), id))
-	})
+	return predicate.UserMembership(sql.FieldLT(FieldID, id))
 }
 
 // IDLTE applies the LTE predicate on the ID field.
 func IDLTE(id int) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.LTE(s.C(FieldID), id))
-	})
+	return predicate.UserMembership(sql.FieldLTE(FieldID, id))
 }
 
 // FirstFailed applies equality check predicate on the "first_failed" field. It's identical to FirstFailedEQ.
 func FirstFailed(v time.Time) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldFirstFailed), v))
-	})
+	return predicate.UserMembership(sql.FieldEQ(FieldFirstFailed, v))
 }
 
 // LastVerified applies equality check predicate on the "last_verified" field. It's identical to LastVerifiedEQ.
 func LastVerified(v time.Time) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldLastVerified), v))
-	})
+	return predicate.UserMembership(sql.FieldEQ(FieldLastVerified, v))
 }
 
 // FailCount applies equality check predicate on the "fail_count" field. It's identical to FailCountEQ.
 func FailCount(v int) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldFailCount), v))
-	})
+	return predicate.UserMembership(sql.FieldEQ(FieldFailCount, v))
 }
 
 // FirstFailedEQ applies the EQ predicate on the "first_failed" field.
 func FirstFailedEQ(v time.Time) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldFirstFailed), v))
-	})
+	return predicate.UserMembership(sql.FieldEQ(FieldFirstFailed, v))
 }
 
 // FirstFailedNEQ applies the NEQ predicate on the "first_failed" field.
 func FirstFailedNEQ(v time.Time) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.NEQ(s.C(FieldFirstFailed), v))
-	})
+	return predicate.UserMembership(sql.FieldNEQ(FieldFirstFailed, v))
 }
 
 // FirstFailedIn applies the In predicate on the "first_failed" field.
 func FirstFailedIn(vs ...time.Time) predicate.UserMembership {
-	v := make([]interface{}, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.In(s.C(FieldFirstFailed), v...))
-	})
+	return predicate.UserMembership(sql.FieldIn(FieldFirstFailed, vs...))
 }
 
 // FirstFailedNotIn applies the NotIn predicate on the "first_failed" field.
 func FirstFailedNotIn(vs ...time.Time) predicate.UserMembership {
-	v := make([]interface{}, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.NotIn(s.C(FieldFirstFailed), v...))
-	})
+	return predicate.UserMembership(sql.FieldNotIn(FieldFirstFailed, vs...))
 }
 
 // FirstFailedGT applies the GT predicate on the "first_failed" field.
 func FirstFailedGT(v time.Time) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.GT(s.C(FieldFirstFailed), v))
-	})
+	return predicate.UserMembership(sql.FieldGT(FieldFirstFailed, v))
 }
 
 // FirstFailedGTE applies the GTE predicate on the "first_failed" field.
 func FirstFailedGTE(v time.Time) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.GTE(s.C(FieldFirstFailed), v))
-	})
+	return predicate.UserMembership(sql.FieldGTE(FieldFirstFailed, v))
 }
 
 // FirstFailedLT applies the LT predicate on the "first_failed" field.
 func FirstFailedLT(v time.Time) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.LT(s.C(FieldFirstFailed), v))
-	})
+	return predicate.UserMembership(sql.FieldLT(FieldFirstFailed, v))
 }
 
 // FirstFailedLTE applies the LTE predicate on the "first_failed" field.
 func FirstFailedLTE(v time.Time) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.LTE(s.C(FieldFirstFailed), v))
-	})
+	return predicate.UserMembership(sql.FieldLTE(FieldFirstFailed, v))
 }
 
 // FirstFailedIsNil applies the IsNil predicate on the "first_failed" field.
 func FirstFailedIsNil() predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.IsNull(s.C(FieldFirstFailed)))
-	})
+	return predicate.UserMembership(sql.FieldIsNull(FieldFirstFailed))
 }
 
 // FirstFailedNotNil applies the NotNil predicate on the "first_failed" field.
 func FirstFailedNotNil() predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.NotNull(s.C(FieldFirstFailed)))
-	})
+	return predicate.UserMembership(sql.FieldNotNull(FieldFirstFailed))
 }
 
 // LastVerifiedEQ applies the EQ predicate on the "last_verified" field.
 func LastVerifiedEQ(v time.Time) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldLastVerified), v))
-	})
+	return predicate.UserMembership(sql.FieldEQ(FieldLastVerified, v))
 }
 
 // LastVerifiedNEQ applies the NEQ predicate on the "last_verified" field.
 func LastVerifiedNEQ(v time.Time) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.NEQ(s.C(FieldLastVerified), v))
-	})
+	return predicate.UserMembership(sql.FieldNEQ(FieldLastVerified, v))
 }
 
 // LastVerifiedIn applies the In predicate on the "last_verified" field.
 func LastVerifiedIn(vs ...time.Time) predicate.UserMembership {
-	v := make([]interface{}, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.In(s.C(FieldLastVerified), v...))
-	})
+	return predicate.UserMembership(sql.FieldIn(FieldLastVerified, vs...))
 }
 
 // LastVerifiedNotIn applies the NotIn predicate on the "last_verified" field.
 func LastVerifiedNotIn(vs ...time.Time) predicate.UserMembership {
-	v := make([]interface{}, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.NotIn(s.C(FieldLastVerified), v...))
-	})
+	return predicate.UserMembership(sql.FieldNotIn(FieldLastVerified, vs...))
 }
 
 // LastVerifiedGT applies the GT predicate on the "last_verified" field.
 func LastVerifiedGT(v time.Time) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.GT(s.C(FieldLastVerified), v))
-	})
+	return predicate.UserMembership(sql.FieldGT(FieldLastVerified, v))
 }
 
 // LastVerifiedGTE applies the GTE predicate on the "last_verified" field.
 func LastVerifiedGTE(v time.Time) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.GTE(s.C(FieldLastVerified), v))
-	})
+	return predicate.UserMembership(sql.FieldGTE(FieldLastVerified, v))
 }
 
 // LastVerifiedLT applies the LT predicate on the "last_verified" field.
 func LastVerifiedLT(v time.Time) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.LT(s.C(FieldLastVerified), v))
-	})
+	return predicate.UserMembership(sql.FieldLT(FieldLastVerified, v))
 }
 
 // LastVerifiedLTE applies the LTE predicate on the "last_verified" field.
 func LastVerifiedLTE(v time.Time) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.LTE(s.C(FieldLastVerified), v))
-	})
+	return predicate.UserMembership(sql.FieldLTE(FieldLastVerified, v))
 }
 
 // FailCountEQ applies the EQ predicate on the "fail_count" field.
 func FailCountEQ(v int) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.EQ(s.C(FieldFailCount), v))
-	})
+	return predicate.UserMembership(sql.FieldEQ(FieldFailCount, v))
 }
 
 // FailCountNEQ applies the NEQ predicate on the "fail_count" field.
 func FailCountNEQ(v int) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.NEQ(s.C(FieldFailCount), v))
-	})
+	return predicate.UserMembership(sql.FieldNEQ(FieldFailCount, v))
 }
 
 // FailCountIn applies the In predicate on the "fail_count" field.
 func FailCountIn(vs ...int) predicate.UserMembership {
-	v := make([]interface{}, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.In(s.C(FieldFailCount), v...))
-	})
+	return predicate.UserMembership(sql.FieldIn(FieldFailCount, vs...))
 }
 
 // FailCountNotIn applies the NotIn predicate on the "fail_count" field.
 func FailCountNotIn(vs ...int) predicate.UserMembership {
-	v := make([]interface{}, len(vs))
-	for i := range v {
-		v[i] = vs[i]
-	}
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.NotIn(s.C(FieldFailCount), v...))
-	})
+	return predicate.UserMembership(sql.FieldNotIn(FieldFailCount, vs...))
 }
 
 // FailCountGT applies the GT predicate on the "fail_count" field.
 func FailCountGT(v int) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.GT(s.C(FieldFailCount), v))
-	})
+	return predicate.UserMembership(sql.FieldGT(FieldFailCount, v))
 }
 
 // FailCountGTE applies the GTE predicate on the "fail_count" field.
 func FailCountGTE(v int) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.GTE(s.C(FieldFailCount), v))
-	})
+	return predicate.UserMembership(sql.FieldGTE(FieldFailCount, v))
 }
 
 // FailCountLT applies the LT predicate on the "fail_count" field.
 func FailCountLT(v int) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.LT(s.C(FieldFailCount), v))
-	})
+	return predicate.UserMembership(sql.FieldLT(FieldFailCount, v))
 }
 
 // FailCountLTE applies the LTE predicate on the "fail_count" field.
 func FailCountLTE(v int) predicate.UserMembership {
-	return predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.LTE(s.C(FieldFailCount), v))
-	})
+	return predicate.UserMembership(sql.FieldLTE(FieldFailCount, v))
 }
 
 // HasUser applies the HasEdge predicate on the "user" edge.
@@ -313,7 +205,6 @@ func HasUser() predicate.UserMembership {
 	return predicate.UserMembership(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(UserTable, FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, UserTable, UserColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
@@ -341,7 +232,6 @@ func HasYoutubeTalent() predicate.UserMembership {
 	return predicate.UserMembership(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(YoutubeTalentTable, FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, false, YoutubeTalentTable, YoutubeTalentColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
@@ -369,7 +259,6 @@ func HasRoles() predicate.UserMembership {
 	return predicate.UserMembership(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(RolesTable, FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, false, RolesTable, RolesPrimaryKey...),
 		)
 		sqlgraph.HasNeighbors(s, step)

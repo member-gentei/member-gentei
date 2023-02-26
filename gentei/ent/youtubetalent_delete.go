@@ -4,7 +4,6 @@ package ent
 
 import (
 	"context"
-	"fmt"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -28,34 +27,7 @@ func (yttd *YouTubeTalentDelete) Where(ps ...predicate.YouTubeTalent) *YouTubeTa
 
 // Exec executes the deletion query and returns how many vertices were deleted.
 func (yttd *YouTubeTalentDelete) Exec(ctx context.Context) (int, error) {
-	var (
-		err      error
-		affected int
-	)
-	if len(yttd.hooks) == 0 {
-		affected, err = yttd.sqlExec(ctx)
-	} else {
-		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
-			mutation, ok := m.(*YouTubeTalentMutation)
-			if !ok {
-				return nil, fmt.Errorf("unexpected mutation type %T", m)
-			}
-			yttd.mutation = mutation
-			affected, err = yttd.sqlExec(ctx)
-			mutation.done = true
-			return affected, err
-		})
-		for i := len(yttd.hooks) - 1; i >= 0; i-- {
-			if yttd.hooks[i] == nil {
-				return 0, fmt.Errorf("ent: uninitialized hook (forgotten import ent/runtime?)")
-			}
-			mut = yttd.hooks[i](mut)
-		}
-		if _, err := mut.Mutate(ctx, yttd.mutation); err != nil {
-			return 0, err
-		}
-	}
-	return affected, err
+	return withHooks[int, YouTubeTalentMutation](ctx, yttd.sqlExec, yttd.mutation, yttd.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.
@@ -68,15 +40,7 @@ func (yttd *YouTubeTalentDelete) ExecX(ctx context.Context) int {
 }
 
 func (yttd *YouTubeTalentDelete) sqlExec(ctx context.Context) (int, error) {
-	_spec := &sqlgraph.DeleteSpec{
-		Node: &sqlgraph.NodeSpec{
-			Table: youtubetalent.Table,
-			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeString,
-				Column: youtubetalent.FieldID,
-			},
-		},
-	}
+	_spec := sqlgraph.NewDeleteSpec(youtubetalent.Table, sqlgraph.NewFieldSpec(youtubetalent.FieldID, field.TypeString))
 	if ps := yttd.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -88,12 +52,19 @@ func (yttd *YouTubeTalentDelete) sqlExec(ctx context.Context) (int, error) {
 	if err != nil && sqlgraph.IsConstraintError(err) {
 		err = &ConstraintError{msg: err.Error(), wrap: err}
 	}
+	yttd.mutation.done = true
 	return affected, err
 }
 
 // YouTubeTalentDeleteOne is the builder for deleting a single YouTubeTalent entity.
 type YouTubeTalentDeleteOne struct {
 	yttd *YouTubeTalentDelete
+}
+
+// Where appends a list predicates to the YouTubeTalentDelete builder.
+func (yttdo *YouTubeTalentDeleteOne) Where(ps ...predicate.YouTubeTalent) *YouTubeTalentDeleteOne {
+	yttdo.yttd.mutation.Where(ps...)
+	return yttdo
 }
 
 // Exec executes the deletion query.
@@ -111,5 +82,7 @@ func (yttdo *YouTubeTalentDeleteOne) Exec(ctx context.Context) error {
 
 // ExecX is like Exec, but panics if an error occurs.
 func (yttdo *YouTubeTalentDeleteOne) ExecX(ctx context.Context) {
-	yttdo.yttd.ExecX(ctx)
+	if err := yttdo.Exec(ctx); err != nil {
+		panic(err)
+	}
 }

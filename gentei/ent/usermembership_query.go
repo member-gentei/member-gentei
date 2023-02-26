@@ -22,11 +22,9 @@ import (
 // UserMembershipQuery is the builder for querying UserMembership entities.
 type UserMembershipQuery struct {
 	config
-	limit             *int
-	offset            *int
-	unique            *bool
+	ctx               *QueryContext
 	order             []OrderFunc
-	fields            []string
+	inters            []Interceptor
 	predicates        []predicate.UserMembership
 	withUser          *UserQuery
 	withYoutubeTalent *YouTubeTalentQuery
@@ -44,26 +42,26 @@ func (umq *UserMembershipQuery) Where(ps ...predicate.UserMembership) *UserMembe
 	return umq
 }
 
-// Limit adds a limit step to the query.
+// Limit the number of records to be returned by this query.
 func (umq *UserMembershipQuery) Limit(limit int) *UserMembershipQuery {
-	umq.limit = &limit
+	umq.ctx.Limit = &limit
 	return umq
 }
 
-// Offset adds an offset step to the query.
+// Offset to start from.
 func (umq *UserMembershipQuery) Offset(offset int) *UserMembershipQuery {
-	umq.offset = &offset
+	umq.ctx.Offset = &offset
 	return umq
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
 func (umq *UserMembershipQuery) Unique(unique bool) *UserMembershipQuery {
-	umq.unique = &unique
+	umq.ctx.Unique = &unique
 	return umq
 }
 
-// Order adds an order step to the query.
+// Order specifies how the records should be ordered.
 func (umq *UserMembershipQuery) Order(o ...OrderFunc) *UserMembershipQuery {
 	umq.order = append(umq.order, o...)
 	return umq
@@ -71,7 +69,7 @@ func (umq *UserMembershipQuery) Order(o ...OrderFunc) *UserMembershipQuery {
 
 // QueryUser chains the current query on the "user" edge.
 func (umq *UserMembershipQuery) QueryUser() *UserQuery {
-	query := &UserQuery{config: umq.config}
+	query := (&UserClient{config: umq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := umq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -93,7 +91,7 @@ func (umq *UserMembershipQuery) QueryUser() *UserQuery {
 
 // QueryYoutubeTalent chains the current query on the "youtube_talent" edge.
 func (umq *UserMembershipQuery) QueryYoutubeTalent() *YouTubeTalentQuery {
-	query := &YouTubeTalentQuery{config: umq.config}
+	query := (&YouTubeTalentClient{config: umq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := umq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -115,7 +113,7 @@ func (umq *UserMembershipQuery) QueryYoutubeTalent() *YouTubeTalentQuery {
 
 // QueryRoles chains the current query on the "roles" edge.
 func (umq *UserMembershipQuery) QueryRoles() *GuildRoleQuery {
-	query := &GuildRoleQuery{config: umq.config}
+	query := (&GuildRoleClient{config: umq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := umq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -138,7 +136,7 @@ func (umq *UserMembershipQuery) QueryRoles() *GuildRoleQuery {
 // First returns the first UserMembership entity from the query.
 // Returns a *NotFoundError when no UserMembership was found.
 func (umq *UserMembershipQuery) First(ctx context.Context) (*UserMembership, error) {
-	nodes, err := umq.Limit(1).All(ctx)
+	nodes, err := umq.Limit(1).All(setContextOp(ctx, umq.ctx, "First"))
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +159,7 @@ func (umq *UserMembershipQuery) FirstX(ctx context.Context) *UserMembership {
 // Returns a *NotFoundError when no UserMembership ID was found.
 func (umq *UserMembershipQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = umq.Limit(1).IDs(ctx); err != nil {
+	if ids, err = umq.Limit(1).IDs(setContextOp(ctx, umq.ctx, "FirstID")); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -184,7 +182,7 @@ func (umq *UserMembershipQuery) FirstIDX(ctx context.Context) int {
 // Returns a *NotSingularError when more than one UserMembership entity is found.
 // Returns a *NotFoundError when no UserMembership entities are found.
 func (umq *UserMembershipQuery) Only(ctx context.Context) (*UserMembership, error) {
-	nodes, err := umq.Limit(2).All(ctx)
+	nodes, err := umq.Limit(2).All(setContextOp(ctx, umq.ctx, "Only"))
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +210,7 @@ func (umq *UserMembershipQuery) OnlyX(ctx context.Context) *UserMembership {
 // Returns a *NotFoundError when no entities are found.
 func (umq *UserMembershipQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = umq.Limit(2).IDs(ctx); err != nil {
+	if ids, err = umq.Limit(2).IDs(setContextOp(ctx, umq.ctx, "OnlyID")); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -237,10 +235,12 @@ func (umq *UserMembershipQuery) OnlyIDX(ctx context.Context) int {
 
 // All executes the query and returns a list of UserMemberships.
 func (umq *UserMembershipQuery) All(ctx context.Context) ([]*UserMembership, error) {
+	ctx = setContextOp(ctx, umq.ctx, "All")
 	if err := umq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	return umq.sqlAll(ctx)
+	qr := querierAll[[]*UserMembership, *UserMembershipQuery]()
+	return withInterceptors[[]*UserMembership](ctx, umq, qr, umq.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
@@ -253,9 +253,12 @@ func (umq *UserMembershipQuery) AllX(ctx context.Context) []*UserMembership {
 }
 
 // IDs executes the query and returns a list of UserMembership IDs.
-func (umq *UserMembershipQuery) IDs(ctx context.Context) ([]int, error) {
-	var ids []int
-	if err := umq.Select(usermembership.FieldID).Scan(ctx, &ids); err != nil {
+func (umq *UserMembershipQuery) IDs(ctx context.Context) (ids []int, err error) {
+	if umq.ctx.Unique == nil && umq.path != nil {
+		umq.Unique(true)
+	}
+	ctx = setContextOp(ctx, umq.ctx, "IDs")
+	if err = umq.Select(usermembership.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
@@ -272,10 +275,11 @@ func (umq *UserMembershipQuery) IDsX(ctx context.Context) []int {
 
 // Count returns the count of the given query.
 func (umq *UserMembershipQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, umq.ctx, "Count")
 	if err := umq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return umq.sqlCount(ctx)
+	return withInterceptors[int](ctx, umq, querierCount[*UserMembershipQuery](), umq.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
@@ -289,10 +293,15 @@ func (umq *UserMembershipQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (umq *UserMembershipQuery) Exist(ctx context.Context) (bool, error) {
-	if err := umq.prepareQuery(ctx); err != nil {
-		return false, err
+	ctx = setContextOp(ctx, umq.ctx, "Exist")
+	switch _, err := umq.FirstID(ctx); {
+	case IsNotFound(err):
+		return false, nil
+	case err != nil:
+		return false, fmt.Errorf("ent: check existence: %w", err)
+	default:
+		return true, nil
 	}
-	return umq.sqlExist(ctx)
 }
 
 // ExistX is like Exist, but panics if an error occurs.
@@ -312,24 +321,23 @@ func (umq *UserMembershipQuery) Clone() *UserMembershipQuery {
 	}
 	return &UserMembershipQuery{
 		config:            umq.config,
-		limit:             umq.limit,
-		offset:            umq.offset,
+		ctx:               umq.ctx.Clone(),
 		order:             append([]OrderFunc{}, umq.order...),
+		inters:            append([]Interceptor{}, umq.inters...),
 		predicates:        append([]predicate.UserMembership{}, umq.predicates...),
 		withUser:          umq.withUser.Clone(),
 		withYoutubeTalent: umq.withYoutubeTalent.Clone(),
 		withRoles:         umq.withRoles.Clone(),
 		// clone intermediate query.
-		sql:    umq.sql.Clone(),
-		path:   umq.path,
-		unique: umq.unique,
+		sql:  umq.sql.Clone(),
+		path: umq.path,
 	}
 }
 
 // WithUser tells the query-builder to eager-load the nodes that are connected to
 // the "user" edge. The optional arguments are used to configure the query builder of the edge.
 func (umq *UserMembershipQuery) WithUser(opts ...func(*UserQuery)) *UserMembershipQuery {
-	query := &UserQuery{config: umq.config}
+	query := (&UserClient{config: umq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
@@ -340,7 +348,7 @@ func (umq *UserMembershipQuery) WithUser(opts ...func(*UserQuery)) *UserMembersh
 // WithYoutubeTalent tells the query-builder to eager-load the nodes that are connected to
 // the "youtube_talent" edge. The optional arguments are used to configure the query builder of the edge.
 func (umq *UserMembershipQuery) WithYoutubeTalent(opts ...func(*YouTubeTalentQuery)) *UserMembershipQuery {
-	query := &YouTubeTalentQuery{config: umq.config}
+	query := (&YouTubeTalentClient{config: umq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
@@ -351,7 +359,7 @@ func (umq *UserMembershipQuery) WithYoutubeTalent(opts ...func(*YouTubeTalentQue
 // WithRoles tells the query-builder to eager-load the nodes that are connected to
 // the "roles" edge. The optional arguments are used to configure the query builder of the edge.
 func (umq *UserMembershipQuery) WithRoles(opts ...func(*GuildRoleQuery)) *UserMembershipQuery {
-	query := &GuildRoleQuery{config: umq.config}
+	query := (&GuildRoleClient{config: umq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
@@ -374,16 +382,11 @@ func (umq *UserMembershipQuery) WithRoles(opts ...func(*GuildRoleQuery)) *UserMe
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (umq *UserMembershipQuery) GroupBy(field string, fields ...string) *UserMembershipGroupBy {
-	grbuild := &UserMembershipGroupBy{config: umq.config}
-	grbuild.fields = append([]string{field}, fields...)
-	grbuild.path = func(ctx context.Context) (prev *sql.Selector, err error) {
-		if err := umq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		return umq.sqlQuery(ctx), nil
-	}
+	umq.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &UserMembershipGroupBy{build: umq}
+	grbuild.flds = &umq.ctx.Fields
 	grbuild.label = usermembership.Label
-	grbuild.flds, grbuild.scan = &grbuild.fields, grbuild.Scan
+	grbuild.scan = grbuild.Scan
 	return grbuild
 }
 
@@ -400,15 +403,30 @@ func (umq *UserMembershipQuery) GroupBy(field string, fields ...string) *UserMem
 //		Select(usermembership.FieldFirstFailed).
 //		Scan(ctx, &v)
 func (umq *UserMembershipQuery) Select(fields ...string) *UserMembershipSelect {
-	umq.fields = append(umq.fields, fields...)
-	selbuild := &UserMembershipSelect{UserMembershipQuery: umq}
-	selbuild.label = usermembership.Label
-	selbuild.flds, selbuild.scan = &umq.fields, selbuild.Scan
-	return selbuild
+	umq.ctx.Fields = append(umq.ctx.Fields, fields...)
+	sbuild := &UserMembershipSelect{UserMembershipQuery: umq}
+	sbuild.label = usermembership.Label
+	sbuild.flds, sbuild.scan = &umq.ctx.Fields, sbuild.Scan
+	return sbuild
+}
+
+// Aggregate returns a UserMembershipSelect configured with the given aggregations.
+func (umq *UserMembershipQuery) Aggregate(fns ...AggregateFunc) *UserMembershipSelect {
+	return umq.Select().Aggregate(fns...)
 }
 
 func (umq *UserMembershipQuery) prepareQuery(ctx context.Context) error {
-	for _, f := range umq.fields {
+	for _, inter := range umq.inters {
+		if inter == nil {
+			return fmt.Errorf("ent: uninitialized interceptor (forgotten import ent/runtime?)")
+		}
+		if trv, ok := inter.(Traverser); ok {
+			if err := trv.Traverse(ctx, umq); err != nil {
+				return err
+			}
+		}
+	}
+	for _, f := range umq.ctx.Fields {
 		if !usermembership.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("ent: invalid field %q for query", f)}
 		}
@@ -440,10 +458,10 @@ func (umq *UserMembershipQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 	if withFKs {
 		_spec.Node.Columns = append(_spec.Node.Columns, usermembership.ForeignKeys...)
 	}
-	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
+	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*UserMembership).scanValues(nil, columns)
 	}
-	_spec.Assign = func(columns []string, values []interface{}) error {
+	_spec.Assign = func(columns []string, values []any) error {
 		node := &UserMembership{config: umq.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
@@ -496,6 +514,9 @@ func (umq *UserMembershipQuery) loadUser(ctx context.Context, query *UserQuery, 
 		}
 		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
+	if len(ids) == 0 {
+		return nil
+	}
 	query.Where(user.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -524,6 +545,9 @@ func (umq *UserMembershipQuery) loadYoutubeTalent(ctx context.Context, query *Yo
 			ids = append(ids, fk)
 		}
 		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
 	}
 	query.Where(youtubetalent.IDIn(ids...))
 	neighbors, err := query.All(ctx)
@@ -564,27 +588,30 @@ func (umq *UserMembershipQuery) loadRoles(ctx context.Context, query *GuildRoleQ
 	if err := query.prepareQuery(ctx); err != nil {
 		return err
 	}
-	neighbors, err := query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
-		assign := spec.Assign
-		values := spec.ScanValues
-		spec.ScanValues = func(columns []string) ([]interface{}, error) {
-			values, err := values(columns[1:])
-			if err != nil {
-				return nil, err
+	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
+		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+			assign := spec.Assign
+			values := spec.ScanValues
+			spec.ScanValues = func(columns []string) ([]any, error) {
+				values, err := values(columns[1:])
+				if err != nil {
+					return nil, err
+				}
+				return append([]any{new(sql.NullInt64)}, values...), nil
 			}
-			return append([]interface{}{new(sql.NullInt64)}, values...), nil
-		}
-		spec.Assign = func(columns []string, values []interface{}) error {
-			outValue := int(values[0].(*sql.NullInt64).Int64)
-			inValue := uint64(values[1].(*sql.NullInt64).Int64)
-			if nids[inValue] == nil {
-				nids[inValue] = map[*UserMembership]struct{}{byID[outValue]: struct{}{}}
-				return assign(columns[1:], values[1:])
+			spec.Assign = func(columns []string, values []any) error {
+				outValue := int(values[0].(*sql.NullInt64).Int64)
+				inValue := uint64(values[1].(*sql.NullInt64).Int64)
+				if nids[inValue] == nil {
+					nids[inValue] = map[*UserMembership]struct{}{byID[outValue]: {}}
+					return assign(columns[1:], values[1:])
+				}
+				nids[inValue][byID[outValue]] = struct{}{}
+				return nil
 			}
-			nids[inValue][byID[outValue]] = struct{}{}
-			return nil
-		}
+		})
 	})
+	neighbors, err := withInterceptors[[]*GuildRole](ctx, query, qr, query.inters)
 	if err != nil {
 		return err
 	}
@@ -605,38 +632,22 @@ func (umq *UserMembershipQuery) sqlCount(ctx context.Context) (int, error) {
 	if len(umq.modifiers) > 0 {
 		_spec.Modifiers = umq.modifiers
 	}
-	_spec.Node.Columns = umq.fields
-	if len(umq.fields) > 0 {
-		_spec.Unique = umq.unique != nil && *umq.unique
+	_spec.Node.Columns = umq.ctx.Fields
+	if len(umq.ctx.Fields) > 0 {
+		_spec.Unique = umq.ctx.Unique != nil && *umq.ctx.Unique
 	}
 	return sqlgraph.CountNodes(ctx, umq.driver, _spec)
 }
 
-func (umq *UserMembershipQuery) sqlExist(ctx context.Context) (bool, error) {
-	n, err := umq.sqlCount(ctx)
-	if err != nil {
-		return false, fmt.Errorf("ent: check existence: %w", err)
-	}
-	return n > 0, nil
-}
-
 func (umq *UserMembershipQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := &sqlgraph.QuerySpec{
-		Node: &sqlgraph.NodeSpec{
-			Table:   usermembership.Table,
-			Columns: usermembership.Columns,
-			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeInt,
-				Column: usermembership.FieldID,
-			},
-		},
-		From:   umq.sql,
-		Unique: true,
-	}
-	if unique := umq.unique; unique != nil {
+	_spec := sqlgraph.NewQuerySpec(usermembership.Table, usermembership.Columns, sqlgraph.NewFieldSpec(usermembership.FieldID, field.TypeInt))
+	_spec.From = umq.sql
+	if unique := umq.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
+	} else if umq.path != nil {
+		_spec.Unique = true
 	}
-	if fields := umq.fields; len(fields) > 0 {
+	if fields := umq.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, usermembership.FieldID)
 		for i := range fields {
@@ -652,10 +663,10 @@ func (umq *UserMembershipQuery) querySpec() *sqlgraph.QuerySpec {
 			}
 		}
 	}
-	if limit := umq.limit; limit != nil {
+	if limit := umq.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := umq.offset; offset != nil {
+	if offset := umq.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
 	if ps := umq.order; len(ps) > 0 {
@@ -671,7 +682,7 @@ func (umq *UserMembershipQuery) querySpec() *sqlgraph.QuerySpec {
 func (umq *UserMembershipQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(umq.driver.Dialect())
 	t1 := builder.Table(usermembership.Table)
-	columns := umq.fields
+	columns := umq.ctx.Fields
 	if len(columns) == 0 {
 		columns = usermembership.Columns
 	}
@@ -680,7 +691,7 @@ func (umq *UserMembershipQuery) sqlQuery(ctx context.Context) *sql.Selector {
 		selector = umq.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if umq.unique != nil && *umq.unique {
+	if umq.ctx.Unique != nil && *umq.ctx.Unique {
 		selector.Distinct()
 	}
 	for _, m := range umq.modifiers {
@@ -692,12 +703,12 @@ func (umq *UserMembershipQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	for _, p := range umq.order {
 		p(selector)
 	}
-	if offset := umq.offset; offset != nil {
+	if offset := umq.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := umq.limit; limit != nil {
+	if limit := umq.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -731,13 +742,8 @@ func (umq *UserMembershipQuery) ForShare(opts ...sql.LockOption) *UserMembership
 
 // UserMembershipGroupBy is the group-by builder for UserMembership entities.
 type UserMembershipGroupBy struct {
-	config
 	selector
-	fields []string
-	fns    []AggregateFunc
-	// intermediate query (i.e. traversal path).
-	sql  *sql.Selector
-	path func(context.Context) (*sql.Selector, error)
+	build *UserMembershipQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
@@ -746,74 +752,77 @@ func (umgb *UserMembershipGroupBy) Aggregate(fns ...AggregateFunc) *UserMembersh
 	return umgb
 }
 
-// Scan applies the group-by query and scans the result into the given value.
-func (umgb *UserMembershipGroupBy) Scan(ctx context.Context, v interface{}) error {
-	query, err := umgb.path(ctx)
-	if err != nil {
+// Scan applies the selector query and scans the result into the given value.
+func (umgb *UserMembershipGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, umgb.build.ctx, "GroupBy")
+	if err := umgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	umgb.sql = query
-	return umgb.sqlScan(ctx, v)
+	return scanWithInterceptors[*UserMembershipQuery, *UserMembershipGroupBy](ctx, umgb.build, umgb, umgb.build.inters, v)
 }
 
-func (umgb *UserMembershipGroupBy) sqlScan(ctx context.Context, v interface{}) error {
-	for _, f := range umgb.fields {
-		if !usermembership.ValidColumn(f) {
-			return &ValidationError{Name: f, err: fmt.Errorf("invalid field %q for group-by", f)}
-		}
+func (umgb *UserMembershipGroupBy) sqlScan(ctx context.Context, root *UserMembershipQuery, v any) error {
+	selector := root.sqlQuery(ctx).Select()
+	aggregation := make([]string, 0, len(umgb.fns))
+	for _, fn := range umgb.fns {
+		aggregation = append(aggregation, fn(selector))
 	}
-	selector := umgb.sqlQuery()
+	if len(selector.SelectedColumns()) == 0 {
+		columns := make([]string, 0, len(*umgb.flds)+len(umgb.fns))
+		for _, f := range *umgb.flds {
+			columns = append(columns, selector.C(f))
+		}
+		columns = append(columns, aggregation...)
+		selector.Select(columns...)
+	}
+	selector.GroupBy(selector.Columns(*umgb.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := umgb.driver.Query(ctx, query, args, rows); err != nil {
+	if err := umgb.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
 	return sql.ScanSlice(rows, v)
 }
 
-func (umgb *UserMembershipGroupBy) sqlQuery() *sql.Selector {
-	selector := umgb.sql.Select()
-	aggregation := make([]string, 0, len(umgb.fns))
-	for _, fn := range umgb.fns {
-		aggregation = append(aggregation, fn(selector))
-	}
-	// If no columns were selected in a custom aggregation function, the default
-	// selection is the fields used for "group-by", and the aggregation functions.
-	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(umgb.fields)+len(umgb.fns))
-		for _, f := range umgb.fields {
-			columns = append(columns, selector.C(f))
-		}
-		columns = append(columns, aggregation...)
-		selector.Select(columns...)
-	}
-	return selector.GroupBy(selector.Columns(umgb.fields...)...)
-}
-
 // UserMembershipSelect is the builder for selecting fields of UserMembership entities.
 type UserMembershipSelect struct {
 	*UserMembershipQuery
 	selector
-	// intermediate query (i.e. traversal path).
-	sql *sql.Selector
+}
+
+// Aggregate adds the given aggregation functions to the selector query.
+func (ums *UserMembershipSelect) Aggregate(fns ...AggregateFunc) *UserMembershipSelect {
+	ums.fns = append(ums.fns, fns...)
+	return ums
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (ums *UserMembershipSelect) Scan(ctx context.Context, v interface{}) error {
+func (ums *UserMembershipSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, ums.ctx, "Select")
 	if err := ums.prepareQuery(ctx); err != nil {
 		return err
 	}
-	ums.sql = ums.UserMembershipQuery.sqlQuery(ctx)
-	return ums.sqlScan(ctx, v)
+	return scanWithInterceptors[*UserMembershipQuery, *UserMembershipSelect](ctx, ums.UserMembershipQuery, ums, ums.inters, v)
 }
 
-func (ums *UserMembershipSelect) sqlScan(ctx context.Context, v interface{}) error {
+func (ums *UserMembershipSelect) sqlScan(ctx context.Context, root *UserMembershipQuery, v any) error {
+	selector := root.sqlQuery(ctx)
+	aggregation := make([]string, 0, len(ums.fns))
+	for _, fn := range ums.fns {
+		aggregation = append(aggregation, fn(selector))
+	}
+	switch n := len(*ums.selector.flds); {
+	case n == 0 && len(aggregation) > 0:
+		selector.Select(aggregation...)
+	case n != 0 && len(aggregation) > 0:
+		selector.AppendSelect(aggregation...)
+	}
 	rows := &sql.Rows{}
-	query, args := ums.sql.Query()
+	query, args := selector.Query()
 	if err := ums.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
