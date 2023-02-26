@@ -152,50 +152,8 @@ func (yttc *YouTubeTalentCreate) Mutation() *YouTubeTalentMutation {
 
 // Save creates the YouTubeTalent in the database.
 func (yttc *YouTubeTalentCreate) Save(ctx context.Context) (*YouTubeTalent, error) {
-	var (
-		err  error
-		node *YouTubeTalent
-	)
 	yttc.defaults()
-	if len(yttc.hooks) == 0 {
-		if err = yttc.check(); err != nil {
-			return nil, err
-		}
-		node, err = yttc.sqlSave(ctx)
-	} else {
-		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
-			mutation, ok := m.(*YouTubeTalentMutation)
-			if !ok {
-				return nil, fmt.Errorf("unexpected mutation type %T", m)
-			}
-			if err = yttc.check(); err != nil {
-				return nil, err
-			}
-			yttc.mutation = mutation
-			if node, err = yttc.sqlSave(ctx); err != nil {
-				return nil, err
-			}
-			mutation.id = &node.ID
-			mutation.done = true
-			return node, err
-		})
-		for i := len(yttc.hooks) - 1; i >= 0; i-- {
-			if yttc.hooks[i] == nil {
-				return nil, fmt.Errorf("ent: uninitialized hook (forgotten import ent/runtime?)")
-			}
-			mut = yttc.hooks[i](mut)
-		}
-		v, err := mut.Mutate(ctx, yttc.mutation)
-		if err != nil {
-			return nil, err
-		}
-		nv, ok := v.(*YouTubeTalent)
-		if !ok {
-			return nil, fmt.Errorf("unexpected node type %T returned from YouTubeTalentMutation", v)
-		}
-		node = nv
-	}
-	return node, err
+	return withHooks[*YouTubeTalent, YouTubeTalentMutation](ctx, yttc.sqlSave, yttc.mutation, yttc.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
@@ -243,6 +201,9 @@ func (yttc *YouTubeTalentCreate) check() error {
 }
 
 func (yttc *YouTubeTalentCreate) sqlSave(ctx context.Context) (*YouTubeTalent, error) {
+	if err := yttc.check(); err != nil {
+		return nil, err
+	}
 	_node, _spec := yttc.createSpec()
 	if err := sqlgraph.CreateNode(ctx, yttc.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
@@ -257,19 +218,15 @@ func (yttc *YouTubeTalentCreate) sqlSave(ctx context.Context) (*YouTubeTalent, e
 			return nil, fmt.Errorf("unexpected YouTubeTalent.ID type: %T", _spec.ID.Value)
 		}
 	}
+	yttc.mutation.id = &_node.ID
+	yttc.mutation.done = true
 	return _node, nil
 }
 
 func (yttc *YouTubeTalentCreate) createSpec() (*YouTubeTalent, *sqlgraph.CreateSpec) {
 	var (
 		_node = &YouTubeTalent{config: yttc.config}
-		_spec = &sqlgraph.CreateSpec{
-			Table: youtubetalent.Table,
-			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeString,
-				Column: youtubetalent.FieldID,
-			},
-		}
+		_spec = sqlgraph.NewCreateSpec(youtubetalent.Table, sqlgraph.NewFieldSpec(youtubetalent.FieldID, field.TypeString))
 	)
 	_spec.OnConflict = yttc.conflict
 	if id, ok := yttc.mutation.ID(); ok {
@@ -277,51 +234,27 @@ func (yttc *YouTubeTalentCreate) createSpec() (*YouTubeTalent, *sqlgraph.CreateS
 		_spec.ID.Value = id
 	}
 	if value, ok := yttc.mutation.ChannelName(); ok {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: youtubetalent.FieldChannelName,
-		})
+		_spec.SetField(youtubetalent.FieldChannelName, field.TypeString, value)
 		_node.ChannelName = value
 	}
 	if value, ok := yttc.mutation.ThumbnailURL(); ok {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: youtubetalent.FieldThumbnailURL,
-		})
+		_spec.SetField(youtubetalent.FieldThumbnailURL, field.TypeString, value)
 		_node.ThumbnailURL = value
 	}
 	if value, ok := yttc.mutation.MembershipVideoID(); ok {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: youtubetalent.FieldMembershipVideoID,
-		})
+		_spec.SetField(youtubetalent.FieldMembershipVideoID, field.TypeString, value)
 		_node.MembershipVideoID = value
 	}
 	if value, ok := yttc.mutation.LastMembershipVideoIDMiss(); ok {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Value:  value,
-			Column: youtubetalent.FieldLastMembershipVideoIDMiss,
-		})
+		_spec.SetField(youtubetalent.FieldLastMembershipVideoIDMiss, field.TypeTime, value)
 		_node.LastMembershipVideoIDMiss = value
 	}
 	if value, ok := yttc.mutation.LastUpdated(); ok {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Value:  value,
-			Column: youtubetalent.FieldLastUpdated,
-		})
+		_spec.SetField(youtubetalent.FieldLastUpdated, field.TypeTime, value)
 		_node.LastUpdated = value
 	}
 	if value, ok := yttc.mutation.Disabled(); ok {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Value:  value,
-			Column: youtubetalent.FieldDisabled,
-		})
+		_spec.SetField(youtubetalent.FieldDisabled, field.TypeTime, value)
 		_node.Disabled = value
 	}
 	if nodes := yttc.mutation.GuildsIDs(); len(nodes) > 0 {
@@ -854,7 +787,6 @@ func (u *YouTubeTalentUpsertBulk) UpdateNewValues() *YouTubeTalentUpsertBulk {
 		for _, b := range u.create.builders {
 			if _, exists := b.mutation.ID(); exists {
 				s.SetIgnore(youtubetalent.FieldID)
-				return
 			}
 		}
 	}))

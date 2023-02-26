@@ -22,11 +22,9 @@ import (
 // YouTubeTalentQuery is the builder for querying YouTubeTalent entities.
 type YouTubeTalentQuery struct {
 	config
-	limit           *int
-	offset          *int
-	unique          *bool
+	ctx             *QueryContext
 	order           []OrderFunc
-	fields          []string
+	inters          []Interceptor
 	predicates      []predicate.YouTubeTalent
 	withGuilds      *GuildQuery
 	withRoles       *GuildRoleQuery
@@ -43,26 +41,26 @@ func (yttq *YouTubeTalentQuery) Where(ps ...predicate.YouTubeTalent) *YouTubeTal
 	return yttq
 }
 
-// Limit adds a limit step to the query.
+// Limit the number of records to be returned by this query.
 func (yttq *YouTubeTalentQuery) Limit(limit int) *YouTubeTalentQuery {
-	yttq.limit = &limit
+	yttq.ctx.Limit = &limit
 	return yttq
 }
 
-// Offset adds an offset step to the query.
+// Offset to start from.
 func (yttq *YouTubeTalentQuery) Offset(offset int) *YouTubeTalentQuery {
-	yttq.offset = &offset
+	yttq.ctx.Offset = &offset
 	return yttq
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
 func (yttq *YouTubeTalentQuery) Unique(unique bool) *YouTubeTalentQuery {
-	yttq.unique = &unique
+	yttq.ctx.Unique = &unique
 	return yttq
 }
 
-// Order adds an order step to the query.
+// Order specifies how the records should be ordered.
 func (yttq *YouTubeTalentQuery) Order(o ...OrderFunc) *YouTubeTalentQuery {
 	yttq.order = append(yttq.order, o...)
 	return yttq
@@ -70,7 +68,7 @@ func (yttq *YouTubeTalentQuery) Order(o ...OrderFunc) *YouTubeTalentQuery {
 
 // QueryGuilds chains the current query on the "guilds" edge.
 func (yttq *YouTubeTalentQuery) QueryGuilds() *GuildQuery {
-	query := &GuildQuery{config: yttq.config}
+	query := (&GuildClient{config: yttq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := yttq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -92,7 +90,7 @@ func (yttq *YouTubeTalentQuery) QueryGuilds() *GuildQuery {
 
 // QueryRoles chains the current query on the "roles" edge.
 func (yttq *YouTubeTalentQuery) QueryRoles() *GuildRoleQuery {
-	query := &GuildRoleQuery{config: yttq.config}
+	query := (&GuildRoleClient{config: yttq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := yttq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -114,7 +112,7 @@ func (yttq *YouTubeTalentQuery) QueryRoles() *GuildRoleQuery {
 
 // QueryMemberships chains the current query on the "memberships" edge.
 func (yttq *YouTubeTalentQuery) QueryMemberships() *UserMembershipQuery {
-	query := &UserMembershipQuery{config: yttq.config}
+	query := (&UserMembershipClient{config: yttq.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := yttq.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -137,7 +135,7 @@ func (yttq *YouTubeTalentQuery) QueryMemberships() *UserMembershipQuery {
 // First returns the first YouTubeTalent entity from the query.
 // Returns a *NotFoundError when no YouTubeTalent was found.
 func (yttq *YouTubeTalentQuery) First(ctx context.Context) (*YouTubeTalent, error) {
-	nodes, err := yttq.Limit(1).All(ctx)
+	nodes, err := yttq.Limit(1).All(setContextOp(ctx, yttq.ctx, "First"))
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +158,7 @@ func (yttq *YouTubeTalentQuery) FirstX(ctx context.Context) *YouTubeTalent {
 // Returns a *NotFoundError when no YouTubeTalent ID was found.
 func (yttq *YouTubeTalentQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = yttq.Limit(1).IDs(ctx); err != nil {
+	if ids, err = yttq.Limit(1).IDs(setContextOp(ctx, yttq.ctx, "FirstID")); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -183,7 +181,7 @@ func (yttq *YouTubeTalentQuery) FirstIDX(ctx context.Context) string {
 // Returns a *NotSingularError when more than one YouTubeTalent entity is found.
 // Returns a *NotFoundError when no YouTubeTalent entities are found.
 func (yttq *YouTubeTalentQuery) Only(ctx context.Context) (*YouTubeTalent, error) {
-	nodes, err := yttq.Limit(2).All(ctx)
+	nodes, err := yttq.Limit(2).All(setContextOp(ctx, yttq.ctx, "Only"))
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +209,7 @@ func (yttq *YouTubeTalentQuery) OnlyX(ctx context.Context) *YouTubeTalent {
 // Returns a *NotFoundError when no entities are found.
 func (yttq *YouTubeTalentQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = yttq.Limit(2).IDs(ctx); err != nil {
+	if ids, err = yttq.Limit(2).IDs(setContextOp(ctx, yttq.ctx, "OnlyID")); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -236,10 +234,12 @@ func (yttq *YouTubeTalentQuery) OnlyIDX(ctx context.Context) string {
 
 // All executes the query and returns a list of YouTubeTalents.
 func (yttq *YouTubeTalentQuery) All(ctx context.Context) ([]*YouTubeTalent, error) {
+	ctx = setContextOp(ctx, yttq.ctx, "All")
 	if err := yttq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	return yttq.sqlAll(ctx)
+	qr := querierAll[[]*YouTubeTalent, *YouTubeTalentQuery]()
+	return withInterceptors[[]*YouTubeTalent](ctx, yttq, qr, yttq.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
@@ -252,9 +252,12 @@ func (yttq *YouTubeTalentQuery) AllX(ctx context.Context) []*YouTubeTalent {
 }
 
 // IDs executes the query and returns a list of YouTubeTalent IDs.
-func (yttq *YouTubeTalentQuery) IDs(ctx context.Context) ([]string, error) {
-	var ids []string
-	if err := yttq.Select(youtubetalent.FieldID).Scan(ctx, &ids); err != nil {
+func (yttq *YouTubeTalentQuery) IDs(ctx context.Context) (ids []string, err error) {
+	if yttq.ctx.Unique == nil && yttq.path != nil {
+		yttq.Unique(true)
+	}
+	ctx = setContextOp(ctx, yttq.ctx, "IDs")
+	if err = yttq.Select(youtubetalent.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
@@ -271,10 +274,11 @@ func (yttq *YouTubeTalentQuery) IDsX(ctx context.Context) []string {
 
 // Count returns the count of the given query.
 func (yttq *YouTubeTalentQuery) Count(ctx context.Context) (int, error) {
+	ctx = setContextOp(ctx, yttq.ctx, "Count")
 	if err := yttq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return yttq.sqlCount(ctx)
+	return withInterceptors[int](ctx, yttq, querierCount[*YouTubeTalentQuery](), yttq.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
@@ -288,10 +292,15 @@ func (yttq *YouTubeTalentQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (yttq *YouTubeTalentQuery) Exist(ctx context.Context) (bool, error) {
-	if err := yttq.prepareQuery(ctx); err != nil {
-		return false, err
+	ctx = setContextOp(ctx, yttq.ctx, "Exist")
+	switch _, err := yttq.FirstID(ctx); {
+	case IsNotFound(err):
+		return false, nil
+	case err != nil:
+		return false, fmt.Errorf("ent: check existence: %w", err)
+	default:
+		return true, nil
 	}
-	return yttq.sqlExist(ctx)
 }
 
 // ExistX is like Exist, but panics if an error occurs.
@@ -311,24 +320,23 @@ func (yttq *YouTubeTalentQuery) Clone() *YouTubeTalentQuery {
 	}
 	return &YouTubeTalentQuery{
 		config:          yttq.config,
-		limit:           yttq.limit,
-		offset:          yttq.offset,
+		ctx:             yttq.ctx.Clone(),
 		order:           append([]OrderFunc{}, yttq.order...),
+		inters:          append([]Interceptor{}, yttq.inters...),
 		predicates:      append([]predicate.YouTubeTalent{}, yttq.predicates...),
 		withGuilds:      yttq.withGuilds.Clone(),
 		withRoles:       yttq.withRoles.Clone(),
 		withMemberships: yttq.withMemberships.Clone(),
 		// clone intermediate query.
-		sql:    yttq.sql.Clone(),
-		path:   yttq.path,
-		unique: yttq.unique,
+		sql:  yttq.sql.Clone(),
+		path: yttq.path,
 	}
 }
 
 // WithGuilds tells the query-builder to eager-load the nodes that are connected to
 // the "guilds" edge. The optional arguments are used to configure the query builder of the edge.
 func (yttq *YouTubeTalentQuery) WithGuilds(opts ...func(*GuildQuery)) *YouTubeTalentQuery {
-	query := &GuildQuery{config: yttq.config}
+	query := (&GuildClient{config: yttq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
@@ -339,7 +347,7 @@ func (yttq *YouTubeTalentQuery) WithGuilds(opts ...func(*GuildQuery)) *YouTubeTa
 // WithRoles tells the query-builder to eager-load the nodes that are connected to
 // the "roles" edge. The optional arguments are used to configure the query builder of the edge.
 func (yttq *YouTubeTalentQuery) WithRoles(opts ...func(*GuildRoleQuery)) *YouTubeTalentQuery {
-	query := &GuildRoleQuery{config: yttq.config}
+	query := (&GuildRoleClient{config: yttq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
@@ -350,7 +358,7 @@ func (yttq *YouTubeTalentQuery) WithRoles(opts ...func(*GuildRoleQuery)) *YouTub
 // WithMemberships tells the query-builder to eager-load the nodes that are connected to
 // the "memberships" edge. The optional arguments are used to configure the query builder of the edge.
 func (yttq *YouTubeTalentQuery) WithMemberships(opts ...func(*UserMembershipQuery)) *YouTubeTalentQuery {
-	query := &UserMembershipQuery{config: yttq.config}
+	query := (&UserMembershipClient{config: yttq.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
@@ -373,16 +381,11 @@ func (yttq *YouTubeTalentQuery) WithMemberships(opts ...func(*UserMembershipQuer
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
 func (yttq *YouTubeTalentQuery) GroupBy(field string, fields ...string) *YouTubeTalentGroupBy {
-	grbuild := &YouTubeTalentGroupBy{config: yttq.config}
-	grbuild.fields = append([]string{field}, fields...)
-	grbuild.path = func(ctx context.Context) (prev *sql.Selector, err error) {
-		if err := yttq.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		return yttq.sqlQuery(ctx), nil
-	}
+	yttq.ctx.Fields = append([]string{field}, fields...)
+	grbuild := &YouTubeTalentGroupBy{build: yttq}
+	grbuild.flds = &yttq.ctx.Fields
 	grbuild.label = youtubetalent.Label
-	grbuild.flds, grbuild.scan = &grbuild.fields, grbuild.Scan
+	grbuild.scan = grbuild.Scan
 	return grbuild
 }
 
@@ -399,15 +402,30 @@ func (yttq *YouTubeTalentQuery) GroupBy(field string, fields ...string) *YouTube
 //		Select(youtubetalent.FieldChannelName).
 //		Scan(ctx, &v)
 func (yttq *YouTubeTalentQuery) Select(fields ...string) *YouTubeTalentSelect {
-	yttq.fields = append(yttq.fields, fields...)
-	selbuild := &YouTubeTalentSelect{YouTubeTalentQuery: yttq}
-	selbuild.label = youtubetalent.Label
-	selbuild.flds, selbuild.scan = &yttq.fields, selbuild.Scan
-	return selbuild
+	yttq.ctx.Fields = append(yttq.ctx.Fields, fields...)
+	sbuild := &YouTubeTalentSelect{YouTubeTalentQuery: yttq}
+	sbuild.label = youtubetalent.Label
+	sbuild.flds, sbuild.scan = &yttq.ctx.Fields, sbuild.Scan
+	return sbuild
+}
+
+// Aggregate returns a YouTubeTalentSelect configured with the given aggregations.
+func (yttq *YouTubeTalentQuery) Aggregate(fns ...AggregateFunc) *YouTubeTalentSelect {
+	return yttq.Select().Aggregate(fns...)
 }
 
 func (yttq *YouTubeTalentQuery) prepareQuery(ctx context.Context) error {
-	for _, f := range yttq.fields {
+	for _, inter := range yttq.inters {
+		if inter == nil {
+			return fmt.Errorf("ent: uninitialized interceptor (forgotten import ent/runtime?)")
+		}
+		if trv, ok := inter.(Traverser); ok {
+			if err := trv.Traverse(ctx, yttq); err != nil {
+				return err
+			}
+		}
+	}
+	for _, f := range yttq.ctx.Fields {
 		if !youtubetalent.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("ent: invalid field %q for query", f)}
 		}
@@ -432,10 +450,10 @@ func (yttq *YouTubeTalentQuery) sqlAll(ctx context.Context, hooks ...queryHook) 
 			yttq.withMemberships != nil,
 		}
 	)
-	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
+	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*YouTubeTalent).scanValues(nil, columns)
 	}
-	_spec.Assign = func(columns []string, values []interface{}) error {
+	_spec.Assign = func(columns []string, values []any) error {
 		node := &YouTubeTalent{config: yttq.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
@@ -500,27 +518,30 @@ func (yttq *YouTubeTalentQuery) loadGuilds(ctx context.Context, query *GuildQuer
 	if err := query.prepareQuery(ctx); err != nil {
 		return err
 	}
-	neighbors, err := query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
-		assign := spec.Assign
-		values := spec.ScanValues
-		spec.ScanValues = func(columns []string) ([]interface{}, error) {
-			values, err := values(columns[1:])
-			if err != nil {
-				return nil, err
+	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
+		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+			assign := spec.Assign
+			values := spec.ScanValues
+			spec.ScanValues = func(columns []string) ([]any, error) {
+				values, err := values(columns[1:])
+				if err != nil {
+					return nil, err
+				}
+				return append([]any{new(sql.NullString)}, values...), nil
 			}
-			return append([]interface{}{new(sql.NullString)}, values...), nil
-		}
-		spec.Assign = func(columns []string, values []interface{}) error {
-			outValue := values[0].(*sql.NullString).String
-			inValue := uint64(values[1].(*sql.NullInt64).Int64)
-			if nids[inValue] == nil {
-				nids[inValue] = map[*YouTubeTalent]struct{}{byID[outValue]: struct{}{}}
-				return assign(columns[1:], values[1:])
+			spec.Assign = func(columns []string, values []any) error {
+				outValue := values[0].(*sql.NullString).String
+				inValue := uint64(values[1].(*sql.NullInt64).Int64)
+				if nids[inValue] == nil {
+					nids[inValue] = map[*YouTubeTalent]struct{}{byID[outValue]: {}}
+					return assign(columns[1:], values[1:])
+				}
+				nids[inValue][byID[outValue]] = struct{}{}
+				return nil
 			}
-			nids[inValue][byID[outValue]] = struct{}{}
-			return nil
-		}
+		})
 	})
+	neighbors, err := withInterceptors[[]*Guild](ctx, query, qr, query.inters)
 	if err != nil {
 		return err
 	}
@@ -603,38 +624,22 @@ func (yttq *YouTubeTalentQuery) sqlCount(ctx context.Context) (int, error) {
 	if len(yttq.modifiers) > 0 {
 		_spec.Modifiers = yttq.modifiers
 	}
-	_spec.Node.Columns = yttq.fields
-	if len(yttq.fields) > 0 {
-		_spec.Unique = yttq.unique != nil && *yttq.unique
+	_spec.Node.Columns = yttq.ctx.Fields
+	if len(yttq.ctx.Fields) > 0 {
+		_spec.Unique = yttq.ctx.Unique != nil && *yttq.ctx.Unique
 	}
 	return sqlgraph.CountNodes(ctx, yttq.driver, _spec)
 }
 
-func (yttq *YouTubeTalentQuery) sqlExist(ctx context.Context) (bool, error) {
-	n, err := yttq.sqlCount(ctx)
-	if err != nil {
-		return false, fmt.Errorf("ent: check existence: %w", err)
-	}
-	return n > 0, nil
-}
-
 func (yttq *YouTubeTalentQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := &sqlgraph.QuerySpec{
-		Node: &sqlgraph.NodeSpec{
-			Table:   youtubetalent.Table,
-			Columns: youtubetalent.Columns,
-			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeString,
-				Column: youtubetalent.FieldID,
-			},
-		},
-		From:   yttq.sql,
-		Unique: true,
-	}
-	if unique := yttq.unique; unique != nil {
+	_spec := sqlgraph.NewQuerySpec(youtubetalent.Table, youtubetalent.Columns, sqlgraph.NewFieldSpec(youtubetalent.FieldID, field.TypeString))
+	_spec.From = yttq.sql
+	if unique := yttq.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
+	} else if yttq.path != nil {
+		_spec.Unique = true
 	}
-	if fields := yttq.fields; len(fields) > 0 {
+	if fields := yttq.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
 		_spec.Node.Columns = append(_spec.Node.Columns, youtubetalent.FieldID)
 		for i := range fields {
@@ -650,10 +655,10 @@ func (yttq *YouTubeTalentQuery) querySpec() *sqlgraph.QuerySpec {
 			}
 		}
 	}
-	if limit := yttq.limit; limit != nil {
+	if limit := yttq.ctx.Limit; limit != nil {
 		_spec.Limit = *limit
 	}
-	if offset := yttq.offset; offset != nil {
+	if offset := yttq.ctx.Offset; offset != nil {
 		_spec.Offset = *offset
 	}
 	if ps := yttq.order; len(ps) > 0 {
@@ -669,7 +674,7 @@ func (yttq *YouTubeTalentQuery) querySpec() *sqlgraph.QuerySpec {
 func (yttq *YouTubeTalentQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(yttq.driver.Dialect())
 	t1 := builder.Table(youtubetalent.Table)
-	columns := yttq.fields
+	columns := yttq.ctx.Fields
 	if len(columns) == 0 {
 		columns = youtubetalent.Columns
 	}
@@ -678,7 +683,7 @@ func (yttq *YouTubeTalentQuery) sqlQuery(ctx context.Context) *sql.Selector {
 		selector = yttq.sql
 		selector.Select(selector.Columns(columns...)...)
 	}
-	if yttq.unique != nil && *yttq.unique {
+	if yttq.ctx.Unique != nil && *yttq.ctx.Unique {
 		selector.Distinct()
 	}
 	for _, m := range yttq.modifiers {
@@ -690,12 +695,12 @@ func (yttq *YouTubeTalentQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	for _, p := range yttq.order {
 		p(selector)
 	}
-	if offset := yttq.offset; offset != nil {
+	if offset := yttq.ctx.Offset; offset != nil {
 		// limit is mandatory for offset clause. We start
 		// with default value, and override it below if needed.
 		selector.Offset(*offset).Limit(math.MaxInt32)
 	}
-	if limit := yttq.limit; limit != nil {
+	if limit := yttq.ctx.Limit; limit != nil {
 		selector.Limit(*limit)
 	}
 	return selector
@@ -729,13 +734,8 @@ func (yttq *YouTubeTalentQuery) ForShare(opts ...sql.LockOption) *YouTubeTalentQ
 
 // YouTubeTalentGroupBy is the group-by builder for YouTubeTalent entities.
 type YouTubeTalentGroupBy struct {
-	config
 	selector
-	fields []string
-	fns    []AggregateFunc
-	// intermediate query (i.e. traversal path).
-	sql  *sql.Selector
-	path func(context.Context) (*sql.Selector, error)
+	build *YouTubeTalentQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
@@ -744,74 +744,77 @@ func (yttgb *YouTubeTalentGroupBy) Aggregate(fns ...AggregateFunc) *YouTubeTalen
 	return yttgb
 }
 
-// Scan applies the group-by query and scans the result into the given value.
-func (yttgb *YouTubeTalentGroupBy) Scan(ctx context.Context, v interface{}) error {
-	query, err := yttgb.path(ctx)
-	if err != nil {
+// Scan applies the selector query and scans the result into the given value.
+func (yttgb *YouTubeTalentGroupBy) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, yttgb.build.ctx, "GroupBy")
+	if err := yttgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	yttgb.sql = query
-	return yttgb.sqlScan(ctx, v)
+	return scanWithInterceptors[*YouTubeTalentQuery, *YouTubeTalentGroupBy](ctx, yttgb.build, yttgb, yttgb.build.inters, v)
 }
 
-func (yttgb *YouTubeTalentGroupBy) sqlScan(ctx context.Context, v interface{}) error {
-	for _, f := range yttgb.fields {
-		if !youtubetalent.ValidColumn(f) {
-			return &ValidationError{Name: f, err: fmt.Errorf("invalid field %q for group-by", f)}
-		}
+func (yttgb *YouTubeTalentGroupBy) sqlScan(ctx context.Context, root *YouTubeTalentQuery, v any) error {
+	selector := root.sqlQuery(ctx).Select()
+	aggregation := make([]string, 0, len(yttgb.fns))
+	for _, fn := range yttgb.fns {
+		aggregation = append(aggregation, fn(selector))
 	}
-	selector := yttgb.sqlQuery()
+	if len(selector.SelectedColumns()) == 0 {
+		columns := make([]string, 0, len(*yttgb.flds)+len(yttgb.fns))
+		for _, f := range *yttgb.flds {
+			columns = append(columns, selector.C(f))
+		}
+		columns = append(columns, aggregation...)
+		selector.Select(columns...)
+	}
+	selector.GroupBy(selector.Columns(*yttgb.flds...)...)
 	if err := selector.Err(); err != nil {
 		return err
 	}
 	rows := &sql.Rows{}
 	query, args := selector.Query()
-	if err := yttgb.driver.Query(ctx, query, args, rows); err != nil {
+	if err := yttgb.build.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}
 	defer rows.Close()
 	return sql.ScanSlice(rows, v)
 }
 
-func (yttgb *YouTubeTalentGroupBy) sqlQuery() *sql.Selector {
-	selector := yttgb.sql.Select()
-	aggregation := make([]string, 0, len(yttgb.fns))
-	for _, fn := range yttgb.fns {
-		aggregation = append(aggregation, fn(selector))
-	}
-	// If no columns were selected in a custom aggregation function, the default
-	// selection is the fields used for "group-by", and the aggregation functions.
-	if len(selector.SelectedColumns()) == 0 {
-		columns := make([]string, 0, len(yttgb.fields)+len(yttgb.fns))
-		for _, f := range yttgb.fields {
-			columns = append(columns, selector.C(f))
-		}
-		columns = append(columns, aggregation...)
-		selector.Select(columns...)
-	}
-	return selector.GroupBy(selector.Columns(yttgb.fields...)...)
-}
-
 // YouTubeTalentSelect is the builder for selecting fields of YouTubeTalent entities.
 type YouTubeTalentSelect struct {
 	*YouTubeTalentQuery
 	selector
-	// intermediate query (i.e. traversal path).
-	sql *sql.Selector
+}
+
+// Aggregate adds the given aggregation functions to the selector query.
+func (ytts *YouTubeTalentSelect) Aggregate(fns ...AggregateFunc) *YouTubeTalentSelect {
+	ytts.fns = append(ytts.fns, fns...)
+	return ytts
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (ytts *YouTubeTalentSelect) Scan(ctx context.Context, v interface{}) error {
+func (ytts *YouTubeTalentSelect) Scan(ctx context.Context, v any) error {
+	ctx = setContextOp(ctx, ytts.ctx, "Select")
 	if err := ytts.prepareQuery(ctx); err != nil {
 		return err
 	}
-	ytts.sql = ytts.YouTubeTalentQuery.sqlQuery(ctx)
-	return ytts.sqlScan(ctx, v)
+	return scanWithInterceptors[*YouTubeTalentQuery, *YouTubeTalentSelect](ctx, ytts.YouTubeTalentQuery, ytts, ytts.inters, v)
 }
 
-func (ytts *YouTubeTalentSelect) sqlScan(ctx context.Context, v interface{}) error {
+func (ytts *YouTubeTalentSelect) sqlScan(ctx context.Context, root *YouTubeTalentQuery, v any) error {
+	selector := root.sqlQuery(ctx)
+	aggregation := make([]string, 0, len(ytts.fns))
+	for _, fn := range ytts.fns {
+		aggregation = append(aggregation, fn(selector))
+	}
+	switch n := len(*ytts.selector.flds); {
+	case n == 0 && len(aggregation) > 0:
+		selector.Select(aggregation...)
+	case n != 0 && len(aggregation) > 0:
+		selector.AppendSelect(aggregation...)
+	}
 	rows := &sql.Rows{}
-	query, args := ytts.sql.Query()
+	query, args := selector.Query()
 	if err := ytts.driver.Query(ctx, query, args, rows); err != nil {
 		return err
 	}

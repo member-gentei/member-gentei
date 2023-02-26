@@ -89,8 +89,8 @@ func (e GuildEdges) YoutubeTalentsOrErr() ([]*YouTubeTalent, error) {
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
-func (*Guild) scanValues(columns []string) ([]interface{}, error) {
-	values := make([]interface{}, len(columns))
+func (*Guild) scanValues(columns []string) ([]any, error) {
+	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
 		case guild.FieldAdminSnowflakes, guild.FieldModeratorSnowflakes, guild.FieldSettings:
@@ -108,7 +108,7 @@ func (*Guild) scanValues(columns []string) ([]interface{}, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the Guild fields.
-func (gu *Guild) assignValues(columns []string, values []interface{}) error {
+func (gu *Guild) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -175,29 +175,29 @@ func (gu *Guild) assignValues(columns []string, values []interface{}) error {
 
 // QueryMembers queries the "members" edge of the Guild entity.
 func (gu *Guild) QueryMembers() *UserQuery {
-	return (&GuildClient{config: gu.config}).QueryMembers(gu)
+	return NewGuildClient(gu.config).QueryMembers(gu)
 }
 
 // QueryAdmins queries the "admins" edge of the Guild entity.
 func (gu *Guild) QueryAdmins() *UserQuery {
-	return (&GuildClient{config: gu.config}).QueryAdmins(gu)
+	return NewGuildClient(gu.config).QueryAdmins(gu)
 }
 
 // QueryRoles queries the "roles" edge of the Guild entity.
 func (gu *Guild) QueryRoles() *GuildRoleQuery {
-	return (&GuildClient{config: gu.config}).QueryRoles(gu)
+	return NewGuildClient(gu.config).QueryRoles(gu)
 }
 
 // QueryYoutubeTalents queries the "youtube_talents" edge of the Guild entity.
 func (gu *Guild) QueryYoutubeTalents() *YouTubeTalentQuery {
-	return (&GuildClient{config: gu.config}).QueryYoutubeTalents(gu)
+	return NewGuildClient(gu.config).QueryYoutubeTalents(gu)
 }
 
 // Update returns a builder for updating this Guild.
 // Note that you need to call Guild.Unwrap() before calling this method if this Guild
 // was returned from a transaction, and the transaction was committed or rolled back.
 func (gu *Guild) Update() *GuildUpdateOne {
-	return (&GuildClient{config: gu.config}).UpdateOne(gu)
+	return NewGuildClient(gu.config).UpdateOne(gu)
 }
 
 // Unwrap unwraps the Guild entity that was returned from a transaction after it was closed,
@@ -242,9 +242,3 @@ func (gu *Guild) String() string {
 
 // Guilds is a parsable slice of Guild.
 type Guilds []*Guild
-
-func (gu Guilds) config(cfg config) {
-	for _i := range gu {
-		gu[_i].config = cfg
-	}
-}

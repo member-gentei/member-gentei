@@ -19,6 +19,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/sql"
 )
 
 const (
@@ -40,33 +41,35 @@ const (
 // GuildMutation represents an operation that mutates the Guild nodes in the graph.
 type GuildMutation struct {
 	config
-	op                     Op
-	typ                    string
-	id                     *uint64
-	name                   *string
-	icon_hash              *string
-	audit_channel          *uint64
-	addaudit_channel       *int64
-	language               *guild.Language
-	admin_snowflakes       *[]uint64
-	moderator_snowflakes   *[]uint64
-	settings               **schema.GuildSettings
-	clearedFields          map[string]struct{}
-	members                map[uint64]struct{}
-	removedmembers         map[uint64]struct{}
-	clearedmembers         bool
-	admins                 map[uint64]struct{}
-	removedadmins          map[uint64]struct{}
-	clearedadmins          bool
-	roles                  map[uint64]struct{}
-	removedroles           map[uint64]struct{}
-	clearedroles           bool
-	youtube_talents        map[string]struct{}
-	removedyoutube_talents map[string]struct{}
-	clearedyoutube_talents bool
-	done                   bool
-	oldValue               func(context.Context) (*Guild, error)
-	predicates             []predicate.Guild
+	op                         Op
+	typ                        string
+	id                         *uint64
+	name                       *string
+	icon_hash                  *string
+	audit_channel              *uint64
+	addaudit_channel           *int64
+	language                   *guild.Language
+	admin_snowflakes           *[]uint64
+	appendadmin_snowflakes     []uint64
+	moderator_snowflakes       *[]uint64
+	appendmoderator_snowflakes []uint64
+	settings                   **schema.GuildSettings
+	clearedFields              map[string]struct{}
+	members                    map[uint64]struct{}
+	removedmembers             map[uint64]struct{}
+	clearedmembers             bool
+	admins                     map[uint64]struct{}
+	removedadmins              map[uint64]struct{}
+	clearedadmins              bool
+	roles                      map[uint64]struct{}
+	removedroles               map[uint64]struct{}
+	clearedroles               bool
+	youtube_talents            map[string]struct{}
+	removedyoutube_talents     map[string]struct{}
+	clearedyoutube_talents     bool
+	done                       bool
+	oldValue                   func(context.Context) (*Guild, error)
+	predicates                 []predicate.Guild
 }
 
 var _ ent.Mutation = (*GuildMutation)(nil)
@@ -367,6 +370,7 @@ func (m *GuildMutation) ResetLanguage() {
 // SetAdminSnowflakes sets the "admin_snowflakes" field.
 func (m *GuildMutation) SetAdminSnowflakes(u []uint64) {
 	m.admin_snowflakes = &u
+	m.appendadmin_snowflakes = nil
 }
 
 // AdminSnowflakes returns the value of the "admin_snowflakes" field in the mutation.
@@ -395,14 +399,29 @@ func (m *GuildMutation) OldAdminSnowflakes(ctx context.Context) (v []uint64, err
 	return oldValue.AdminSnowflakes, nil
 }
 
+// AppendAdminSnowflakes adds u to the "admin_snowflakes" field.
+func (m *GuildMutation) AppendAdminSnowflakes(u []uint64) {
+	m.appendadmin_snowflakes = append(m.appendadmin_snowflakes, u...)
+}
+
+// AppendedAdminSnowflakes returns the list of values that were appended to the "admin_snowflakes" field in this mutation.
+func (m *GuildMutation) AppendedAdminSnowflakes() ([]uint64, bool) {
+	if len(m.appendadmin_snowflakes) == 0 {
+		return nil, false
+	}
+	return m.appendadmin_snowflakes, true
+}
+
 // ResetAdminSnowflakes resets all changes to the "admin_snowflakes" field.
 func (m *GuildMutation) ResetAdminSnowflakes() {
 	m.admin_snowflakes = nil
+	m.appendadmin_snowflakes = nil
 }
 
 // SetModeratorSnowflakes sets the "moderator_snowflakes" field.
 func (m *GuildMutation) SetModeratorSnowflakes(u []uint64) {
 	m.moderator_snowflakes = &u
+	m.appendmoderator_snowflakes = nil
 }
 
 // ModeratorSnowflakes returns the value of the "moderator_snowflakes" field in the mutation.
@@ -431,9 +450,23 @@ func (m *GuildMutation) OldModeratorSnowflakes(ctx context.Context) (v []uint64,
 	return oldValue.ModeratorSnowflakes, nil
 }
 
+// AppendModeratorSnowflakes adds u to the "moderator_snowflakes" field.
+func (m *GuildMutation) AppendModeratorSnowflakes(u []uint64) {
+	m.appendmoderator_snowflakes = append(m.appendmoderator_snowflakes, u...)
+}
+
+// AppendedModeratorSnowflakes returns the list of values that were appended to the "moderator_snowflakes" field in this mutation.
+func (m *GuildMutation) AppendedModeratorSnowflakes() ([]uint64, bool) {
+	if len(m.appendmoderator_snowflakes) == 0 {
+		return nil, false
+	}
+	return m.appendmoderator_snowflakes, true
+}
+
 // ClearModeratorSnowflakes clears the value of the "moderator_snowflakes" field.
 func (m *GuildMutation) ClearModeratorSnowflakes() {
 	m.moderator_snowflakes = nil
+	m.appendmoderator_snowflakes = nil
 	m.clearedFields[guild.FieldModeratorSnowflakes] = struct{}{}
 }
 
@@ -446,6 +479,7 @@ func (m *GuildMutation) ModeratorSnowflakesCleared() bool {
 // ResetModeratorSnowflakes resets all changes to the "moderator_snowflakes" field.
 func (m *GuildMutation) ResetModeratorSnowflakes() {
 	m.moderator_snowflakes = nil
+	m.appendmoderator_snowflakes = nil
 	delete(m.clearedFields, guild.FieldModeratorSnowflakes)
 }
 
@@ -719,9 +753,24 @@ func (m *GuildMutation) Where(ps ...predicate.Guild) {
 	m.predicates = append(m.predicates, ps...)
 }
 
+// WhereP appends storage-level predicates to the GuildMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *GuildMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Guild, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
 // Op returns the operation name.
 func (m *GuildMutation) Op() Op {
 	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *GuildMutation) SetOp(op Op) {
+	m.op = op
 }
 
 // Type returns the node type of this mutation (Guild).
@@ -1470,9 +1519,24 @@ func (m *GuildRoleMutation) Where(ps ...predicate.GuildRole) {
 	m.predicates = append(m.predicates, ps...)
 }
 
+// WhereP appends storage-level predicates to the GuildRoleMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *GuildRoleMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.GuildRole, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
 // Op returns the operation name.
 func (m *GuildRoleMutation) Op() Op {
 	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *GuildRoleMutation) SetOp(op Op) {
+	m.op = op
 }
 
 // Type returns the node type of this mutation (GuildRole).
@@ -2271,9 +2335,24 @@ func (m *UserMutation) Where(ps ...predicate.User) {
 	m.predicates = append(m.predicates, ps...)
 }
 
+// WhereP appends storage-level predicates to the UserMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *UserMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.User, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
 // Op returns the operation name.
 func (m *UserMutation) Op() Op {
 	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *UserMutation) SetOp(op Op) {
+	m.op = op
 }
 
 // Type returns the node type of this mutation (User).
@@ -3023,9 +3102,24 @@ func (m *UserMembershipMutation) Where(ps ...predicate.UserMembership) {
 	m.predicates = append(m.predicates, ps...)
 }
 
+// WhereP appends storage-level predicates to the UserMembershipMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *UserMembershipMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.UserMembership, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
 // Op returns the operation name.
 func (m *UserMembershipMutation) Op() Op {
 	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *UserMembershipMutation) SetOp(op Op) {
+	m.op = op
 }
 
 // Type returns the node type of this mutation (UserMembership).
@@ -3865,9 +3959,24 @@ func (m *YouTubeTalentMutation) Where(ps ...predicate.YouTubeTalent) {
 	m.predicates = append(m.predicates, ps...)
 }
 
+// WhereP appends storage-level predicates to the YouTubeTalentMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *YouTubeTalentMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.YouTubeTalent, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
 // Op returns the operation name.
 func (m *YouTubeTalentMutation) Op() Op {
 	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *YouTubeTalentMutation) SetOp(op Op) {
+	m.op = op
 }
 
 // Type returns the node type of this mutation (YouTubeTalent).

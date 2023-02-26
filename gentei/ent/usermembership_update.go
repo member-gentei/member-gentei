@@ -163,40 +163,7 @@ func (umu *UserMembershipUpdate) RemoveRoles(g ...*GuildRole) *UserMembershipUpd
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (umu *UserMembershipUpdate) Save(ctx context.Context) (int, error) {
-	var (
-		err      error
-		affected int
-	)
-	if len(umu.hooks) == 0 {
-		if err = umu.check(); err != nil {
-			return 0, err
-		}
-		affected, err = umu.sqlSave(ctx)
-	} else {
-		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
-			mutation, ok := m.(*UserMembershipMutation)
-			if !ok {
-				return nil, fmt.Errorf("unexpected mutation type %T", m)
-			}
-			if err = umu.check(); err != nil {
-				return 0, err
-			}
-			umu.mutation = mutation
-			affected, err = umu.sqlSave(ctx)
-			mutation.done = true
-			return affected, err
-		})
-		for i := len(umu.hooks) - 1; i >= 0; i-- {
-			if umu.hooks[i] == nil {
-				return 0, fmt.Errorf("ent: uninitialized hook (forgotten import ent/runtime?)")
-			}
-			mut = umu.hooks[i](mut)
-		}
-		if _, err := mut.Mutate(ctx, umu.mutation); err != nil {
-			return 0, err
-		}
-	}
-	return affected, err
+	return withHooks[int, UserMembershipMutation](ctx, umu.sqlSave, umu.mutation, umu.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
@@ -230,16 +197,10 @@ func (umu *UserMembershipUpdate) check() error {
 }
 
 func (umu *UserMembershipUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	_spec := &sqlgraph.UpdateSpec{
-		Node: &sqlgraph.NodeSpec{
-			Table:   usermembership.Table,
-			Columns: usermembership.Columns,
-			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeInt,
-				Column: usermembership.FieldID,
-			},
-		},
+	if err := umu.check(); err != nil {
+		return n, err
 	}
+	_spec := sqlgraph.NewUpdateSpec(usermembership.Table, usermembership.Columns, sqlgraph.NewFieldSpec(usermembership.FieldID, field.TypeInt))
 	if ps := umu.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -248,38 +209,19 @@ func (umu *UserMembershipUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 	}
 	if value, ok := umu.mutation.FirstFailed(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Value:  value,
-			Column: usermembership.FieldFirstFailed,
-		})
+		_spec.SetField(usermembership.FieldFirstFailed, field.TypeTime, value)
 	}
 	if umu.mutation.FirstFailedCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Column: usermembership.FieldFirstFailed,
-		})
+		_spec.ClearField(usermembership.FieldFirstFailed, field.TypeTime)
 	}
 	if value, ok := umu.mutation.LastVerified(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Value:  value,
-			Column: usermembership.FieldLastVerified,
-		})
+		_spec.SetField(usermembership.FieldLastVerified, field.TypeTime, value)
 	}
 	if value, ok := umu.mutation.FailCount(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeInt,
-			Value:  value,
-			Column: usermembership.FieldFailCount,
-		})
+		_spec.SetField(usermembership.FieldFailCount, field.TypeInt, value)
 	}
 	if value, ok := umu.mutation.AddedFailCount(); ok {
-		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
-			Type:   field.TypeInt,
-			Value:  value,
-			Column: usermembership.FieldFailCount,
-		})
+		_spec.AddField(usermembership.FieldFailCount, field.TypeInt, value)
 	}
 	if umu.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -413,6 +355,7 @@ func (umu *UserMembershipUpdate) sqlSave(ctx context.Context) (n int, err error)
 		}
 		return 0, err
 	}
+	umu.mutation.done = true
 	return n, nil
 }
 
@@ -554,6 +497,12 @@ func (umuo *UserMembershipUpdateOne) RemoveRoles(g ...*GuildRole) *UserMembershi
 	return umuo.RemoveRoleIDs(ids...)
 }
 
+// Where appends a list predicates to the UserMembershipUpdate builder.
+func (umuo *UserMembershipUpdateOne) Where(ps ...predicate.UserMembership) *UserMembershipUpdateOne {
+	umuo.mutation.Where(ps...)
+	return umuo
+}
+
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
 func (umuo *UserMembershipUpdateOne) Select(field string, fields ...string) *UserMembershipUpdateOne {
@@ -563,46 +512,7 @@ func (umuo *UserMembershipUpdateOne) Select(field string, fields ...string) *Use
 
 // Save executes the query and returns the updated UserMembership entity.
 func (umuo *UserMembershipUpdateOne) Save(ctx context.Context) (*UserMembership, error) {
-	var (
-		err  error
-		node *UserMembership
-	)
-	if len(umuo.hooks) == 0 {
-		if err = umuo.check(); err != nil {
-			return nil, err
-		}
-		node, err = umuo.sqlSave(ctx)
-	} else {
-		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
-			mutation, ok := m.(*UserMembershipMutation)
-			if !ok {
-				return nil, fmt.Errorf("unexpected mutation type %T", m)
-			}
-			if err = umuo.check(); err != nil {
-				return nil, err
-			}
-			umuo.mutation = mutation
-			node, err = umuo.sqlSave(ctx)
-			mutation.done = true
-			return node, err
-		})
-		for i := len(umuo.hooks) - 1; i >= 0; i-- {
-			if umuo.hooks[i] == nil {
-				return nil, fmt.Errorf("ent: uninitialized hook (forgotten import ent/runtime?)")
-			}
-			mut = umuo.hooks[i](mut)
-		}
-		v, err := mut.Mutate(ctx, umuo.mutation)
-		if err != nil {
-			return nil, err
-		}
-		nv, ok := v.(*UserMembership)
-		if !ok {
-			return nil, fmt.Errorf("unexpected node type %T returned from UserMembershipMutation", v)
-		}
-		node = nv
-	}
-	return node, err
+	return withHooks[*UserMembership, UserMembershipMutation](ctx, umuo.sqlSave, umuo.mutation, umuo.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
@@ -636,16 +546,10 @@ func (umuo *UserMembershipUpdateOne) check() error {
 }
 
 func (umuo *UserMembershipUpdateOne) sqlSave(ctx context.Context) (_node *UserMembership, err error) {
-	_spec := &sqlgraph.UpdateSpec{
-		Node: &sqlgraph.NodeSpec{
-			Table:   usermembership.Table,
-			Columns: usermembership.Columns,
-			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeInt,
-				Column: usermembership.FieldID,
-			},
-		},
+	if err := umuo.check(); err != nil {
+		return _node, err
 	}
+	_spec := sqlgraph.NewUpdateSpec(usermembership.Table, usermembership.Columns, sqlgraph.NewFieldSpec(usermembership.FieldID, field.TypeInt))
 	id, ok := umuo.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "UserMembership.id" for update`)}
@@ -671,38 +575,19 @@ func (umuo *UserMembershipUpdateOne) sqlSave(ctx context.Context) (_node *UserMe
 		}
 	}
 	if value, ok := umuo.mutation.FirstFailed(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Value:  value,
-			Column: usermembership.FieldFirstFailed,
-		})
+		_spec.SetField(usermembership.FieldFirstFailed, field.TypeTime, value)
 	}
 	if umuo.mutation.FirstFailedCleared() {
-		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Column: usermembership.FieldFirstFailed,
-		})
+		_spec.ClearField(usermembership.FieldFirstFailed, field.TypeTime)
 	}
 	if value, ok := umuo.mutation.LastVerified(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Value:  value,
-			Column: usermembership.FieldLastVerified,
-		})
+		_spec.SetField(usermembership.FieldLastVerified, field.TypeTime, value)
 	}
 	if value, ok := umuo.mutation.FailCount(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeInt,
-			Value:  value,
-			Column: usermembership.FieldFailCount,
-		})
+		_spec.SetField(usermembership.FieldFailCount, field.TypeInt, value)
 	}
 	if value, ok := umuo.mutation.AddedFailCount(); ok {
-		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
-			Type:   field.TypeInt,
-			Value:  value,
-			Column: usermembership.FieldFailCount,
-		})
+		_spec.AddField(usermembership.FieldFailCount, field.TypeInt, value)
 	}
 	if umuo.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -839,5 +724,6 @@ func (umuo *UserMembershipUpdateOne) sqlSave(ctx context.Context) (_node *UserMe
 		}
 		return nil, err
 	}
+	umuo.mutation.done = true
 	return _node, nil
 }

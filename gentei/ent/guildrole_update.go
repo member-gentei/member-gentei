@@ -136,40 +136,7 @@ func (gru *GuildRoleUpdate) ClearTalent() *GuildRoleUpdate {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (gru *GuildRoleUpdate) Save(ctx context.Context) (int, error) {
-	var (
-		err      error
-		affected int
-	)
-	if len(gru.hooks) == 0 {
-		if err = gru.check(); err != nil {
-			return 0, err
-		}
-		affected, err = gru.sqlSave(ctx)
-	} else {
-		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
-			mutation, ok := m.(*GuildRoleMutation)
-			if !ok {
-				return nil, fmt.Errorf("unexpected mutation type %T", m)
-			}
-			if err = gru.check(); err != nil {
-				return 0, err
-			}
-			gru.mutation = mutation
-			affected, err = gru.sqlSave(ctx)
-			mutation.done = true
-			return affected, err
-		})
-		for i := len(gru.hooks) - 1; i >= 0; i-- {
-			if gru.hooks[i] == nil {
-				return 0, fmt.Errorf("ent: uninitialized hook (forgotten import ent/runtime?)")
-			}
-			mut = gru.hooks[i](mut)
-		}
-		if _, err := mut.Mutate(ctx, gru.mutation); err != nil {
-			return 0, err
-		}
-	}
-	return affected, err
+	return withHooks[int, GuildRoleMutation](ctx, gru.sqlSave, gru.mutation, gru.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
@@ -203,16 +170,10 @@ func (gru *GuildRoleUpdate) check() error {
 }
 
 func (gru *GuildRoleUpdate) sqlSave(ctx context.Context) (n int, err error) {
-	_spec := &sqlgraph.UpdateSpec{
-		Node: &sqlgraph.NodeSpec{
-			Table:   guildrole.Table,
-			Columns: guildrole.Columns,
-			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeUint64,
-				Column: guildrole.FieldID,
-			},
-		},
+	if err := gru.check(); err != nil {
+		return n, err
 	}
+	_spec := sqlgraph.NewUpdateSpec(guildrole.Table, guildrole.Columns, sqlgraph.NewFieldSpec(guildrole.FieldID, field.TypeUint64))
 	if ps := gru.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -221,18 +182,10 @@ func (gru *GuildRoleUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 	}
 	if value, ok := gru.mutation.Name(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: guildrole.FieldName,
-		})
+		_spec.SetField(guildrole.FieldName, field.TypeString, value)
 	}
 	if value, ok := gru.mutation.LastUpdated(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Value:  value,
-			Column: guildrole.FieldLastUpdated,
-		})
+		_spec.SetField(guildrole.FieldLastUpdated, field.TypeTime, value)
 	}
 	if gru.mutation.GuildCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -366,6 +319,7 @@ func (gru *GuildRoleUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		return 0, err
 	}
+	gru.mutation.done = true
 	return n, nil
 }
 
@@ -480,6 +434,12 @@ func (gruo *GuildRoleUpdateOne) ClearTalent() *GuildRoleUpdateOne {
 	return gruo
 }
 
+// Where appends a list predicates to the GuildRoleUpdate builder.
+func (gruo *GuildRoleUpdateOne) Where(ps ...predicate.GuildRole) *GuildRoleUpdateOne {
+	gruo.mutation.Where(ps...)
+	return gruo
+}
+
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
 func (gruo *GuildRoleUpdateOne) Select(field string, fields ...string) *GuildRoleUpdateOne {
@@ -489,46 +449,7 @@ func (gruo *GuildRoleUpdateOne) Select(field string, fields ...string) *GuildRol
 
 // Save executes the query and returns the updated GuildRole entity.
 func (gruo *GuildRoleUpdateOne) Save(ctx context.Context) (*GuildRole, error) {
-	var (
-		err  error
-		node *GuildRole
-	)
-	if len(gruo.hooks) == 0 {
-		if err = gruo.check(); err != nil {
-			return nil, err
-		}
-		node, err = gruo.sqlSave(ctx)
-	} else {
-		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
-			mutation, ok := m.(*GuildRoleMutation)
-			if !ok {
-				return nil, fmt.Errorf("unexpected mutation type %T", m)
-			}
-			if err = gruo.check(); err != nil {
-				return nil, err
-			}
-			gruo.mutation = mutation
-			node, err = gruo.sqlSave(ctx)
-			mutation.done = true
-			return node, err
-		})
-		for i := len(gruo.hooks) - 1; i >= 0; i-- {
-			if gruo.hooks[i] == nil {
-				return nil, fmt.Errorf("ent: uninitialized hook (forgotten import ent/runtime?)")
-			}
-			mut = gruo.hooks[i](mut)
-		}
-		v, err := mut.Mutate(ctx, gruo.mutation)
-		if err != nil {
-			return nil, err
-		}
-		nv, ok := v.(*GuildRole)
-		if !ok {
-			return nil, fmt.Errorf("unexpected node type %T returned from GuildRoleMutation", v)
-		}
-		node = nv
-	}
-	return node, err
+	return withHooks[*GuildRole, GuildRoleMutation](ctx, gruo.sqlSave, gruo.mutation, gruo.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
@@ -562,16 +483,10 @@ func (gruo *GuildRoleUpdateOne) check() error {
 }
 
 func (gruo *GuildRoleUpdateOne) sqlSave(ctx context.Context) (_node *GuildRole, err error) {
-	_spec := &sqlgraph.UpdateSpec{
-		Node: &sqlgraph.NodeSpec{
-			Table:   guildrole.Table,
-			Columns: guildrole.Columns,
-			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeUint64,
-				Column: guildrole.FieldID,
-			},
-		},
+	if err := gruo.check(); err != nil {
+		return _node, err
 	}
+	_spec := sqlgraph.NewUpdateSpec(guildrole.Table, guildrole.Columns, sqlgraph.NewFieldSpec(guildrole.FieldID, field.TypeUint64))
 	id, ok := gruo.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "GuildRole.id" for update`)}
@@ -597,18 +512,10 @@ func (gruo *GuildRoleUpdateOne) sqlSave(ctx context.Context) (_node *GuildRole, 
 		}
 	}
 	if value, ok := gruo.mutation.Name(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: guildrole.FieldName,
-		})
+		_spec.SetField(guildrole.FieldName, field.TypeString, value)
 	}
 	if value, ok := gruo.mutation.LastUpdated(); ok {
-		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Value:  value,
-			Column: guildrole.FieldLastUpdated,
-		})
+		_spec.SetField(guildrole.FieldLastUpdated, field.TypeTime, value)
 	}
 	if gruo.mutation.GuildCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -745,5 +652,6 @@ func (gruo *GuildRoleUpdateOne) sqlSave(ctx context.Context) (_node *GuildRole, 
 		}
 		return nil, err
 	}
+	gruo.mutation.done = true
 	return _node, nil
 }

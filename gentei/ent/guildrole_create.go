@@ -103,50 +103,8 @@ func (grc *GuildRoleCreate) Mutation() *GuildRoleMutation {
 
 // Save creates the GuildRole in the database.
 func (grc *GuildRoleCreate) Save(ctx context.Context) (*GuildRole, error) {
-	var (
-		err  error
-		node *GuildRole
-	)
 	grc.defaults()
-	if len(grc.hooks) == 0 {
-		if err = grc.check(); err != nil {
-			return nil, err
-		}
-		node, err = grc.sqlSave(ctx)
-	} else {
-		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
-			mutation, ok := m.(*GuildRoleMutation)
-			if !ok {
-				return nil, fmt.Errorf("unexpected mutation type %T", m)
-			}
-			if err = grc.check(); err != nil {
-				return nil, err
-			}
-			grc.mutation = mutation
-			if node, err = grc.sqlSave(ctx); err != nil {
-				return nil, err
-			}
-			mutation.id = &node.ID
-			mutation.done = true
-			return node, err
-		})
-		for i := len(grc.hooks) - 1; i >= 0; i-- {
-			if grc.hooks[i] == nil {
-				return nil, fmt.Errorf("ent: uninitialized hook (forgotten import ent/runtime?)")
-			}
-			mut = grc.hooks[i](mut)
-		}
-		v, err := mut.Mutate(ctx, grc.mutation)
-		if err != nil {
-			return nil, err
-		}
-		nv, ok := v.(*GuildRole)
-		if !ok {
-			return nil, fmt.Errorf("unexpected node type %T returned from GuildRoleMutation", v)
-		}
-		node = nv
-	}
-	return node, err
+	return withHooks[*GuildRole, GuildRoleMutation](ctx, grc.sqlSave, grc.mutation, grc.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
@@ -194,6 +152,9 @@ func (grc *GuildRoleCreate) check() error {
 }
 
 func (grc *GuildRoleCreate) sqlSave(ctx context.Context) (*GuildRole, error) {
+	if err := grc.check(); err != nil {
+		return nil, err
+	}
 	_node, _spec := grc.createSpec()
 	if err := sqlgraph.CreateNode(ctx, grc.driver, _spec); err != nil {
 		if sqlgraph.IsConstraintError(err) {
@@ -205,19 +166,15 @@ func (grc *GuildRoleCreate) sqlSave(ctx context.Context) (*GuildRole, error) {
 		id := _spec.ID.Value.(int64)
 		_node.ID = uint64(id)
 	}
+	grc.mutation.id = &_node.ID
+	grc.mutation.done = true
 	return _node, nil
 }
 
 func (grc *GuildRoleCreate) createSpec() (*GuildRole, *sqlgraph.CreateSpec) {
 	var (
 		_node = &GuildRole{config: grc.config}
-		_spec = &sqlgraph.CreateSpec{
-			Table: guildrole.Table,
-			ID: &sqlgraph.FieldSpec{
-				Type:   field.TypeUint64,
-				Column: guildrole.FieldID,
-			},
-		}
+		_spec = sqlgraph.NewCreateSpec(guildrole.Table, sqlgraph.NewFieldSpec(guildrole.FieldID, field.TypeUint64))
 	)
 	_spec.OnConflict = grc.conflict
 	if id, ok := grc.mutation.ID(); ok {
@@ -225,19 +182,11 @@ func (grc *GuildRoleCreate) createSpec() (*GuildRole, *sqlgraph.CreateSpec) {
 		_spec.ID.Value = id
 	}
 	if value, ok := grc.mutation.Name(); ok {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeString,
-			Value:  value,
-			Column: guildrole.FieldName,
-		})
+		_spec.SetField(guildrole.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
 	if value, ok := grc.mutation.LastUpdated(); ok {
-		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
-			Type:   field.TypeTime,
-			Value:  value,
-			Column: guildrole.FieldLastUpdated,
-		})
+		_spec.SetField(guildrole.FieldLastUpdated, field.TypeTime, value)
 		_node.LastUpdated = value
 	}
 	if nodes := grc.mutation.GuildIDs(); len(nodes) > 0 {
@@ -628,7 +577,6 @@ func (u *GuildRoleUpsertBulk) UpdateNewValues() *GuildRoleUpsertBulk {
 		for _, b := range u.create.builders {
 			if _, exists := b.mutation.ID(); exists {
 				s.SetIgnore(guildrole.FieldID)
-				return
 			}
 		}
 	}))

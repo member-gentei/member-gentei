@@ -75,8 +75,8 @@ func (e YouTubeTalentEdges) MembershipsOrErr() ([]*UserMembership, error) {
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
-func (*YouTubeTalent) scanValues(columns []string) ([]interface{}, error) {
-	values := make([]interface{}, len(columns))
+func (*YouTubeTalent) scanValues(columns []string) ([]any, error) {
+	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
 		case youtubetalent.FieldID, youtubetalent.FieldChannelName, youtubetalent.FieldThumbnailURL, youtubetalent.FieldMembershipVideoID:
@@ -92,7 +92,7 @@ func (*YouTubeTalent) scanValues(columns []string) ([]interface{}, error) {
 
 // assignValues assigns the values that were returned from sql.Rows (after scanning)
 // to the YouTubeTalent fields.
-func (ytt *YouTubeTalent) assignValues(columns []string, values []interface{}) error {
+func (ytt *YouTubeTalent) assignValues(columns []string, values []any) error {
 	if m, n := len(values), len(columns); m < n {
 		return fmt.Errorf("mismatch number of scan values: %d != %d", m, n)
 	}
@@ -147,24 +147,24 @@ func (ytt *YouTubeTalent) assignValues(columns []string, values []interface{}) e
 
 // QueryGuilds queries the "guilds" edge of the YouTubeTalent entity.
 func (ytt *YouTubeTalent) QueryGuilds() *GuildQuery {
-	return (&YouTubeTalentClient{config: ytt.config}).QueryGuilds(ytt)
+	return NewYouTubeTalentClient(ytt.config).QueryGuilds(ytt)
 }
 
 // QueryRoles queries the "roles" edge of the YouTubeTalent entity.
 func (ytt *YouTubeTalent) QueryRoles() *GuildRoleQuery {
-	return (&YouTubeTalentClient{config: ytt.config}).QueryRoles(ytt)
+	return NewYouTubeTalentClient(ytt.config).QueryRoles(ytt)
 }
 
 // QueryMemberships queries the "memberships" edge of the YouTubeTalent entity.
 func (ytt *YouTubeTalent) QueryMemberships() *UserMembershipQuery {
-	return (&YouTubeTalentClient{config: ytt.config}).QueryMemberships(ytt)
+	return NewYouTubeTalentClient(ytt.config).QueryMemberships(ytt)
 }
 
 // Update returns a builder for updating this YouTubeTalent.
 // Note that you need to call YouTubeTalent.Unwrap() before calling this method if this YouTubeTalent
 // was returned from a transaction, and the transaction was committed or rolled back.
 func (ytt *YouTubeTalent) Update() *YouTubeTalentUpdateOne {
-	return (&YouTubeTalentClient{config: ytt.config}).UpdateOne(ytt)
+	return NewYouTubeTalentClient(ytt.config).UpdateOne(ytt)
 }
 
 // Unwrap unwraps the YouTubeTalent entity that was returned from a transaction after it was closed,
@@ -206,9 +206,3 @@ func (ytt *YouTubeTalent) String() string {
 
 // YouTubeTalents is a parsable slice of YouTubeTalent.
 type YouTubeTalents []*YouTubeTalent
-
-func (ytt YouTubeTalents) config(cfg config) {
-	for _i := range ytt {
-		ytt[_i].config = cfg
-	}
-}
