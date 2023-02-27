@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/member-gentei/member-gentei/gentei/apis"
@@ -12,6 +13,7 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
+	"github.com/member-gentei/member-gentei/gentei/web"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -51,6 +53,9 @@ var repairCmd = &cobra.Command{
 			err = repairGuilds(ctx, db, session)
 			if err != nil {
 				log.Fatal().Err(err).Msg("error repairing Guild set")
+			}
+			if err = refreshYouTubeChannels(ctx, db); err != nil {
+				log.Fatal().Err(err).Msg("error refreshing YouTube channel info")
 			}
 			return
 		}
@@ -142,6 +147,22 @@ func repairGuilds(ctx context.Context, db *ent.Client, session *discordgo.Sessio
 			return err
 		}
 		log.Info().Str("guildID", gid).Msg("deleted Guild")
+	}
+	return nil
+}
+
+func refreshYouTubeChannels(ctx context.Context, db *ent.Client) error {
+	toUpdate, err := db.YouTubeTalent.Query().
+		Where(youtubetalent.LastUpdatedLT(time.Now().Add(-24 * time.Hour))).
+		IDs(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting stale YouTube channels: %w", err)
+	}
+	for _, channelID := range toUpdate {
+		err = web.UpsertYouTubeChannelID(ctx, db, channelID)
+		if err != nil {
+			return fmt.Errorf("error upserting channel info: %w", err)
+		}
 	}
 	return nil
 }
