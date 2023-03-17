@@ -47,7 +47,7 @@ spec:
             - name: google-sa
               secret:
                 secretName: google-sa
-  schedule: "0 */2 30 * *"
+  schedule: "0 */2 * * *"
 ---
 apiVersion: batch/v1
 kind: CronJob
