@@ -41,7 +41,7 @@ var repairCmd = &cobra.Command{
 			disabledChannelIDs := db.YouTubeTalent.Query().Where(youtubetalent.DisabledNotNil()).IDsX(ctx)
 			for _, channelID := range disabledChannelIDs {
 				if err := repairChannelID(ctx, db, channelID); err != nil {
-					log.Err(err).Msg("error repairing channel")
+					log.Err(err).Str("channelID", channelID).Msg("error repairing channel")
 				}
 			}
 			session, err := discordgo.New(fmt.Sprintf("Bot %s", os.Getenv(envNameDiscordBotToken)))
