@@ -130,6 +130,7 @@ func (b *DiscordBot) enforceRole(ctx context.Context, gr *ent.GuildRole, dryRun 
 	logger.Info().
 		Int("addCount", len(toAdd)).
 		Int("removeCount", len(toRemove)).
+		Int("currentMembers", len(dGuild.Members)).
 		Bool("dryRun", dryRun).
 		Msg("role enforcement rollup")
 	if dryRun {
