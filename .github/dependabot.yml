@@ -5,3 +5,7 @@ updates:
     open-pull-requests-limit: 1
     schedule:
       interval: daily
+  - directory: /
+    package-ecosystem: github-actions
+    schedule:
+      interval: daily
