@@ -115,8 +115,9 @@ func (b *DiscordBot) enforceRole(ctx context.Context, gr *ent.GuildRole, dryRun 
 	defer mutex.Unlock()
 	// compile the changeset
 	var (
-		toAdd    []string
-		toRemove []string
+		toAdd     []string
+		toRemove  []string
+		keepCount int
 	)
 	dGuild, err := b.session.State.Guild(guildIDStr)
 	if err != nil {
@@ -128,16 +129,23 @@ func (b *DiscordBot) enforceRole(ctx context.Context, gr *ent.GuildRole, dryRun 
 			return err
 		}
 		// determine if this user should be granted / removed the role
-		if shouldHaveRole[uid] && sliceContains(roleIDStr, member.Roles) {
-			toAdd = append(toAdd, member.User.ID)
+		if shouldHaveRole[uid] {
+			if sliceContains(roleIDStr, member.Roles) {
+				keepCount++
+			} else {
+				// "should have the role and don't already have the role"
+				toAdd = append(toAdd, member.User.ID)
+			}
 		} else if sliceContains(roleIDStr, member.Roles) {
+			// "should not have the role and has the role"
 			toRemove = append(toRemove, member.User.ID)
 		}
 	}
 	logger.Info().
 		Int("addCount", len(toAdd)).
 		Int("removeCount", len(toRemove)).
-		Int("currentMembers", len(dGuild.Members)).
+		Int("keepCount", keepCount).
+		Int("guildMembers", len(dGuild.Members)).
 		Bool("dryRun", dryRun).
 		Msg("role enforcement rollup")
 	if dryRun {
