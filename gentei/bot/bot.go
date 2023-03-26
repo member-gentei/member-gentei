@@ -19,6 +19,10 @@ import (
 	"golang.org/x/oauth2"
 )
 
+const (
+	largeThreshold = 250
+)
+
 type DiscordBot struct {
 	session *discordgo.Session
 
@@ -29,6 +33,9 @@ type DiscordBot struct {
 
 	// roleEnforcementMutex is held by overall role enforcement runs.
 	roleEnforcementMutex *sync.Mutex
+	// guildMemberLoadMutexes are held by the guild member load process.
+	guildMemberLoadMutexes      map[string]*sync.Mutex
+	guildMemberLoadMutexesMutex *sync.Mutex
 }
 
 func New(db *ent.Client, token string, youTubeConfig *oauth2.Config) (*DiscordBot, error) {
@@ -38,11 +45,13 @@ func New(db *ent.Client, token string, youTubeConfig *oauth2.Config) (*DiscordBo
 	}
 	rut := roles.NewRoleUpdateTracker(session)
 	return &DiscordBot{
-		session:              session,
-		db:                   db,
-		rut:                  rut,
-		youTubeConfig:        youTubeConfig,
-		roleEnforcementMutex: &sync.Mutex{},
+		session:                     session,
+		db:                          db,
+		rut:                         rut,
+		youTubeConfig:               youTubeConfig,
+		roleEnforcementMutex:        &sync.Mutex{},
+		guildMemberLoadMutexes:      map[string]*sync.Mutex{},
+		guildMemberLoadMutexesMutex: &sync.Mutex{},
 	}, nil
 }
 
@@ -73,6 +82,20 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 			Str("guildName", gc.Name).
 			Logger()
 		logger.Info().Msg("joined Guild")
+		// start guild member load if > largeThreshold
+		// (see why at https://discord.com/developers/docs/topics/gateway-events#request-guild-members)
+		b.guildMemberLoadMutexesMutex.Lock()
+		if b.guildMemberLoadMutexes[gc.ID] == nil {
+			b.guildMemberLoadMutexes[gc.ID] = &sync.Mutex{}
+		}
+		b.guildMemberLoadMutexesMutex.Unlock()
+		if gc.MemberCount > largeThreshold {
+			logger.Info().Int("memberCount", gc.MemberCount).Msg("big server; requesting Guild members")
+			b.guildMemberLoadMutexes[gc.ID].Lock()
+			if err = b.session.RequestGuildMembers(gc.ID, "", 0, "", false); err != nil {
+				logger.Err(err).Msg("error requesting guild members")
+			}
+		}
 		// update Guild info opportunistically
 		go func() {
 			ctx := context.Background()
@@ -129,8 +152,20 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 			logger.Err(err).Msg("error deleting Guild at departure")
 		}
 	})
+	b.session.AddHandler(func(s *discordgo.Session, gmc *discordgo.GuildMembersChunk) {
+		logger := log.With().
+			Str("guildID", gmc.GuildID).
+			Logger()
+		logger.Debug().Int("chunkIndex", gmc.ChunkIndex).Int("chunkCount", gmc.ChunkCount).Send()
+		if gmc.ChunkIndex == gmc.ChunkCount-1 {
+			logger.Info().Msg("got all guild member chunks")
+			b.guildMemberLoadMutexes[gmc.GuildID].Unlock()
+		}
+	})
 	// register intents (new for v8 gateway)
 	b.session.Identify.Intents = discordgo.IntentsGuilds | discordgo.IntentsGuildMembers
+	// declare large_threshold explicitly
+	b.session.Identify.LargeThreshold = largeThreshold
 	if err = b.session.Open(); err != nil {
 		return fmt.Errorf("error opening discordgo session: %w", err)
 	}

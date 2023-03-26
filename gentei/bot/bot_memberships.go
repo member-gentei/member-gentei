@@ -106,6 +106,13 @@ func (b *DiscordBot) enforceRole(ctx context.Context, gr *ent.GuildRole, dryRun 
 			logger.Info().Str("userID", strconv.FormatUint(userID, 10)).Msg("role membership in grace period")
 		}
 	}
+	// wait until we have all members
+	mutex := b.guildMemberLoadMutexes[guildIDStr]
+	if !mutex.TryLock() {
+		logger.Info().Msg("waiting until Guild Members are done loading")
+		mutex.Lock()
+	}
+	defer mutex.Unlock()
 	// compile the changeset
 	var (
 		toAdd    []string
