@@ -325,8 +325,13 @@ func SaveMemberships(
 			err = fmt.Errorf("error setting first failed time for %s: %w", c.ChannelID, err)
 			return
 		}
-		logger.Info().Int("count", count).Time("firstFailed", c.Time).
-			Msg("lost membership")
+		if count > 0 {
+			logger.Info().
+				Time("firstFailed", c.Time).
+				Msg("lost membership")
+		} else {
+			logger.Debug().Msg("not a member; was 'lost'")
+		}
 	}
 	// clear not
 	for _, c := range results.Not {
