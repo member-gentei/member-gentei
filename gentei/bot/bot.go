@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/jellydator/ttlcache/v3"
 	"github.com/member-gentei/member-gentei/gentei/bot/roles"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
@@ -36,6 +37,8 @@ type DiscordBot struct {
 	// guildMemberLoadMutexes are held by the guild member load process.
 	guildMemberLoadMutexes      map[string]*sync.Mutex
 	guildMemberLoadMutexesMutex *sync.Mutex
+	// auditChannelCache's key is the Guild ID
+	auditChannelCache *ttlcache.Cache[uint64, uint64]
 }
 
 func New(db *ent.Client, token string, youTubeConfig *oauth2.Config) (*DiscordBot, error) {
@@ -44,6 +47,10 @@ func New(db *ent.Client, token string, youTubeConfig *oauth2.Config) (*DiscordBo
 		return nil, fmt.Errorf("error creating discordgo session: %w", err)
 	}
 	rut := roles.NewRoleUpdateTracker(session)
+	acc := ttlcache.New(
+		ttlcache.WithTTL[uint64, uint64](time.Minute * 5),
+	)
+	go acc.Start()
 	return &DiscordBot{
 		session:                     session,
 		db:                          db,
@@ -52,6 +59,7 @@ func New(db *ent.Client, token string, youTubeConfig *oauth2.Config) (*DiscordBo
 		roleEnforcementMutex:        &sync.Mutex{},
 		guildMemberLoadMutexes:      map[string]*sync.Mutex{},
 		guildMemberLoadMutexesMutex: &sync.Mutex{},
+		auditChannelCache:           acc,
 	}, nil
 }
 

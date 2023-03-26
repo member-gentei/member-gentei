@@ -66,6 +66,7 @@ func (b *DiscordBot) handleManageAuditSet(
 	if err != nil {
 		return nil, fmt.Errorf("error setting Guild.AuditChannel: %w", err)
 	}
+	b.auditChannelCache.Delete(dg.ID)
 	return &discordgo.WebhookEdit{
 		Content: ptr(fmt.Sprintf("Role changes performed by this bot will now be posted to %s.", targetChannel.Mention())),
 	}, nil

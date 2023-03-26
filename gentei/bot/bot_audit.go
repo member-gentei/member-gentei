@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/jellydator/ttlcache/v3"
 	"github.com/member-gentei/member-gentei/gentei/bot/commands"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
@@ -18,27 +19,38 @@ var (
 
 // auditLog sends audit logs, if configured on the Discord Guild.
 func (b *DiscordBot) auditLog(ctx context.Context, guildID, userID, roleID uint64, add bool, reason string) {
-	// TODO: cache the audit log channel ID heavily
 	var (
 		logger = log.With().
 			Str("guildID", strconv.FormatUint(guildID, 10)).
 			Str("userID", strconv.FormatUint(userID, 10)).
 			Str("roleID", strconv.FormatUint(roleID, 10)).
 			Logger()
-		avatarURL string
+		avatarURL    string
+		auditChannel uint64
 	)
-	dg, err := b.db.Guild.Query().
-		Where(
-			guild.ID(guildID),
-			guild.AuditChannelNotNil(),
-			guild.Not(guild.AuditChannel(0)),
-		).
-		Only(ctx)
-	if ent.IsNotFound(err) {
-		return
+	// load audit log channel ID
+	cached := b.auditChannelCache.Get(guildID)
+	if cached == nil {
+		dg, err := b.db.Guild.Query().
+			Where(
+				guild.ID(guildID),
+				guild.AuditChannelNotNil(),
+				guild.Not(guild.AuditChannel(0)),
+			).
+			Only(ctx)
+		if ent.IsNotFound(err) {
+			b.auditChannelCache.Set(guildID, 0, 0)
+		} else if err != nil {
+			logger.Err(err).Msg("error querying for audit log channel")
+		} else {
+			// err == nil
+			auditChannel = dg.AuditChannel
+			b.auditChannelCache.Set(guildID, auditChannel, ttlcache.DefaultTTL)
+		}
+	} else {
+		auditChannel = cached.Value()
 	}
-	if err != nil {
-		logger.Err(err).Msg("error querying for audit log channel")
+	if auditChannel == 0 {
 		return
 	}
 	dgUser, err := b.session.User(strconv.FormatUint(userID, 10))
@@ -50,14 +62,14 @@ func (b *DiscordBot) auditLog(ctx context.Context, guildID, userID, roleID uint6
 		avatarURL = dgUser.AvatarURL("")
 	}
 	// send audit log message
-	logger = logger.With().Str("auditChannel", strconv.FormatUint(dg.AuditChannel, 10)).Logger()
+	logger = logger.With().Str("auditChannel", strconv.FormatUint(auditChannel, 10)).Logger()
 	_, err = b.session.ChannelMessageSendEmbed(
-		strconv.FormatUint(dg.AuditChannel, 10),
+		strconv.FormatUint(auditChannel, 10),
 		commands.CreateAuditLogEmbed(userID, avatarURL, roleID, reason, add),
 	)
 	// TODO: nag admins instead of me about things not working
-	if err != nil && lastAuditLogNagTimes[dg.AuditChannel].Before(time.Now().Add(-time.Duration(time.Hour*24))) {
-		lastAuditLogNagTimes[dg.AuditChannel] = time.Now()
+	if err != nil && lastAuditLogNagTimes[auditChannel].Before(time.Now().Add(-time.Duration(time.Hour*24))) {
+		lastAuditLogNagTimes[auditChannel] = time.Now()
 		logger.Err(err).Msg("audit log delivery failure")
 	}
 }
