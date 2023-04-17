@@ -146,7 +146,7 @@ func (b *DiscordBot) handleManageMap(
 		return nil, err
 	} else if err == nil {
 		// already mapped
-		if existingRole.Edges.Talent.ID == channelID {
+		if existingRole.ID == roleID {
 			return &discordgo.WebhookEdit{
 				Content: ptr(fmt.Sprintf("<@&%d> is already the role mapped to this YouTube channel.", existingRole.ID)),
 			}, nil
