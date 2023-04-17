@@ -184,11 +184,7 @@ func HasGuild() predicate.GuildRole {
 // HasGuildWith applies the HasEdge predicate on the "guild" edge with a given conditions (other predicates).
 func HasGuildWith(preds ...predicate.Guild) predicate.GuildRole {
 	return predicate.GuildRole(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(GuildInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, GuildTable, GuildColumn),
-		)
+		step := newGuildStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -211,11 +207,7 @@ func HasUserMemberships() predicate.GuildRole {
 // HasUserMembershipsWith applies the HasEdge predicate on the "user_memberships" edge with a given conditions (other predicates).
 func HasUserMembershipsWith(preds ...predicate.UserMembership) predicate.GuildRole {
 	return predicate.GuildRole(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(UserMembershipsInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, UserMembershipsTable, UserMembershipsPrimaryKey...),
-		)
+		step := newUserMembershipsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -238,11 +230,7 @@ func HasTalent() predicate.GuildRole {
 // HasTalentWith applies the HasEdge predicate on the "talent" edge with a given conditions (other predicates).
 func HasTalentWith(preds ...predicate.YouTubeTalent) predicate.GuildRole {
 	return predicate.GuildRole(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(TalentInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, true, TalentTable, TalentColumn),
-		)
+		step := newTalentStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

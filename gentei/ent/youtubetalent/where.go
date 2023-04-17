@@ -55,6 +55,16 @@ func IDLTE(id string) predicate.YouTubeTalent {
 	return predicate.YouTubeTalent(sql.FieldLTE(FieldID, id))
 }
 
+// IDEqualFold applies the EqualFold predicate on the ID field.
+func IDEqualFold(id string) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(sql.FieldEqualFold(FieldID, id))
+}
+
+// IDContainsFold applies the ContainsFold predicate on the ID field.
+func IDContainsFold(id string) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(sql.FieldContainsFold(FieldID, id))
+}
+
 // ChannelName applies equality check predicate on the "channel_name" field. It's identical to ChannelNameEQ.
 func ChannelName(v string) predicate.YouTubeTalent {
 	return predicate.YouTubeTalent(sql.FieldEQ(FieldChannelName, v))
@@ -444,11 +454,7 @@ func HasGuilds() predicate.YouTubeTalent {
 // HasGuildsWith applies the HasEdge predicate on the "guilds" edge with a given conditions (other predicates).
 func HasGuildsWith(preds ...predicate.Guild) predicate.YouTubeTalent {
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(GuildsInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, false, GuildsTable, GuildsPrimaryKey...),
-		)
+		step := newGuildsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -471,11 +477,7 @@ func HasRoles() predicate.YouTubeTalent {
 // HasRolesWith applies the HasEdge predicate on the "roles" edge with a given conditions (other predicates).
 func HasRolesWith(preds ...predicate.GuildRole) predicate.YouTubeTalent {
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(RolesInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, RolesTable, RolesColumn),
-		)
+		step := newRolesStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)
@@ -498,11 +500,7 @@ func HasMemberships() predicate.YouTubeTalent {
 // HasMembershipsWith applies the HasEdge predicate on the "memberships" edge with a given conditions (other predicates).
 func HasMembershipsWith(preds ...predicate.UserMembership) predicate.YouTubeTalent {
 	return predicate.YouTubeTalent(func(s *sql.Selector) {
-		step := sqlgraph.NewStep(
-			sqlgraph.From(Table, FieldID),
-			sqlgraph.To(MembershipsInverseTable, FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, true, MembershipsTable, MembershipsColumn),
-		)
+		step := newMembershipsStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

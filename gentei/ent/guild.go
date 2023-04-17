@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
 	"github.com/member-gentei/member-gentei/gentei/ent/schema"
@@ -34,7 +35,8 @@ type Guild struct {
 	Settings *schema.GuildSettings `json:"settings,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the GuildQuery when eager-loading is set.
-	Edges GuildEdges `json:"edges"`
+	Edges        GuildEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // GuildEdges holds the relations/edges for other nodes in the graph.
@@ -100,7 +102,7 @@ func (*Guild) scanValues(columns []string) ([]any, error) {
 		case guild.FieldName, guild.FieldIconHash, guild.FieldLanguage:
 			values[i] = new(sql.NullString)
 		default:
-			return nil, fmt.Errorf("unexpected column %q for type Guild", columns[i])
+			values[i] = new(sql.UnknownType)
 		}
 	}
 	return values, nil
@@ -168,9 +170,17 @@ func (gu *Guild) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field settings: %w", err)
 				}
 			}
+		default:
+			gu.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
+}
+
+// Value returns the ent.Value that was dynamically selected and assigned to the Guild.
+// This includes values selected through modifiers, order, etc.
+func (gu *Guild) Value(name string) (ent.Value, error) {
+	return gu.selectValues.Get(name)
 }
 
 // QueryMembers queries the "members" edge of the Guild entity.

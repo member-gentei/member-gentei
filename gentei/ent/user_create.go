@@ -250,10 +250,7 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Columns: user.GuildsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guild.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guild.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -269,10 +266,7 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Columns: user.GuildsAdminPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guild.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guild.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -288,10 +282,7 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Columns: []string{user.MembershipsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: usermembership.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(usermembership.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -652,8 +643,8 @@ func (ucb *UserCreateBulk) Save(ctx context.Context) ([]*User, error) {
 					return nil, err
 				}
 				builder.mutation = mutation
-				nodes[i], specs[i] = builder.createSpec()
 				var err error
+				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, ucb.builders[i+1].mutation)
 				} else {

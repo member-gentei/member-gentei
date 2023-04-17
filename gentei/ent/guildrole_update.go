@@ -195,10 +195,7 @@ func (gru *GuildRoleUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{guildrole.GuildColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guild.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guild.FieldID, field.TypeUint64),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -211,10 +208,7 @@ func (gru *GuildRoleUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{guildrole.GuildColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guild.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guild.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -230,10 +224,7 @@ func (gru *GuildRoleUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: guildrole.UserMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: usermembership.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(usermembership.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -246,10 +237,7 @@ func (gru *GuildRoleUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: guildrole.UserMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: usermembership.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(usermembership.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -265,10 +253,7 @@ func (gru *GuildRoleUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: guildrole.UserMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: usermembership.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(usermembership.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -284,10 +269,7 @@ func (gru *GuildRoleUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{guildrole.TalentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(youtubetalent.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -300,10 +282,7 @@ func (gru *GuildRoleUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{guildrole.TalentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(youtubetalent.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -525,10 +504,7 @@ func (gruo *GuildRoleUpdateOne) sqlSave(ctx context.Context) (_node *GuildRole, 
 			Columns: []string{guildrole.GuildColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guild.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guild.FieldID, field.TypeUint64),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -541,10 +517,7 @@ func (gruo *GuildRoleUpdateOne) sqlSave(ctx context.Context) (_node *GuildRole, 
 			Columns: []string{guildrole.GuildColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guild.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guild.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -560,10 +533,7 @@ func (gruo *GuildRoleUpdateOne) sqlSave(ctx context.Context) (_node *GuildRole, 
 			Columns: guildrole.UserMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: usermembership.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(usermembership.FieldID, field.TypeInt),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -576,10 +546,7 @@ func (gruo *GuildRoleUpdateOne) sqlSave(ctx context.Context) (_node *GuildRole, 
 			Columns: guildrole.UserMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: usermembership.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(usermembership.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -595,10 +562,7 @@ func (gruo *GuildRoleUpdateOne) sqlSave(ctx context.Context) (_node *GuildRole, 
 			Columns: guildrole.UserMembershipsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: usermembership.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(usermembership.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -614,10 +578,7 @@ func (gruo *GuildRoleUpdateOne) sqlSave(ctx context.Context) (_node *GuildRole, 
 			Columns: []string{guildrole.TalentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(youtubetalent.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -630,10 +591,7 @@ func (gruo *GuildRoleUpdateOne) sqlSave(ctx context.Context) (_node *GuildRole, 
 			Columns: []string{guildrole.TalentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(youtubetalent.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

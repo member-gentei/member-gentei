@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
@@ -29,6 +30,7 @@ type UserMembership struct {
 	Edges                          UserMembershipEdges `json:"edges"`
 	user_memberships               *uint64
 	user_membership_youtube_talent *string
+	selectValues                   sql.SelectValues
 }
 
 // UserMembershipEdges holds the relations/edges for other nodes in the graph.
@@ -93,7 +95,7 @@ func (*UserMembership) scanValues(columns []string) ([]any, error) {
 		case usermembership.ForeignKeys[1]: // user_membership_youtube_talent
 			values[i] = new(sql.NullString)
 		default:
-			return nil, fmt.Errorf("unexpected column %q for type UserMembership", columns[i])
+			values[i] = new(sql.UnknownType)
 		}
 	}
 	return values, nil
@@ -145,9 +147,17 @@ func (um *UserMembership) assignValues(columns []string, values []any) error {
 				um.user_membership_youtube_talent = new(string)
 				*um.user_membership_youtube_talent = value.String
 			}
+		default:
+			um.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
+}
+
+// Value returns the ent.Value that was dynamically selected and assigned to the UserMembership.
+// This includes values selected through modifiers, order, etc.
+func (um *UserMembership) Value(name string) (ent.Value, error) {
+	return um.selectValues.Get(name)
 }
 
 // QueryUser queries the "user" edge of the UserMembership entity.

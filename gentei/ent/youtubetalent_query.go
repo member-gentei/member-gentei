@@ -23,7 +23,7 @@ import (
 type YouTubeTalentQuery struct {
 	config
 	ctx             *QueryContext
-	order           []OrderFunc
+	order           []youtubetalent.OrderOption
 	inters          []Interceptor
 	predicates      []predicate.YouTubeTalent
 	withGuilds      *GuildQuery
@@ -61,7 +61,7 @@ func (yttq *YouTubeTalentQuery) Unique(unique bool) *YouTubeTalentQuery {
 }
 
 // Order specifies how the records should be ordered.
-func (yttq *YouTubeTalentQuery) Order(o ...OrderFunc) *YouTubeTalentQuery {
+func (yttq *YouTubeTalentQuery) Order(o ...youtubetalent.OrderOption) *YouTubeTalentQuery {
 	yttq.order = append(yttq.order, o...)
 	return yttq
 }
@@ -321,7 +321,7 @@ func (yttq *YouTubeTalentQuery) Clone() *YouTubeTalentQuery {
 	return &YouTubeTalentQuery{
 		config:          yttq.config,
 		ctx:             yttq.ctx.Clone(),
-		order:           append([]OrderFunc{}, yttq.order...),
+		order:           append([]youtubetalent.OrderOption{}, yttq.order...),
 		inters:          append([]Interceptor{}, yttq.inters...),
 		predicates:      append([]predicate.YouTubeTalent{}, yttq.predicates...),
 		withGuilds:      yttq.withGuilds.Clone(),
@@ -568,7 +568,7 @@ func (yttq *YouTubeTalentQuery) loadRoles(ctx context.Context, query *GuildRoleQ
 	}
 	query.withFKs = true
 	query.Where(predicate.GuildRole(func(s *sql.Selector) {
-		s.Where(sql.InValues(youtubetalent.RolesColumn, fks...))
+		s.Where(sql.InValues(s.C(youtubetalent.RolesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
@@ -599,7 +599,7 @@ func (yttq *YouTubeTalentQuery) loadMemberships(ctx context.Context, query *User
 	}
 	query.withFKs = true
 	query.Where(predicate.UserMembership(func(s *sql.Selector) {
-		s.Where(sql.InValues(youtubetalent.MembershipsColumn, fks...))
+		s.Where(sql.InValues(s.C(youtubetalent.MembershipsColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

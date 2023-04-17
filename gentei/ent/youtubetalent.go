@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 )
@@ -31,7 +32,8 @@ type YouTubeTalent struct {
 	Disabled time.Time `json:"disabled,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the YouTubeTalentQuery when eager-loading is set.
-	Edges YouTubeTalentEdges `json:"edges"`
+	Edges        YouTubeTalentEdges `json:"edges"`
+	selectValues sql.SelectValues
 }
 
 // YouTubeTalentEdges holds the relations/edges for other nodes in the graph.
@@ -84,7 +86,7 @@ func (*YouTubeTalent) scanValues(columns []string) ([]any, error) {
 		case youtubetalent.FieldLastMembershipVideoIDMiss, youtubetalent.FieldLastUpdated, youtubetalent.FieldDisabled:
 			values[i] = new(sql.NullTime)
 		default:
-			return nil, fmt.Errorf("unexpected column %q for type YouTubeTalent", columns[i])
+			values[i] = new(sql.UnknownType)
 		}
 	}
 	return values, nil
@@ -140,9 +142,17 @@ func (ytt *YouTubeTalent) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				ytt.Disabled = value.Time
 			}
+		default:
+			ytt.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
+}
+
+// Value returns the ent.Value that was dynamically selected and assigned to the YouTubeTalent.
+// This includes values selected through modifiers, order, etc.
+func (ytt *YouTubeTalent) Value(name string) (ent.Value, error) {
+	return ytt.selectValues.Get(name)
 }
 
 // QueryGuilds queries the "guilds" edge of the YouTubeTalent entity.
