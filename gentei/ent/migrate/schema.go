@@ -52,6 +52,13 @@ var (
 				OnDelete:   schema.SetNull,
 			},
 		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "guildrole_guild_roles_you_tube_talent_roles",
+				Unique:  true,
+				Columns: []*schema.Column{GuildRolesColumns[3], GuildRolesColumns[4]},
+			},
+		},
 	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{

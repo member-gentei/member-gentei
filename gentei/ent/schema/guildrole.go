@@ -7,6 +7,7 @@ import (
 	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
+	"entgo.io/ent/schema/index"
 )
 
 // GuildRole holds the schema definition for the GuildRole entity.
@@ -40,5 +41,12 @@ func (GuildRole) Edges() []ent.Edge {
 			Ref("roles"),
 		edge.From("talent", YouTubeTalent.Type).
 			Ref("roles").Unique(),
+	}
+}
+
+func (GuildRole) Indexes() []ent.Index {
+	return []ent.Index{
+		// enforces one role mapping per talent
+		index.Edges("guild", "talent").StorageKey("guild_talent").Unique(),
 	}
 }
