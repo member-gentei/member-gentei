@@ -137,7 +137,10 @@ func (b *DiscordBot) handleManageMap(
 	}
 	existingRole, err := b.db.GuildRole.Query().
 		WithTalent().
-		Where(guildrole.ID(roleID)).
+		Where(
+			guildrole.HasGuildWith(guild.ID(guildID)),
+			guildrole.HasTalentWith(youtubetalent.ID(channelID)),
+		).
 		Only(ctx)
 	if err != nil && !ent.IsNotFound(err) {
 		return nil, err
