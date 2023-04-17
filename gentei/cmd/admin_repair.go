@@ -10,6 +10,8 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/member-gentei/member-gentei/gentei/apis"
 	"github.com/member-gentei/member-gentei/gentei/ent"
+	"github.com/member-gentei/member-gentei/gentei/ent/guild"
+	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
@@ -26,13 +28,22 @@ var (
 
 // repairCmd represents the repair command
 var repairCmd = &cobra.Command{
-	Use:   "repair",
-	Short: "Maintenance commands for various fun events",
+	Use:       "repair",
+	Short:     "Maintenance commands for various fun events",
+	ValidArgs: []string{"unwind-multirole"},
+	Args:      cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
 			ctx = context.Background()
 			db  = mustOpenDB(ctx)
 		)
+		if len(args) == 1 {
+			switch args[0] {
+			case "unwind-multirole":
+				repairUnwindMultirole(ctx, db)
+			}
+			return
+		}
 		if flagRepairChannelID != "" {
 			if err := repairChannelID(ctx, db, flagRepairChannelID); err != nil {
 				log.Fatal().Err(err).Msg("error repairing channel")
@@ -165,6 +176,58 @@ func refreshYouTubeChannels(ctx context.Context, db *ent.Client) error {
 		}
 	}
 	return nil
+}
+
+func repairUnwindMultirole(ctx context.Context, db *ent.Client) {
+	flagBotToken = os.Getenv(envNameDiscordBotToken)
+	if flagBotToken == "" {
+		log.Fatal().Msgf("must specify env var '%s'", envNameDiscordBotToken)
+	}
+	log.Info().Msg("unwinding multirole issue")
+	var vs []struct {
+		Guild  uint64 `json:"guild_roles"`
+		Talent string `json:"you_tube_talent_roles"`
+		Count  int
+	}
+	db.Debug().GuildRole.Query().
+		GroupBy(guildrole.GuildColumn, guildrole.TalentColumn).
+		Aggregate(ent.Count()).
+		ScanX(ctx, &vs)
+	session := must(discordgo.New(fmt.Sprintf("Bot %s", flagBotToken)))
+	for _, v := range vs {
+		if v.Count == 1 {
+			continue
+		}
+		log.Info().Interface("v", v).Msg("rectifying")
+		grids := db.GuildRole.Query().
+			Where(
+				guildrole.HasGuildWith(guild.ID(v.Guild)),
+				guildrole.HasTalentWith(youtubetalent.ID(v.Talent)),
+			).
+			Order(ent.Asc(guildrole.FieldLastUpdated)).
+			IDsX(ctx)
+		// delete roles that no longer exist
+		roles, err := session.GuildRoles(strconv.FormatUint(v.Guild, 10))
+		if err != nil {
+			log.Fatal().Err(err).Msg("error listing Guild roles")
+		}
+		serverRoleIDs := make(map[uint64]bool, len(roles))
+		for _, role := range roles {
+			roleID := must(strconv.ParseUint(role.ID, 10, 64))
+			serverRoleIDs[roleID] = true
+		}
+		var deleteCount int
+		for _, grid := range grids {
+			if !serverRoleIDs[grid] {
+				log.Info().Uint64("grid", grid).Msg("deleting now missing GuildRole")
+				db.GuildRole.DeleteOneID(grid).ExecX(ctx)
+				deleteCount++
+			}
+		}
+		if deleteCount == len(grids)-1 {
+			log.Info().Msg("rectified by sheer luck")
+		}
+	}
 }
 
 func init() {
