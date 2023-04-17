@@ -54,7 +54,7 @@ var (
 		},
 		Indexes: []*schema.Index{
 			{
-				Name:    "guildrole_guild_roles_you_tube_talent_roles",
+				Name:    "guild_talent",
 				Unique:  true,
 				Columns: []*schema.Column{GuildRolesColumns[3], GuildRolesColumns[4]},
 			},

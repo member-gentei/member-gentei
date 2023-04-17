@@ -23,7 +23,7 @@ import (
 type GuildRoleQuery struct {
 	config
 	ctx                 *QueryContext
-	order               []OrderFunc
+	order               []guildrole.OrderOption
 	inters              []Interceptor
 	predicates          []predicate.GuildRole
 	withGuild           *GuildQuery
@@ -62,7 +62,7 @@ func (grq *GuildRoleQuery) Unique(unique bool) *GuildRoleQuery {
 }
 
 // Order specifies how the records should be ordered.
-func (grq *GuildRoleQuery) Order(o ...OrderFunc) *GuildRoleQuery {
+func (grq *GuildRoleQuery) Order(o ...guildrole.OrderOption) *GuildRoleQuery {
 	grq.order = append(grq.order, o...)
 	return grq
 }
@@ -322,7 +322,7 @@ func (grq *GuildRoleQuery) Clone() *GuildRoleQuery {
 	return &GuildRoleQuery{
 		config:              grq.config,
 		ctx:                 grq.ctx.Clone(),
-		order:               append([]OrderFunc{}, grq.order...),
+		order:               append([]guildrole.OrderOption{}, grq.order...),
 		inters:              append([]Interceptor{}, grq.inters...),
 		predicates:          append([]predicate.GuildRole{}, grq.predicates...),
 		withGuild:           grq.withGuild.Clone(),

@@ -393,10 +393,7 @@ func (gu *GuildUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: guild.MembersPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUint64),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -409,10 +406,7 @@ func (gu *GuildUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: guild.MembersPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -428,10 +422,7 @@ func (gu *GuildUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: guild.MembersPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -447,10 +438,7 @@ func (gu *GuildUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: guild.AdminsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUint64),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -463,10 +451,7 @@ func (gu *GuildUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: guild.AdminsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -482,10 +467,7 @@ func (gu *GuildUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: guild.AdminsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -501,10 +483,7 @@ func (gu *GuildUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{guild.RolesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guildrole.FieldID, field.TypeUint64),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -517,10 +496,7 @@ func (gu *GuildUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{guild.RolesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guildrole.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -536,10 +512,7 @@ func (gu *GuildUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: []string{guild.RolesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guildrole.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -555,10 +528,7 @@ func (gu *GuildUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: guild.YoutubeTalentsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(youtubetalent.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -571,10 +541,7 @@ func (gu *GuildUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: guild.YoutubeTalentsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(youtubetalent.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -590,10 +557,7 @@ func (gu *GuildUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Columns: guild.YoutubeTalentsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(youtubetalent.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1012,10 +976,7 @@ func (guo *GuildUpdateOne) sqlSave(ctx context.Context) (_node *Guild, err error
 			Columns: guild.MembersPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUint64),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1028,10 +989,7 @@ func (guo *GuildUpdateOne) sqlSave(ctx context.Context) (_node *Guild, err error
 			Columns: guild.MembersPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -1047,10 +1005,7 @@ func (guo *GuildUpdateOne) sqlSave(ctx context.Context) (_node *Guild, err error
 			Columns: guild.MembersPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -1066,10 +1021,7 @@ func (guo *GuildUpdateOne) sqlSave(ctx context.Context) (_node *Guild, err error
 			Columns: guild.AdminsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUint64),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1082,10 +1034,7 @@ func (guo *GuildUpdateOne) sqlSave(ctx context.Context) (_node *Guild, err error
 			Columns: guild.AdminsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -1101,10 +1050,7 @@ func (guo *GuildUpdateOne) sqlSave(ctx context.Context) (_node *Guild, err error
 			Columns: guild.AdminsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -1120,10 +1066,7 @@ func (guo *GuildUpdateOne) sqlSave(ctx context.Context) (_node *Guild, err error
 			Columns: []string{guild.RolesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guildrole.FieldID, field.TypeUint64),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1136,10 +1079,7 @@ func (guo *GuildUpdateOne) sqlSave(ctx context.Context) (_node *Guild, err error
 			Columns: []string{guild.RolesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guildrole.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -1155,10 +1095,7 @@ func (guo *GuildUpdateOne) sqlSave(ctx context.Context) (_node *Guild, err error
 			Columns: []string{guild.RolesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guildrole.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -1174,10 +1111,7 @@ func (guo *GuildUpdateOne) sqlSave(ctx context.Context) (_node *Guild, err error
 			Columns: guild.YoutubeTalentsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(youtubetalent.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -1190,10 +1124,7 @@ func (guo *GuildUpdateOne) sqlSave(ctx context.Context) (_node *Guild, err error
 			Columns: guild.YoutubeTalentsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(youtubetalent.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -1209,10 +1140,7 @@ func (guo *GuildUpdateOne) sqlSave(ctx context.Context) (_node *Guild, err error
 			Columns: guild.YoutubeTalentsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(youtubetalent.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {

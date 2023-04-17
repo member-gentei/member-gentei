@@ -231,10 +231,7 @@ func (umu *UserMembershipUpdate) sqlSave(ctx context.Context) (n int, err error)
 			Columns: []string{usermembership.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUint64),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -247,10 +244,7 @@ func (umu *UserMembershipUpdate) sqlSave(ctx context.Context) (n int, err error)
 			Columns: []string{usermembership.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -266,10 +260,7 @@ func (umu *UserMembershipUpdate) sqlSave(ctx context.Context) (n int, err error)
 			Columns: []string{usermembership.YoutubeTalentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(youtubetalent.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -282,10 +273,7 @@ func (umu *UserMembershipUpdate) sqlSave(ctx context.Context) (n int, err error)
 			Columns: []string{usermembership.YoutubeTalentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(youtubetalent.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -301,10 +289,7 @@ func (umu *UserMembershipUpdate) sqlSave(ctx context.Context) (n int, err error)
 			Columns: usermembership.RolesPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guildrole.FieldID, field.TypeUint64),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -317,10 +302,7 @@ func (umu *UserMembershipUpdate) sqlSave(ctx context.Context) (n int, err error)
 			Columns: usermembership.RolesPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guildrole.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -336,10 +318,7 @@ func (umu *UserMembershipUpdate) sqlSave(ctx context.Context) (n int, err error)
 			Columns: usermembership.RolesPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guildrole.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -597,10 +576,7 @@ func (umuo *UserMembershipUpdateOne) sqlSave(ctx context.Context) (_node *UserMe
 			Columns: []string{usermembership.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUint64),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -613,10 +589,7 @@ func (umuo *UserMembershipUpdateOne) sqlSave(ctx context.Context) (_node *UserMe
 			Columns: []string{usermembership.UserColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: user.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -632,10 +605,7 @@ func (umuo *UserMembershipUpdateOne) sqlSave(ctx context.Context) (_node *UserMe
 			Columns: []string{usermembership.YoutubeTalentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(youtubetalent.FieldID, field.TypeString),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -648,10 +618,7 @@ func (umuo *UserMembershipUpdateOne) sqlSave(ctx context.Context) (_node *UserMe
 			Columns: []string{usermembership.YoutubeTalentColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeString,
-					Column: youtubetalent.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(youtubetalent.FieldID, field.TypeString),
 			},
 		}
 		for _, k := range nodes {
@@ -667,10 +634,7 @@ func (umuo *UserMembershipUpdateOne) sqlSave(ctx context.Context) (_node *UserMe
 			Columns: usermembership.RolesPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guildrole.FieldID, field.TypeUint64),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -683,10 +647,7 @@ func (umuo *UserMembershipUpdateOne) sqlSave(ctx context.Context) (_node *UserMe
 			Columns: usermembership.RolesPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guildrole.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -702,10 +663,7 @@ func (umuo *UserMembershipUpdateOne) sqlSave(ctx context.Context) (_node *UserMe
 			Columns: usermembership.RolesPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guildrole.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {

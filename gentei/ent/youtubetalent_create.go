@@ -265,10 +265,7 @@ func (yttc *YouTubeTalentCreate) createSpec() (*YouTubeTalent, *sqlgraph.CreateS
 			Columns: youtubetalent.GuildsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guild.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guild.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -284,10 +281,7 @@ func (yttc *YouTubeTalentCreate) createSpec() (*YouTubeTalent, *sqlgraph.CreateS
 			Columns: []string{youtubetalent.RolesColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeUint64,
-					Column: guildrole.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(guildrole.FieldID, field.TypeUint64),
 			},
 		}
 		for _, k := range nodes {
@@ -303,10 +297,7 @@ func (yttc *YouTubeTalentCreate) createSpec() (*YouTubeTalent, *sqlgraph.CreateS
 			Columns: []string{youtubetalent.MembershipsColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: &sqlgraph.FieldSpec{
-					Type:   field.TypeInt,
-					Column: usermembership.FieldID,
-				},
+				IDSpec: sqlgraph.NewFieldSpec(usermembership.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {
@@ -672,8 +663,8 @@ func (yttcb *YouTubeTalentCreateBulk) Save(ctx context.Context) ([]*YouTubeTalen
 					return nil, err
 				}
 				builder.mutation = mutation
-				nodes[i], specs[i] = builder.createSpec()
 				var err error
+				nodes[i], specs[i] = builder.createSpec()
 				if i < len(mutators)-1 {
 					_, err = mutators[i+1].Mutate(root, yttcb.builders[i+1].mutation)
 				} else {

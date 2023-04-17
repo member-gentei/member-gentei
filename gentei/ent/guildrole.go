@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
 	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
@@ -28,6 +29,7 @@ type GuildRole struct {
 	Edges                 GuildRoleEdges `json:"edges"`
 	guild_roles           *uint64
 	you_tube_talent_roles *string
+	selectValues          sql.SelectValues
 }
 
 // GuildRoleEdges holds the relations/edges for other nodes in the graph.
@@ -94,7 +96,7 @@ func (*GuildRole) scanValues(columns []string) ([]any, error) {
 		case guildrole.ForeignKeys[1]: // you_tube_talent_roles
 			values[i] = new(sql.NullString)
 		default:
-			return nil, fmt.Errorf("unexpected column %q for type GuildRole", columns[i])
+			values[i] = new(sql.UnknownType)
 		}
 	}
 	return values, nil
@@ -140,9 +142,17 @@ func (gr *GuildRole) assignValues(columns []string, values []any) error {
 				gr.you_tube_talent_roles = new(string)
 				*gr.you_tube_talent_roles = value.String
 			}
+		default:
+			gr.selectValues.Set(columns[i], values[i])
 		}
 	}
 	return nil
+}
+
+// Value returns the ent.Value that was dynamically selected and assigned to the GuildRole.
+// This includes values selected through modifiers, order, etc.
+func (gr *GuildRole) Value(name string) (ent.Value, error) {
+	return gr.selectValues.Get(name)
 }
 
 // QueryGuild queries the "guild" edge of the GuildRole entity.

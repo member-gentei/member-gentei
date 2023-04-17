@@ -2,6 +2,11 @@
 
 package usermembership
 
+import (
+	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
+)
+
 const (
 	// Label holds the string label denoting the usermembership type in the database.
 	Label = "user_membership"
@@ -82,3 +87,75 @@ var (
 	// DefaultFailCount holds the default value on creation for the "fail_count" field.
 	DefaultFailCount int
 )
+
+// OrderOption defines the ordering options for the UserMembership queries.
+type OrderOption func(*sql.Selector)
+
+// ByID orders the results by the id field.
+func ByID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// ByFirstFailed orders the results by the first_failed field.
+func ByFirstFailed(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFirstFailed, opts...).ToFunc()
+}
+
+// ByLastVerified orders the results by the last_verified field.
+func ByLastVerified(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldLastVerified, opts...).ToFunc()
+}
+
+// ByFailCount orders the results by the fail_count field.
+func ByFailCount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFailCount, opts...).ToFunc()
+}
+
+// ByUserField orders the results by user field.
+func ByUserField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newUserStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByYoutubeTalentField orders the results by youtube_talent field.
+func ByYoutubeTalentField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newYoutubeTalentStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByRolesCount orders the results by roles count.
+func ByRolesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newRolesStep(), opts...)
+	}
+}
+
+// ByRoles orders the results by roles terms.
+func ByRoles(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newRolesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newUserStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(UserInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, true, UserTable, UserColumn),
+	)
+}
+func newYoutubeTalentStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(YoutubeTalentInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, YoutubeTalentTable, YoutubeTalentColumn),
+	)
+}
+func newRolesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(RolesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, false, RolesTable, RolesPrimaryKey...),
+	)
+}

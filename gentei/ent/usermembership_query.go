@@ -23,7 +23,7 @@ import (
 type UserMembershipQuery struct {
 	config
 	ctx               *QueryContext
-	order             []OrderFunc
+	order             []usermembership.OrderOption
 	inters            []Interceptor
 	predicates        []predicate.UserMembership
 	withUser          *UserQuery
@@ -62,7 +62,7 @@ func (umq *UserMembershipQuery) Unique(unique bool) *UserMembershipQuery {
 }
 
 // Order specifies how the records should be ordered.
-func (umq *UserMembershipQuery) Order(o ...OrderFunc) *UserMembershipQuery {
+func (umq *UserMembershipQuery) Order(o ...usermembership.OrderOption) *UserMembershipQuery {
 	umq.order = append(umq.order, o...)
 	return umq
 }
@@ -322,7 +322,7 @@ func (umq *UserMembershipQuery) Clone() *UserMembershipQuery {
 	return &UserMembershipQuery{
 		config:            umq.config,
 		ctx:               umq.ctx.Clone(),
-		order:             append([]OrderFunc{}, umq.order...),
+		order:             append([]usermembership.OrderOption{}, umq.order...),
 		inters:            append([]Interceptor{}, umq.inters...),
 		predicates:        append([]predicate.UserMembership{}, umq.predicates...),
 		withUser:          umq.withUser.Clone(),

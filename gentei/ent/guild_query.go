@@ -23,7 +23,7 @@ import (
 type GuildQuery struct {
 	config
 	ctx                *QueryContext
-	order              []OrderFunc
+	order              []guild.OrderOption
 	inters             []Interceptor
 	predicates         []predicate.Guild
 	withMembers        *UserQuery
@@ -62,7 +62,7 @@ func (gq *GuildQuery) Unique(unique bool) *GuildQuery {
 }
 
 // Order specifies how the records should be ordered.
-func (gq *GuildQuery) Order(o ...OrderFunc) *GuildQuery {
+func (gq *GuildQuery) Order(o ...guild.OrderOption) *GuildQuery {
 	gq.order = append(gq.order, o...)
 	return gq
 }
@@ -344,7 +344,7 @@ func (gq *GuildQuery) Clone() *GuildQuery {
 	return &GuildQuery{
 		config:             gq.config,
 		ctx:                gq.ctx.Clone(),
-		order:              append([]OrderFunc{}, gq.order...),
+		order:              append([]guild.OrderOption{}, gq.order...),
 		inters:             append([]Interceptor{}, gq.inters...),
 		predicates:         append([]predicate.Guild{}, gq.predicates...),
 		withMembers:        gq.withMembers.Clone(),
@@ -672,7 +672,7 @@ func (gq *GuildQuery) loadRoles(ctx context.Context, query *GuildRoleQuery, node
 	}
 	query.withFKs = true
 	query.Where(predicate.GuildRole(func(s *sql.Selector) {
-		s.Where(sql.InValues(guild.RolesColumn, fks...))
+		s.Where(sql.InValues(s.C(guild.RolesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
