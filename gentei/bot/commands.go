@@ -394,8 +394,10 @@ func (b *DiscordBot) handleInfo(ctx context.Context, i *discordgo.InteractionCre
 			}
 			go ensureRegisteredUserHasGuildEdge(context.Background(), b.db, guildID, userID)
 			dg, err := b.db.Guild.Query().
-				WithRoles(func(grq *ent.GuildRoleQuery) { grq.WithTalent() }).
-				WithYoutubeTalents().
+				WithRoles(func(grq *ent.GuildRoleQuery) {
+					grq.WithTalent().
+						Order(ent.Asc(guildrole.FieldLastUpdated))
+				}).
 				Where(guild.ID(guildID)).
 				Only(ctx)
 			if err != nil {

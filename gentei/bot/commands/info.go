@@ -9,13 +9,10 @@ import (
 
 func GetGuildInfoEmbeds(dg *ent.Guild) []*discordgo.MessageEmbed {
 	var (
-		embeds          []*discordgo.MessageEmbed
-		rolesByTalentID = map[string]*ent.GuildRole{}
+		embeds []*discordgo.MessageEmbed
 	)
 	for _, role := range dg.Edges.Roles {
-		rolesByTalentID[role.Edges.Talent.ID] = role
-	}
-	for _, talent := range dg.Edges.YoutubeTalents {
+		talent := role.Edges.Talent
 		embed := &discordgo.MessageEmbed{
 			Type:  discordgo.EmbedTypeRich,
 			Title: talent.ChannelName,
@@ -24,16 +21,9 @@ func GetGuildInfoEmbeds(dg *ent.Guild) []*discordgo.MessageEmbed {
 				URL: talent.ThumbnailURL,
 			},
 		}
-		var membershipRoleValue string
-		role, found := rolesByTalentID[talent.ID]
-		if found {
-			membershipRoleValue = fmt.Sprintf("<@&%d>", role.ID)
-		} else {
-			membershipRoleValue = "⛔ Not yet configured"
-		}
 		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
 			Name:  "Membership Role",
-			Value: membershipRoleValue,
+			Value: fmt.Sprintf("<@&%d>", role.ID),
 		})
 		embeds = append(embeds, embed)
 	}
