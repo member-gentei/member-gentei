@@ -6,6 +6,8 @@ import (
 
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
+	"github.com/member-gentei/member-gentei/gentei/ent/user"
+	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 	"github.com/rs/zerolog/log"
 
 	"github.com/jedib0t/go-pretty/v6/table"
@@ -17,42 +19,72 @@ var triageCmd = &cobra.Command{
 	Use:   "triage",
 	Short: "Displays data about a server + configuration for help with debugging things.",
 	Run: func(cmd *cobra.Command, args []string) {
-		guildID, _ := cmd.Flags().GetUint64("guild")
-		if guildID == 0 {
-			log.Fatal().Msg("--guild required")
-		}
 		var (
-			ctx = context.Background()
-			db  = mustOpenDB(ctx)
+			guildID, _ = cmd.Flags().GetUint64("guild")
+			userID, _  = cmd.Flags().GetUint64("user")
+			ctx        = context.Background()
+			db         = mustOpenDB(ctx)
 		)
-		dg := db.Guild.Query().
-			Where(guild.ID(guildID)).
-			WithRoles(
-				func(grq *ent.GuildRoleQuery) {
-					grq.WithTalent()
-				},
-			).
-			OnlyX(ctx)
-		tw := table.NewWriter()
-		tw.AppendHeader(table.Row{
-			"Guild ID",
-			"Guild Name",
-			"Role ID",
-			"Role Name",
-			"Talent URL",
-			"Talent Name",
-		})
-		for i, role := range dg.Edges.Roles {
-			var row table.Row
-			if i == 0 {
-				row = append(row, dg.ID, dg.Name)
-			} else {
-				row = append(row, "", "")
+		if guildID != 0 {
+			dg := db.Guild.Query().
+				Where(guild.ID(guildID)).
+				WithRoles(
+					func(grq *ent.GuildRoleQuery) {
+						grq.WithTalent()
+					},
+				).
+				OnlyX(ctx)
+			tw := table.NewWriter()
+			tw.AppendHeader(table.Row{
+				"Guild ID",
+				"Guild Name",
+				"Role ID",
+				"Role Name",
+				"Talent URL",
+				"Talent Name",
+			})
+			for i, role := range dg.Edges.Roles {
+				var row table.Row
+				if i == 0 {
+					row = append(row, dg.ID, dg.Name)
+				} else {
+					row = append(row, "", "")
+				}
+				row = append(row, role.ID, role.Name, role.Edges.Talent.ID, role.Edges.Talent.ChannelName)
+				tw.AppendRow(row)
 			}
-			row = append(row, role.ID, role.Name, role.Edges.Talent.ID, role.Edges.Talent.ChannelName)
-			tw.AppendRow(row)
+			fmt.Println(tw.Render())
+		} else if userID != 0 {
+			u := db.User.Query().
+				Where(user.ID(userID)).
+				WithMemberships(func(umq *ent.UserMembershipQuery) {
+					umq.WithYoutubeTalent(func(yttq *ent.YouTubeTalentQuery) {
+						yttq.Select(youtubetalent.FieldID, youtubetalent.FieldChannelName)
+					})
+				}).
+				OnlyX(ctx)
+			log.Info().Uint64("userID", userID).Str("user", u.FullName).Msg("fetched user membership information")
+			tw := table.NewWriter()
+			tw.AppendHeader(table.Row{
+				"Channel ID",
+				"Channel name",
+				"Last verified",
+				"First failed",
+				"Fail count",
+			})
+			for _, membership := range u.Edges.Memberships {
+				tw.AppendRow(table.Row{
+					membership.Edges.YoutubeTalent.ID,
+					membership.Edges.YoutubeTalent.ChannelName,
+					membership.LastVerified,
+					membership.FirstFailed,
+					membership.FailCount,
+				})
+			}
+			fmt.Println(tw.Render())
+		} else {
+			log.Fatal().Msg("--guild or --user required")
 		}
-		fmt.Println(tw.Render())
 	},
 }
 
@@ -69,4 +101,5 @@ func init() {
 	// is called directly, e.g.:
 	flags := triageCmd.Flags()
 	flags.Uint64P("guild", "s", 0, "Discord guild (+server) ID")
+	flags.Uint64P("user", "u", 0, "Discord user ID")
 }
