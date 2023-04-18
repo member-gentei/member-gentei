@@ -30,7 +30,7 @@ var (
 var repairCmd = &cobra.Command{
 	Use:       "repair",
 	Short:     "Maintenance commands for various fun events",
-	ValidArgs: []string{"unwind-multirole"},
+	ValidArgs: []string{"unwind-multirole", "lost-not"},
 	Args:      cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
@@ -41,6 +41,8 @@ var repairCmd = &cobra.Command{
 			switch args[0] {
 			case "unwind-multirole":
 				repairUnwindMultirole(ctx, db)
+			case "lost-not":
+				repairLostNot(ctx, db)
 			}
 			return
 		}
@@ -227,6 +229,34 @@ func repairUnwindMultirole(ctx context.Context, db *ent.Client) {
 		if deleteCount == len(grids)-1 {
 			log.Info().Msg("rectified by sheer luck")
 		}
+	}
+}
+
+func repairLostNot(ctx context.Context, db *ent.Client) {
+	log.Info().Msg("repairing improperly set UserMemberships from CheckResultSet.Not")
+	aWeekAgo := time.Now().Add(-7 * 24 * time.Hour)
+	tx, err := db.Tx(ctx)
+	if err != nil {
+		log.Fatal().Err(err).Msg("error opening transaction")
+	}
+	count := tx.UserMembership.Update().
+		Where(
+			usermembership.FailCountGT(0),
+			usermembership.FirstFailedIsNil(),
+			usermembership.LastVerifiedLT(aWeekAgo),
+		).
+		SetFirstFailed(aWeekAgo).
+		SaveX(ctx)
+	const dryRun = false // testing flag
+	if dryRun {
+		log.Info().Int("count", count).Msg("rolling back")
+		err = tx.Rollback()
+	} else {
+		log.Info().Int("count", count).Msg("committing")
+		err = tx.Commit()
+	}
+	if err != nil {
+		log.Fatal().Err(err).Msg("error performing rollback/commit")
 	}
 }
 
