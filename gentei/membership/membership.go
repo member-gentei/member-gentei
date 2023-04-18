@@ -187,10 +187,11 @@ func CheckForUser(
 	// 1a. get lost
 	wasLost := map[string]bool{}
 	lostIDs, err := db.YouTubeTalent.Query().Where(
+		// "you're not a member but the bot enforced a role with you in it at some point"
 		youtubetalent.IDIn(nonMemberChannelIDs...),
-		youtubetalent.Not(youtubetalent.HasMembershipsWith(
+		youtubetalent.HasMembershipsWith(
 			usermembership.HasUserWith(user.ID(userID)),
-		)),
+		),
 	).IDs(ctx)
 	if err != nil {
 		err = fmt.Errorf("error fetching lost membership IDs: %w", err)
