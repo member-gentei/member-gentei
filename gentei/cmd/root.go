@@ -159,6 +159,13 @@ func getDiscordConfig() *oauth2.Config {
 	}
 }
 
+func must[T any](t T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return t
+}
+
 func init() {
 	persistent := rootCmd.PersistentFlags()
 	persistent.BoolVarP(&flagVerbose, "verbose", "v", false, "debug/verbose logging")
