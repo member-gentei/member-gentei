@@ -94,6 +94,20 @@ func (yttc *YouTubeTalentCreate) SetNillableDisabled(t *time.Time) *YouTubeTalen
 	return yttc
 }
 
+// SetDisabledPermanently sets the "disabled_permanently" field.
+func (yttc *YouTubeTalentCreate) SetDisabledPermanently(b bool) *YouTubeTalentCreate {
+	yttc.mutation.SetDisabledPermanently(b)
+	return yttc
+}
+
+// SetNillableDisabledPermanently sets the "disabled_permanently" field if the given value is not nil.
+func (yttc *YouTubeTalentCreate) SetNillableDisabledPermanently(b *bool) *YouTubeTalentCreate {
+	if b != nil {
+		yttc.SetDisabledPermanently(*b)
+	}
+	return yttc
+}
+
 // SetID sets the "id" field.
 func (yttc *YouTubeTalentCreate) SetID(s string) *YouTubeTalentCreate {
 	yttc.mutation.SetID(s)
@@ -184,6 +198,10 @@ func (yttc *YouTubeTalentCreate) defaults() {
 		v := youtubetalent.DefaultLastUpdated()
 		yttc.mutation.SetLastUpdated(v)
 	}
+	if _, ok := yttc.mutation.DisabledPermanently(); !ok {
+		v := youtubetalent.DefaultDisabledPermanently
+		yttc.mutation.SetDisabledPermanently(v)
+	}
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -196,6 +214,9 @@ func (yttc *YouTubeTalentCreate) check() error {
 	}
 	if _, ok := yttc.mutation.LastUpdated(); !ok {
 		return &ValidationError{Name: "last_updated", err: errors.New(`ent: missing required field "YouTubeTalent.last_updated"`)}
+	}
+	if _, ok := yttc.mutation.DisabledPermanently(); !ok {
+		return &ValidationError{Name: "disabled_permanently", err: errors.New(`ent: missing required field "YouTubeTalent.disabled_permanently"`)}
 	}
 	return nil
 }
@@ -256,6 +277,10 @@ func (yttc *YouTubeTalentCreate) createSpec() (*YouTubeTalent, *sqlgraph.CreateS
 	if value, ok := yttc.mutation.Disabled(); ok {
 		_spec.SetField(youtubetalent.FieldDisabled, field.TypeTime, value)
 		_node.Disabled = value
+	}
+	if value, ok := yttc.mutation.DisabledPermanently(); ok {
+		_spec.SetField(youtubetalent.FieldDisabledPermanently, field.TypeBool, value)
+		_node.DisabledPermanently = value
 	}
 	if nodes := yttc.mutation.GuildsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -447,6 +472,18 @@ func (u *YouTubeTalentUpsert) ClearDisabled() *YouTubeTalentUpsert {
 	return u
 }
 
+// SetDisabledPermanently sets the "disabled_permanently" field.
+func (u *YouTubeTalentUpsert) SetDisabledPermanently(v bool) *YouTubeTalentUpsert {
+	u.Set(youtubetalent.FieldDisabledPermanently, v)
+	return u
+}
+
+// UpdateDisabledPermanently sets the "disabled_permanently" field to the value that was provided on create.
+func (u *YouTubeTalentUpsert) UpdateDisabledPermanently() *YouTubeTalentUpsert {
+	u.SetExcluded(youtubetalent.FieldDisabledPermanently)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
@@ -597,6 +634,20 @@ func (u *YouTubeTalentUpsertOne) UpdateDisabled() *YouTubeTalentUpsertOne {
 func (u *YouTubeTalentUpsertOne) ClearDisabled() *YouTubeTalentUpsertOne {
 	return u.Update(func(s *YouTubeTalentUpsert) {
 		s.ClearDisabled()
+	})
+}
+
+// SetDisabledPermanently sets the "disabled_permanently" field.
+func (u *YouTubeTalentUpsertOne) SetDisabledPermanently(v bool) *YouTubeTalentUpsertOne {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.SetDisabledPermanently(v)
+	})
+}
+
+// UpdateDisabledPermanently sets the "disabled_permanently" field to the value that was provided on create.
+func (u *YouTubeTalentUpsertOne) UpdateDisabledPermanently() *YouTubeTalentUpsertOne {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.UpdateDisabledPermanently()
 	})
 }
 
@@ -913,6 +964,20 @@ func (u *YouTubeTalentUpsertBulk) UpdateDisabled() *YouTubeTalentUpsertBulk {
 func (u *YouTubeTalentUpsertBulk) ClearDisabled() *YouTubeTalentUpsertBulk {
 	return u.Update(func(s *YouTubeTalentUpsert) {
 		s.ClearDisabled()
+	})
+}
+
+// SetDisabledPermanently sets the "disabled_permanently" field.
+func (u *YouTubeTalentUpsertBulk) SetDisabledPermanently(v bool) *YouTubeTalentUpsertBulk {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.SetDisabledPermanently(v)
+	})
+}
+
+// UpdateDisabledPermanently sets the "disabled_permanently" field to the value that was provided on create.
+func (u *YouTubeTalentUpsertBulk) UpdateDisabledPermanently() *YouTubeTalentUpsertBulk {
+	return u.Update(func(s *YouTubeTalentUpsert) {
+		s.UpdateDisabledPermanently()
 	})
 }
 

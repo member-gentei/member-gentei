@@ -26,6 +26,8 @@ const (
 	FieldLastUpdated = "last_updated"
 	// FieldDisabled holds the string denoting the disabled field in the database.
 	FieldDisabled = "disabled"
+	// FieldDisabledPermanently holds the string denoting the disabled_permanently field in the database.
+	FieldDisabledPermanently = "disabled_permanently"
 	// EdgeGuilds holds the string denoting the guilds edge name in mutations.
 	EdgeGuilds = "guilds"
 	// EdgeRoles holds the string denoting the roles edge name in mutations.
@@ -64,6 +66,7 @@ var Columns = []string{
 	FieldLastMembershipVideoIDMiss,
 	FieldLastUpdated,
 	FieldDisabled,
+	FieldDisabledPermanently,
 }
 
 var (
@@ -85,6 +88,8 @@ func ValidColumn(column string) bool {
 var (
 	// DefaultLastUpdated holds the default value on creation for the "last_updated" field.
 	DefaultLastUpdated func() time.Time
+	// DefaultDisabledPermanently holds the default value on creation for the "disabled_permanently" field.
+	DefaultDisabledPermanently bool
 )
 
 // OrderOption defines the ordering options for the YouTubeTalent queries.
@@ -123,6 +128,11 @@ func ByLastUpdated(opts ...sql.OrderTermOption) OrderOption {
 // ByDisabled orders the results by the disabled field.
 func ByDisabled(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDisabled, opts...).ToFunc()
+}
+
+// ByDisabledPermanently orders the results by the disabled_permanently field.
+func ByDisabledPermanently(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDisabledPermanently, opts...).ToFunc()
 }
 
 // ByGuildsCount orders the results by guilds count.

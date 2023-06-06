@@ -95,6 +95,11 @@ func Disabled(v time.Time) predicate.YouTubeTalent {
 	return predicate.YouTubeTalent(sql.FieldEQ(FieldDisabled, v))
 }
 
+// DisabledPermanently applies equality check predicate on the "disabled_permanently" field. It's identical to DisabledPermanentlyEQ.
+func DisabledPermanently(v bool) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(sql.FieldEQ(FieldDisabledPermanently, v))
+}
+
 // ChannelNameEQ applies the EQ predicate on the "channel_name" field.
 func ChannelNameEQ(v string) predicate.YouTubeTalent {
 	return predicate.YouTubeTalent(sql.FieldEQ(FieldChannelName, v))
@@ -438,6 +443,16 @@ func DisabledIsNil() predicate.YouTubeTalent {
 // DisabledNotNil applies the NotNil predicate on the "disabled" field.
 func DisabledNotNil() predicate.YouTubeTalent {
 	return predicate.YouTubeTalent(sql.FieldNotNull(FieldDisabled))
+}
+
+// DisabledPermanentlyEQ applies the EQ predicate on the "disabled_permanently" field.
+func DisabledPermanentlyEQ(v bool) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(sql.FieldEQ(FieldDisabledPermanently, v))
+}
+
+// DisabledPermanentlyNEQ applies the NEQ predicate on the "disabled_permanently" field.
+func DisabledPermanentlyNEQ(v bool) predicate.YouTubeTalent {
+	return predicate.YouTubeTalent(sql.FieldNEQ(FieldDisabledPermanently, v))
 }
 
 // HasGuilds applies the HasEdge predicate on the "guilds" edge.

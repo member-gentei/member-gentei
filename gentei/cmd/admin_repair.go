@@ -166,7 +166,10 @@ func repairGuilds(ctx context.Context, db *ent.Client, session *discordgo.Sessio
 
 func refreshYouTubeChannels(ctx context.Context, db *ent.Client) error {
 	toUpdate, err := db.YouTubeTalent.Query().
-		Where(youtubetalent.LastUpdatedLT(time.Now().Add(-24 * time.Hour))).
+		Where(
+			youtubetalent.LastUpdatedLT(time.Now().Add(-24*time.Hour)),
+			youtubetalent.DisabledPermanently(false),
+		).
 		IDs(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting stale YouTube channels: %w", err)

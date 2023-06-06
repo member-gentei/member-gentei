@@ -117,6 +117,20 @@ func (yttu *YouTubeTalentUpdate) ClearDisabled() *YouTubeTalentUpdate {
 	return yttu
 }
 
+// SetDisabledPermanently sets the "disabled_permanently" field.
+func (yttu *YouTubeTalentUpdate) SetDisabledPermanently(b bool) *YouTubeTalentUpdate {
+	yttu.mutation.SetDisabledPermanently(b)
+	return yttu
+}
+
+// SetNillableDisabledPermanently sets the "disabled_permanently" field if the given value is not nil.
+func (yttu *YouTubeTalentUpdate) SetNillableDisabledPermanently(b *bool) *YouTubeTalentUpdate {
+	if b != nil {
+		yttu.SetDisabledPermanently(*b)
+	}
+	return yttu
+}
+
 // AddGuildIDs adds the "guilds" edge to the Guild entity by IDs.
 func (yttu *YouTubeTalentUpdate) AddGuildIDs(ids ...uint64) *YouTubeTalentUpdate {
 	yttu.mutation.AddGuildIDs(ids...)
@@ -292,6 +306,9 @@ func (yttu *YouTubeTalentUpdate) sqlSave(ctx context.Context) (n int, err error)
 	}
 	if yttu.mutation.DisabledCleared() {
 		_spec.ClearField(youtubetalent.FieldDisabled, field.TypeTime)
+	}
+	if value, ok := yttu.mutation.DisabledPermanently(); ok {
+		_spec.SetField(youtubetalent.FieldDisabledPermanently, field.TypeBool, value)
 	}
 	if yttu.mutation.GuildsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -534,6 +551,20 @@ func (yttuo *YouTubeTalentUpdateOne) ClearDisabled() *YouTubeTalentUpdateOne {
 	return yttuo
 }
 
+// SetDisabledPermanently sets the "disabled_permanently" field.
+func (yttuo *YouTubeTalentUpdateOne) SetDisabledPermanently(b bool) *YouTubeTalentUpdateOne {
+	yttuo.mutation.SetDisabledPermanently(b)
+	return yttuo
+}
+
+// SetNillableDisabledPermanently sets the "disabled_permanently" field if the given value is not nil.
+func (yttuo *YouTubeTalentUpdateOne) SetNillableDisabledPermanently(b *bool) *YouTubeTalentUpdateOne {
+	if b != nil {
+		yttuo.SetDisabledPermanently(*b)
+	}
+	return yttuo
+}
+
 // AddGuildIDs adds the "guilds" edge to the Guild entity by IDs.
 func (yttuo *YouTubeTalentUpdateOne) AddGuildIDs(ids ...uint64) *YouTubeTalentUpdateOne {
 	yttuo.mutation.AddGuildIDs(ids...)
@@ -739,6 +770,9 @@ func (yttuo *YouTubeTalentUpdateOne) sqlSave(ctx context.Context) (_node *YouTub
 	}
 	if yttuo.mutation.DisabledCleared() {
 		_spec.ClearField(youtubetalent.FieldDisabled, field.TypeTime)
+	}
+	if value, ok := yttuo.mutation.DisabledPermanently(); ok {
+		_spec.SetField(youtubetalent.FieldDisabledPermanently, field.TypeBool, value)
 	}
 	if yttuo.mutation.GuildsCleared() {
 		edge := &sqlgraph.EdgeSpec{
