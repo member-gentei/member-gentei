@@ -187,10 +187,11 @@ func CheckForUser(
 	// 1a. get lost
 	wasLost := map[string]bool{}
 	lostIDs, err := db.YouTubeTalent.Query().Where(
+		// "you're not a member but the bot enforced a role with you in it at some point"
 		youtubetalent.IDIn(nonMemberChannelIDs...),
-		youtubetalent.Not(youtubetalent.HasMembershipsWith(
+		youtubetalent.HasMembershipsWith(
 			usermembership.HasUserWith(user.ID(userID)),
-		)),
+		),
 	).IDs(ctx)
 	if err != nil {
 		err = fmt.Errorf("error fetching lost membership IDs: %w", err)
@@ -301,63 +302,51 @@ func SaveMemberships(
 			return err
 		}
 	}
-	// update lost
-	for _, c := range results.Lost {
-		var (
-			count  int
-			logger = log.With().
-				Str("userID", strconv.FormatUint(userID, 10)).
-				Str("talentID", c.ChannelID).
-				Logger()
-		)
-		count, err = db.UserMembership.Update().
+	// update lost/not
+	setLostNot := func(c CheckResult, lost bool) error {
+		var count int
+		update := db.UserMembership.Update().
 			Where(
 				usermembership.HasYoutubeTalentWith(
 					youtubetalent.ID(c.ChannelID),
 					youtubetalent.DisabledIsNil(),
 				),
 				usermembership.HasUserWith(user.ID(userID)),
-			).
-			SetFirstFailed(c.Time).
-			AddFailCount(1).
-			Save(ctx)
-		if err != nil {
-			err = fmt.Errorf("error setting first failed time for %s: %w", c.ChannelID, err)
-			return
+			)
+		if lost {
+			update.SetFailCount(1).SetFirstFailed(c.Time)
+		} else {
+			update.AddFailCount(1)
 		}
+		count, err = update.Save(ctx)
+		if err != nil {
+			return fmt.Errorf("error setting first failed time for %s: %w", c.ChannelID, err)
+		}
+		logger := log.With().
+			Str("userID", strconv.FormatUint(userID, 10)).
+			Str("talentID", c.ChannelID).
+			Int("count", count).
+			Logger()
 		if count > 0 {
+			var msg string
+			if lost {
+				msg = "lost membership"
+			} else {
+				msg = "updated non-membership"
+			}
 			logger.Info().
 				Time("firstFailed", c.Time).
-				Msg("lost membership")
+				Msg(msg)
 		} else {
-			logger.Debug().Msg("not a member; was 'lost'")
+			logger.Debug().Msg("not a member")
 		}
+		return nil
 	}
-	// clear not
+	for _, c := range results.Lost {
+		setLostNot(c, true)
+	}
 	for _, c := range results.Not {
-		var (
-			count  int
-			logger = log.With().
-				Str("userID", strconv.FormatUint(userID, 10)).
-				Str("talentID", c.ChannelID).
-				Logger()
-		)
-		count, err = db.UserMembership.Update().
-			Where(
-				usermembership.HasYoutubeTalentWith(
-					youtubetalent.ID(c.ChannelID),
-					youtubetalent.DisabledIsNil(),
-				),
-				usermembership.HasUserWith(user.ID(userID)),
-			).
-			AddFailCount(1).
-			Save(ctx)
-		if err != nil {
-			err = fmt.Errorf("error incrementing check failures for %s: %w", c.ChannelID, err)
-			return
-		}
-		logger.Debug().Int("count", count).Time("firstFailed", c.Time).
-			Msg("incremented non-membership")
+		setLostNot(c, false)
 	}
 	updateOne := db.User.UpdateOneID(userID).
 		SetLastCheck(time.Now())
