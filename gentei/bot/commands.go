@@ -480,7 +480,7 @@ func (b *DiscordBot) deferredReply(ctx context.Context, i *discordgo.Interaction
 		},
 	})
 	if err != nil {
-		logger.Err(err).Msg("error sending message deferral, dropping reply")
+		logger.Warn().Err(err).Msg("error sending message deferral, dropping reply")
 		return
 	}
 	for _, responseFunc := range responseFuncs {
