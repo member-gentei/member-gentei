@@ -114,6 +114,7 @@ var (
 		{Name: "last_membership_video_id_miss", Type: field.TypeTime, Nullable: true},
 		{Name: "last_updated", Type: field.TypeTime},
 		{Name: "disabled", Type: field.TypeTime, Nullable: true},
+		{Name: "disabled_permanently", Type: field.TypeBool, Default: false},
 	}
 	// YouTubeTalentsTable holds the schema information for the "you_tube_talents" table.
 	YouTubeTalentsTable = &schema.Table{

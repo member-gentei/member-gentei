@@ -34,6 +34,8 @@ func (YouTubeTalent) Fields() []ent.Field {
 		field.Time("disabled").
 			Optional().
 			Comment("When refresh/membership checks were disabled. Set to zero/nil to re-enable."),
+		field.Bool("disabled_permanently").Default(false).
+			Comment("Administratively toggled for deleted/deactivated channels"),
 	}
 }
 

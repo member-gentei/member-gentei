@@ -3417,6 +3417,7 @@ type YouTubeTalentMutation struct {
 	last_membership_video_id_miss *time.Time
 	last_updated                  *time.Time
 	disabled                      *time.Time
+	disabled_permanently          *bool
 	clearedFields                 map[string]struct{}
 	guilds                        map[uint64]struct{}
 	removedguilds                 map[uint64]struct{}
@@ -3791,6 +3792,42 @@ func (m *YouTubeTalentMutation) ResetDisabled() {
 	delete(m.clearedFields, youtubetalent.FieldDisabled)
 }
 
+// SetDisabledPermanently sets the "disabled_permanently" field.
+func (m *YouTubeTalentMutation) SetDisabledPermanently(b bool) {
+	m.disabled_permanently = &b
+}
+
+// DisabledPermanently returns the value of the "disabled_permanently" field in the mutation.
+func (m *YouTubeTalentMutation) DisabledPermanently() (r bool, exists bool) {
+	v := m.disabled_permanently
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDisabledPermanently returns the old "disabled_permanently" field's value of the YouTubeTalent entity.
+// If the YouTubeTalent object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *YouTubeTalentMutation) OldDisabledPermanently(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDisabledPermanently is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDisabledPermanently requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDisabledPermanently: %w", err)
+	}
+	return oldValue.DisabledPermanently, nil
+}
+
+// ResetDisabledPermanently resets all changes to the "disabled_permanently" field.
+func (m *YouTubeTalentMutation) ResetDisabledPermanently() {
+	m.disabled_permanently = nil
+}
+
 // AddGuildIDs adds the "guilds" edge to the Guild entity by ids.
 func (m *YouTubeTalentMutation) AddGuildIDs(ids ...uint64) {
 	if m.guilds == nil {
@@ -3987,7 +4024,7 @@ func (m *YouTubeTalentMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *YouTubeTalentMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 7)
 	if m.channel_name != nil {
 		fields = append(fields, youtubetalent.FieldChannelName)
 	}
@@ -4005,6 +4042,9 @@ func (m *YouTubeTalentMutation) Fields() []string {
 	}
 	if m.disabled != nil {
 		fields = append(fields, youtubetalent.FieldDisabled)
+	}
+	if m.disabled_permanently != nil {
+		fields = append(fields, youtubetalent.FieldDisabledPermanently)
 	}
 	return fields
 }
@@ -4026,6 +4066,8 @@ func (m *YouTubeTalentMutation) Field(name string) (ent.Value, bool) {
 		return m.LastUpdated()
 	case youtubetalent.FieldDisabled:
 		return m.Disabled()
+	case youtubetalent.FieldDisabledPermanently:
+		return m.DisabledPermanently()
 	}
 	return nil, false
 }
@@ -4047,6 +4089,8 @@ func (m *YouTubeTalentMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldLastUpdated(ctx)
 	case youtubetalent.FieldDisabled:
 		return m.OldDisabled(ctx)
+	case youtubetalent.FieldDisabledPermanently:
+		return m.OldDisabledPermanently(ctx)
 	}
 	return nil, fmt.Errorf("unknown YouTubeTalent field %s", name)
 }
@@ -4097,6 +4141,13 @@ func (m *YouTubeTalentMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDisabled(v)
+		return nil
+	case youtubetalent.FieldDisabledPermanently:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDisabledPermanently(v)
 		return nil
 	}
 	return fmt.Errorf("unknown YouTubeTalent field %s", name)
@@ -4185,6 +4236,9 @@ func (m *YouTubeTalentMutation) ResetField(name string) error {
 		return nil
 	case youtubetalent.FieldDisabled:
 		m.ResetDisabled()
+		return nil
+	case youtubetalent.FieldDisabledPermanently:
+		m.ResetDisabledPermanently()
 		return nil
 	}
 	return fmt.Errorf("unknown YouTubeTalent field %s", name)

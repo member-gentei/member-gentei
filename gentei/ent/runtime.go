@@ -46,4 +46,8 @@ func init() {
 	youtubetalentDescLastUpdated := youtubetalentFields[5].Descriptor()
 	// youtubetalent.DefaultLastUpdated holds the default value on creation for the last_updated field.
 	youtubetalent.DefaultLastUpdated = youtubetalentDescLastUpdated.Default.(func() time.Time)
+	// youtubetalentDescDisabledPermanently is the schema descriptor for disabled_permanently field.
+	youtubetalentDescDisabledPermanently := youtubetalentFields[7].Descriptor()
+	// youtubetalent.DefaultDisabledPermanently holds the default value on creation for the disabled_permanently field.
+	youtubetalent.DefaultDisabledPermanently = youtubetalentDescDisabledPermanently.Default.(bool)
 }

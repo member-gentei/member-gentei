@@ -30,6 +30,8 @@ type YouTubeTalent struct {
 	LastUpdated time.Time `json:"last_updated,omitempty"`
 	// When refresh/membership checks were disabled. Set to zero/nil to re-enable.
 	Disabled time.Time `json:"disabled,omitempty"`
+	// Administratively toggled for deleted/deactivated channels
+	DisabledPermanently bool `json:"disabled_permanently,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the YouTubeTalentQuery when eager-loading is set.
 	Edges        YouTubeTalentEdges `json:"edges"`
@@ -81,6 +83,8 @@ func (*YouTubeTalent) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case youtubetalent.FieldDisabledPermanently:
+			values[i] = new(sql.NullBool)
 		case youtubetalent.FieldID, youtubetalent.FieldChannelName, youtubetalent.FieldThumbnailURL, youtubetalent.FieldMembershipVideoID:
 			values[i] = new(sql.NullString)
 		case youtubetalent.FieldLastMembershipVideoIDMiss, youtubetalent.FieldLastUpdated, youtubetalent.FieldDisabled:
@@ -141,6 +145,12 @@ func (ytt *YouTubeTalent) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field disabled", values[i])
 			} else if value.Valid {
 				ytt.Disabled = value.Time
+			}
+		case youtubetalent.FieldDisabledPermanently:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field disabled_permanently", values[i])
+			} else if value.Valid {
+				ytt.DisabledPermanently = value.Bool
 			}
 		default:
 			ytt.selectValues.Set(columns[i], values[i])
@@ -210,6 +220,9 @@ func (ytt *YouTubeTalent) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("disabled=")
 	builder.WriteString(ytt.Disabled.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("disabled_permanently=")
+	builder.WriteString(fmt.Sprintf("%v", ytt.DisabledPermanently))
 	builder.WriteByte(')')
 	return builder.String()
 }
