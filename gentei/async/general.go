@@ -57,6 +57,10 @@ func ProcessUserDelete(ctx context.Context, db *ent.Client, topic *pubsub.Topic,
 	// revoke tokens
 	u, err := db.User.Get(ctx, userID)
 	if err != nil {
+		// already gone!
+		if ent.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 	if u.DiscordToken != nil {
