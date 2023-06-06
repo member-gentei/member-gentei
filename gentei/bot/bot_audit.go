@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"math/rand"
 	"strconv"
 	"time"
 
@@ -42,6 +43,9 @@ func (b *DiscordBot) auditLog(ctx context.Context, guildID, userID, roleID uint6
 			b.auditChannelCache.Set(guildID, 0, 0)
 		} else if err != nil {
 			logger.Err(err).Msg("error querying for audit log channel")
+			// cache failure for 5~10s
+			// in practice, this skips consecutive context cancel errors
+			b.auditChannelCache.Set(guildID, 0, (time.Second*5)+(time.Duration(rand.Float64()*5)*time.Second))
 		} else {
 			// err == nil
 			auditChannel = dg.AuditChannel
