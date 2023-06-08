@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"time"
 
@@ -71,6 +72,10 @@ func (b *DiscordBot) enforceAllRoles(ctx context.Context, dryRun bool, reason st
 	return nil
 }
 
+var (
+	defaultGracePeriod time.Duration
+)
+
 func (b *DiscordBot) enforceRole(ctx context.Context, gr *ent.GuildRole, dryRun bool, reason string) error {
 	dg, err := gr.Edges.GuildOrErr()
 	if err != nil {
@@ -85,8 +90,8 @@ func (b *DiscordBot) enforceRole(ctx context.Context, gr *ent.GuildRole, dryRun 
 	)
 	// gather users who should have this role
 	var (
-		shouldHaveRole = map[uint64]bool{}
-		yesterdayIsh   = time.Now().Add(-time.Hour * 24)
+		shouldHaveRole          = map[uint64]bool{}
+		defaultGracePeriodStart = time.Now().Add(-defaultGracePeriod)
 	)
 	ums, err := b.db.GuildRole.QueryUserMemberships(gr).
 		WithUser().
@@ -99,7 +104,7 @@ func (b *DiscordBot) enforceRole(ctx context.Context, gr *ent.GuildRole, dryRun 
 		if um.FailCount == 0 {
 			// the last check worked
 			shouldHaveRole[userID] = true
-		} else if !um.LastVerified.IsZero() && um.FirstFailed.After(yesterdayIsh) {
+		} else if !um.LastVerified.IsZero() && um.FirstFailed.After(defaultGracePeriodStart) {
 			// a check worked before, but it failed today. They have [insert grace period] to fix it.
 			// TODO: insert configurable grace period here
 			shouldHaveRole[userID] = true
@@ -384,5 +389,17 @@ func userVerifiedFor(userMembershipID int) []predicate.GuildRole {
 				guild.HasMembersWith(user.HasMembershipsWith(usermembership.ID(userMembershipID))),
 			),
 		),
+	}
+}
+
+func init() {
+	if dgp := os.Getenv("DEFAULT_GRACE_PERIOD"); dgp != "" {
+		gracePeriodSeconds, err := strconv.ParseInt(dgp, 10, 64)
+		if err != nil {
+			panic(fmt.Errorf("error parsing DEFAULT_GRACE_PERIOD as int64: %w", err))
+		}
+		defaultGracePeriod = time.Second * time.Duration(gracePeriodSeconds)
+	} else {
+		defaultGracePeriod = time.Hour * 24
 	}
 }
