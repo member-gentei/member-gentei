@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -177,7 +178,18 @@ func refreshYouTubeChannels(ctx context.Context, db *ent.Client) error {
 	for _, channelID := range toUpdate {
 		err = web.UpsertYouTubeChannelID(ctx, db, channelID)
 		if err != nil {
-			return fmt.Errorf("error upserting channel info: %w", err)
+			if !errors.Is(err, &web.ErrNoMembershipPlaylist{}) {
+				// check tomorrow
+				err2 := db.YouTubeTalent.UpdateOneID(channelID).
+					SetLastUpdated(time.Now()).
+					Exec(ctx)
+				if err2 != nil {
+					return fmt.Errorf("error deferring next YouTube channel refresh: %w", err2)
+				}
+				log.Info().Str("channelID", channelID).Msg("has no membership playlist, will check tomorrow")
+			} else {
+				return fmt.Errorf("error upserting channel info: %w", err)
+			}
 		}
 	}
 	return nil
