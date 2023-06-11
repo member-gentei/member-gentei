@@ -26,10 +26,6 @@ func init() {
 	guildrole.DefaultLastUpdated = guildroleDescLastUpdated.Default.(func() time.Time)
 	userFields := schema.User{}.Fields()
 	_ = userFields
-	// userDescFullName is the schema descriptor for full_name field.
-	userDescFullName := userFields[1].Descriptor()
-	// user.FullNameValidator is a validator for the "full_name" field. It is called by the builders before save.
-	user.FullNameValidator = userDescFullName.Validators[0].(func(string) error)
 	// userDescLastCheck is the schema descriptor for last_check field.
 	userDescLastCheck := userFields[3].Descriptor()
 	// user.DefaultLastCheck holds the default value on creation for the last_check field.

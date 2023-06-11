@@ -174,11 +174,6 @@ func (uc *UserCreate) check() error {
 	if _, ok := uc.mutation.FullName(); !ok {
 		return &ValidationError{Name: "full_name", err: errors.New(`ent: missing required field "User.full_name"`)}
 	}
-	if v, ok := uc.mutation.FullName(); ok {
-		if err := user.FullNameValidator(v); err != nil {
-			return &ValidationError{Name: "full_name", err: fmt.Errorf(`ent: validator failed for field "User.full_name": %w`, err)}
-		}
-	}
 	if _, ok := uc.mutation.AvatarHash(); !ok {
 		return &ValidationError{Name: "avatar_hash", err: errors.New(`ent: missing required field "User.avatar_hash"`)}
 	}

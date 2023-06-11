@@ -84,8 +84,6 @@ func ValidColumn(column string) bool {
 }
 
 var (
-	// FullNameValidator is a validator for the "full_name" field. It is called by the builders before save.
-	FullNameValidator func(string) error
 	// DefaultLastCheck holds the default value on creation for the "last_check" field.
 	DefaultLastCheck func() time.Time
 )

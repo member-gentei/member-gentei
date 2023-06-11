@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"regexp"
 	"time"
 
 	"entgo.io/ent"
@@ -22,7 +21,6 @@ func (User) Fields() []ent.Field {
 		field.Uint64("id").Unique().
 			Comment("Discord user snowflake"),
 		field.String("full_name").
-			Match(regexp.MustCompile(`^.+?#\d{4}$`)).
 			Comment("Username + discriminator"),
 		field.String("avatar_hash"),
 		field.Time("last_check").
