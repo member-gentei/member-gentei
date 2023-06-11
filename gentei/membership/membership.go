@@ -191,6 +191,7 @@ func CheckForUser(
 		youtubetalent.IDIn(nonMemberChannelIDs...),
 		youtubetalent.HasMembershipsWith(
 			usermembership.HasUserWith(user.ID(userID)),
+			usermembership.FailCount(0),
 		),
 	).IDs(ctx)
 	if err != nil {
