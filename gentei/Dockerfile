@@ -1,4 +1,4 @@
-FROM golang:1.19 as build
+FROM golang:1.20-bullseye as build
 
 WORKDIR /go/src/app
 COPY . .
@@ -8,6 +8,6 @@ RUN go test -v ./...
 
 RUN go build --tags "json1" -o /go/bin/app
 
-FROM gcr.io/distroless/base
+FROM gcr.io/distroless/base-debian11
 COPY --from=build /go/bin/app /
 ENTRYPOINT ["/app"]
