@@ -356,8 +356,10 @@ func (b *DiscordBot) pruneGuildIfAbsent(ctx context.Context, guildID uint64) (bo
 	)
 	_, err := b.session.Guild(guildIDStr)
 	if errors.As(err, &restErr) {
-		if restErr.Message.Code == discordgo.ErrCodeMissingAccess {
-			// we're not in the guild, so remove it and its roles
+		switch restErr.Message.Code {
+		case discordgo.ErrCodeMissingAccess,
+			discordgo.ErrCodeUnknownGuild:
+			// we're not in the guild (or it's gone), so remove it and its roles
 			// (this should CASCADE DELETE to all appropriate objects)
 			err = b.db.Guild.DeleteOneID(guildID).Exec(ctx)
 			if ent.IsNotFound(err) {
