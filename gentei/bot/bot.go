@@ -188,7 +188,7 @@ func (b *DiscordBot) Close() error {
 }
 
 var (
-	cancelConfirm = errors.New("confirmed")
+	errCancelConfirm = errors.New("confirmed")
 )
 
 // The one place where roles get applied. Set acquireMutex to false for whole-role enforcement.
@@ -240,7 +240,7 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 		if add {
 			// check this update for the target role that should exist
 			if sliceContains(roleIDStr, rtu.Roles) {
-				cancelApplyCtx(cancelConfirm)
+				cancelApplyCtx(errCancelConfirm)
 				return true
 			}
 		} else {
@@ -248,7 +248,7 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 			if sliceContains(roleIDStr, rtu.Roles) {
 				return false
 			}
-			cancelApplyCtx(cancelConfirm)
+			cancelApplyCtx(errCancelConfirm)
 			return true
 		}
 		return
