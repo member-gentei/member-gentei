@@ -54,7 +54,12 @@ var repairCmd = &cobra.Command{
 			return
 		}
 		if flagRepairAll {
-			disabledChannelIDs := db.YouTubeTalent.Query().Where(youtubetalent.DisabledNotNil()).IDsX(ctx)
+			disabledChannelIDs := db.YouTubeTalent.Query().
+				Where(
+					youtubetalent.DisabledNotNil(),
+					youtubetalent.DisabledPermanently(false),
+				).
+				IDsX(ctx)
 			for _, channelID := range disabledChannelIDs {
 				if err := repairChannelID(ctx, db, channelID); err != nil {
 					log.Err(err).Str("channelID", channelID).Msg("error repairing channel")
