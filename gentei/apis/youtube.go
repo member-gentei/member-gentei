@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	irand "math/rand"
 	"net/http"
 	"strconv"
@@ -37,7 +36,8 @@ func GetYouTubeService(ctx context.Context, db *ent.Client, userID uint64, confi
 	}
 	client := retryablehttp.NewClient()
 	client.HTTPClient = notify.Client(ctx)
-	client.Logger = &zlgLeveledLoggerWrapper{logger: log.Logger}
+	// re-enable later? this isn't much
+	// client.Logger = &zlgLeveledLoggerWrapper{logger: log.Logger}
 	client.CheckRetry = youTubeAPIRetryPolicy
 	return youtube.NewService(ctx, option.WithHTTPClient(client.StandardClient()))
 }
@@ -231,7 +231,7 @@ func (l *zlgLeveledLoggerWrapper) logEvent(event *zerolog.Event, msg string, key
 			// keys to skip
 			continue
 		case io.ReadCloser:
-			content, err := ioutil.ReadAll(v)
+			content, err := io.ReadAll(v)
 			if err != nil {
 				log.Warn().Str("key", key).Msg("zlgLeveledLoggerWrapper could not read io.ReadCloser")
 				continue
@@ -260,3 +260,5 @@ func (l *zlgLeveledLoggerWrapper) Debug(msg string, keysAndValues ...interface{}
 func (l *zlgLeveledLoggerWrapper) Warn(msg string, keysAndValues ...interface{}) {
 	l.logEvent(l.logger.Warn(), msg, keysAndValues...)
 }
+
+var _ = zlgLeveledLoggerWrapper{}
