@@ -121,9 +121,16 @@ func refreshUserGuildEdgesWithPredicates(ctx context.Context, db *ent.Client, di
 		after                  uint64
 		userTokensInvalidMutex = &sync.Mutex{}
 	)
+	totalCount, err := db.User.Query().
+		Where(predicates...).
+		Count(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error getting total count of stale users: %w", err)
+	}
+	log.Info().Int("total", totalCount).Msg("current stale user count")
 	const pageSize = 400
+	processedCounter := &atomic.Int64{}
 	for {
-		processedCounter := &atomic.Int64{}
 		userIDs, err := db.User.Query().
 			Where(append(
 				predicates,
@@ -136,7 +143,7 @@ func refreshUserGuildEdgesWithPredicates(ctx context.Context, db *ent.Client, di
 			return nil, 0, fmt.Errorf("error paginating user IDs: %w", err)
 		}
 		var eGroup errgroup.Group
-		eGroup.SetLimit(10)
+		eGroup.SetLimit(100)
 		for i := range userIDs {
 			userID := userIDs[i]
 			eGroup.Go(func() error {
@@ -192,9 +199,8 @@ func refreshUserGuildEdgesWithPredicates(ctx context.Context, db *ent.Client, di
 		if err = eGroup.Wait(); err != nil {
 			return userTokensInvalid, totalCount, err
 		}
-		totalCount += len(userIDs)
 		log.Info().
-			Int("count", len(userIDs)).
+			Int64("count", processedCounter.Load()).
 			Int("total", totalCount).
 			Msg("refresh progress")
 		if len(userIDs) < pageSize {
