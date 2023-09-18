@@ -80,6 +80,7 @@ func CheckForUser(
 	}
 	svc, err := apis.GetYouTubeService(ctx, db, userID, youtubeConfig)
 	if err != nil {
+		err = fmt.Errorf("error constructing YouTubeService: %w", err)
 		return
 	}
 	// load talents

@@ -30,10 +30,15 @@ type CheckStaleOptions struct {
 	AdditionalUserPredicates []predicate.User
 	// NoSave skips saving UserMembership edges.
 	NoSave bool
+	// MaxWorkers sets the maximum amount of users to check and process simultaneously.
+	MaxWorkers int
+	// The maximum amount of users to check
+	TotalLimit int
 }
 
 var DefaultCheckStaleOptions = &CheckStaleOptions{
 	StaleThreshold: time.Hour * 12,
+	MaxWorkers:     100,
 }
 
 func CheckStale(
@@ -67,7 +72,13 @@ func CheckStale(
 	}
 	var (
 		totalStaleCount int
+		eg              errgroup.Group
 	)
+	if options.MaxWorkers > 0 {
+		eg.SetLimit(options.MaxWorkers)
+	} else {
+		eg.SetLimit(DefaultCheckStaleOptions.MaxWorkers)
+	}
 	log.Info().Msg("beginning refresh of stale users")
 	for {
 		staleUserIDs, err := db.User.Query().
@@ -81,21 +92,32 @@ func CheckStale(
 			break
 		}
 		totalStaleCount += len(staleUserIDs)
-		for _, userID := range staleUserIDs {
-			// TODO: https://github.com/member-gentei/member-gentei/issues/92
-			results, err := CheckForUser(ctx, db, youtubeConfig, userID, nil)
-			if err != nil {
-				return fmt.Errorf("error checking memberships for user '%d': %w", userID, err)
-			}
-			if options.NoSave {
-				continue
-			}
-			err = SaveMemberships(ctx, db, userID, results)
-			if err != nil {
-				return fmt.Errorf("error saving memberships for user '%d': %w", userID, err)
-			}
+		for _, u := range staleUserIDs {
+			userID := u // capture
+			eg.Go(func() error {
+				// TODO: https://github.com/member-gentei/member-gentei/issues/92
+				results, err := CheckForUser(ctx, db, youtubeConfig, userID, nil)
+				if err != nil {
+					return fmt.Errorf("error checking memberships for user '%d': %w", userID, err)
+				}
+				if options.NoSave {
+					return nil
+				}
+				err = SaveMemberships(ctx, db, userID, results)
+				if err != nil {
+					return fmt.Errorf("error saving memberships for user '%d': %w", userID, err)
+				}
+				return nil
+			})
+		}
+		if err := eg.Wait(); err != nil {
+			return err
 		}
 		log.Info().Int("count", totalStaleCount).Msg("refreshed stale user batch of <=1000")
+		if options.TotalLimit > 0 && totalStaleCount > options.TotalLimit {
+			log.Info().Int("limit", options.TotalLimit).Int("count", totalStaleCount).Msg("reached CheckStale limit, returning early")
+			return nil
+		}
 	}
 	log.Info().Int("count", totalStaleCount).Msg("refreshed stale users")
 	return nil

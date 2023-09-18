@@ -155,6 +155,7 @@ var checkCmd = &cobra.Command{
 			err = membership.CheckStale(ctx, db, ytConfig, &membership.CheckStaleOptions{
 				StaleThreshold:           membership.DefaultCheckStaleOptions.StaleThreshold,
 				AdditionalUserPredicates: excludeToBeDeleted,
+				MaxWorkers:               100,
 			})
 			if err != nil {
 				log.Fatal().Err(err).Msg("error checking memberships")
