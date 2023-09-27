@@ -303,6 +303,13 @@ func (b *DiscordBot) handleCommonGuildCreateUpdate(
 				Str("old", strconv.FormatUint(oldOwnerID, 10)).
 				Str("new", g.OwnerID).
 				Msg("guild owner has changed")
+			dg.AdminSnowflakes[0] = ownerID
+			_, err = dg.Update().
+				SetAdminSnowflakes(dg.AdminSnowflakes).
+				Save(ctx)
+			if err != nil {
+				logger.Err(err).Msg("error updating admin snowflakes with new owner")
+			}
 		}
 	}
 }
