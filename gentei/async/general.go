@@ -4,14 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/pubsub"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/member-gentei/member-gentei/gentei/ent/usermembership"
@@ -142,7 +144,7 @@ func revokeYouTubeToken(ctx context.Context, token *oauth2.Token) error {
 	}
 	// 400 error happens if the token was already revoked by a user
 	if r.StatusCode >= 400 {
-		body, _ := ioutil.ReadAll(r.Body)
+		body, _ := io.ReadAll(r.Body)
 		defer r.Body.Close()
 		var jbody struct {
 			Error       string `json:"error"`
@@ -163,7 +165,12 @@ func revokeYouTubeToken(ctx context.Context, token *oauth2.Token) error {
 	return nil
 }
 
+var revokeMutex sync.Mutex
+
 func revokeDiscordToken(ctx context.Context, token *oauth2.Token) error {
+	// rudimentary rate limit
+	revokeMutex.Lock()
+	defer revokeMutex.Unlock()
 	var (
 		toRevoke string
 		values   = url.Values{}
@@ -174,13 +181,13 @@ func revokeDiscordToken(ctx context.Context, token *oauth2.Token) error {
 		toRevoke = token.RefreshToken
 	}
 	values.Add("token", toRevoke)
-	r, err := http.PostForm("https://discord.com/api/oauth2/token/revoke", values)
+	r, err := retryablehttp.PostForm("https://discord.com/api/oauth2/token/revoke", values)
 	if err != nil {
 		return err
 	}
 	// 400 error happens if the token was already revoked by a user.
 	if r.StatusCode >= 400 {
-		body, _ := ioutil.ReadAll(r.Body)
+		body, _ := io.ReadAll(r.Body)
 		if r.StatusCode == http.StatusUnauthorized {
 			// 401 happens when the token is already revoked/expired
 			if strings.Contains(string(body), "invalid_client") {
