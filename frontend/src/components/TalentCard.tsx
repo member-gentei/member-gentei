@@ -36,7 +36,7 @@ export default function TalentCard({
   }
   const talent = store.talentsByID[channelID];
   const cardClassName = `card mx-auto my-1 ${(cardClassNames || []).join(
-    " "
+    " ",
   )} ${styles.talentCard}`;
   if (!talent) {
     return (

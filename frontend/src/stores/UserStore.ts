@@ -80,7 +80,7 @@ const actions = {
       const user: State["user"] = await response.json();
       // concat servers
       const serverSet = new Set(
-        (user?.Servers || []).concat(user?.ServerAdmin || [])
+        (user?.Servers || []).concat(user?.ServerAdmin || []),
       );
       let sortedServers = [];
       for (const key of serverSet.keys()) {
@@ -101,7 +101,7 @@ const actions = {
       const response = await authedFetchJSON(
         `${API_BASE_URL}/login/discord`,
         "POST",
-        { code, state }
+        { code, state },
       );
       if (!response.ok) {
         setState({
@@ -122,7 +122,7 @@ const actions = {
       const response = await authedFetchJSON(
         `${API_BASE_URL}/login/youtube`,
         "POST",
-        { code, state }
+        { code, state },
       );
       if (!response.ok) {
         setState({
@@ -165,7 +165,7 @@ const actions = {
       setState({ disconnect: LoadState.Started });
       const response = await authedFetchJSON(
         `${API_BASE_URL}/me/youtube`,
-        "DELETE"
+        "DELETE",
       );
       if (!response.ok) {
         setState({

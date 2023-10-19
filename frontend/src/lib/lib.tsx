@@ -42,7 +42,7 @@ export enum LoadState {
 export function authedFetchJSON(
   url: string,
   method = "GET",
-  body?: { [key: string]: any }
+  body?: { [key: string]: any },
 ): ReturnType<typeof fetch> {
   return fetch(url, {
     method,

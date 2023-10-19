@@ -18,7 +18,7 @@ export default function YouTubeChannelSelector({
   addChannel,
 }: YouTubeChannelSelectorProps) {
   const [channelInputType, setChannelInputType] = useState<"name" | "url">(
-    "name"
+    "name",
   );
   const [channelURL, setChannelURL] = useState("");
   const [inputValid, setInputValid] = useState<boolean>();
@@ -69,7 +69,7 @@ export default function YouTubeChannelSelector({
                   value={channelInputType}
                   onChange={(e) => {
                     setChannelInputType(
-                      e.target.value.toLowerCase() as "name" | "url"
+                      e.target.value.toLowerCase() as "name" | "url",
                     );
                   }}
                 >
@@ -130,7 +130,7 @@ function ChannelNameSelector({ addChannel }: ChannelNameSelectorProps) {
     (channelID) => ({
       id: channelID,
       label: state.talentsByID[channelID]!.Name,
-    })
+    }),
   );
   return (
     <div className="control is-expanded">

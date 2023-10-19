@@ -9,7 +9,7 @@ import {
 } from "../lib/lib";
 
 export function useDiscordLoginURL(
-  additionalScopes: string[] = []
+  additionalScopes: string[] = [],
 ): string | void {
   const discordState = useOAuthState();
   if (!discordState) {
@@ -63,7 +63,7 @@ export function useYouTubeLoginURL(): string | undefined {
 export function useOAuthState(): string | undefined {
   // discordState should be a pretty random string
   const [discordState, setDiscordState] = useState(
-    localStorage.getItem("state")
+    localStorage.getItem("state"),
   );
   if (!discordState) {
     let array = new Uint8Array(16);

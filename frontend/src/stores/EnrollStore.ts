@@ -48,7 +48,7 @@ const actions = {
         {
           code: search.get("code")!,
           permissions: search.get("permissions"),
-        }
+        },
       );
       if (!response.ok) {
         const errData: {

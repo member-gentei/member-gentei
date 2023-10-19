@@ -87,7 +87,7 @@ const actions = {
         "PATCH",
         {
           talents: channelIDs,
-        }
+        },
       );
       if (!response.ok) {
         const data: {

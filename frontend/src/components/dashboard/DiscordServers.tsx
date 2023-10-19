@@ -112,7 +112,7 @@ function DiscordServerWithRolesInner({ id }: DiscordServerRoleProps) {
           verifyTime={meta?.Failed ? 0 : meta?.LastVerified}
         />
       );
-    }
+    },
   );
   if (memberships.length === 0) {
     membershipNode = (
