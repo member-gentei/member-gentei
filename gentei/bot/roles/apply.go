@@ -2,6 +2,7 @@ package roles
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"time"
 
@@ -66,7 +67,12 @@ func ApplyRole(applyCtx context.Context, session *discordgo.Session, guildID, us
 			logger.Debug().Msg("attempting to apply role")
 			select {
 			case <-ctx.Done():
-				logger.Info().Msg("role apply timed out/cancelled")
+				cause := context.Cause(ctx)
+				if errors.Is(cause, context.DeadlineExceeded) {
+					logger.Warn().AnErr("cause", cause).Msg("role apply timed out")
+				} else {
+					logger.Info().Msg("role apply cancelled")
+				}
 				return true, ctx.Err()
 			case <-ticker.C:
 				if attempts > 1 {

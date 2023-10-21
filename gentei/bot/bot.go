@@ -261,6 +261,17 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 	if err == nil {
 		b.auditLog(ctx, guildID, userID, roleID, add, auditReason)
 	}
+	var restErr *discordgo.RESTError
+	if errors.As(err, &restErr) {
+		if restErr.Message.Code == discordgo.ErrCodeUnknownRole {
+			err = b.db.GuildRole.DeleteOneID(roleID).Exec(ctx)
+			if err != nil && !ent.IsNotFound(err) {
+				logger.Err(err).Msg("error deleting role after getting Unknown Role error")
+			} else {
+				logger.Err(err).Msg("got Unknown Role error, deleted role mapping")
+			}
+		}
+	}
 	logger.Err(err).
 		Int("attempts", result.Attempts).
 		Msg("role apply attempt finished")

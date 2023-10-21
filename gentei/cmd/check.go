@@ -10,8 +10,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/member-gentei/member-gentei/gentei/apis"
 	"github.com/member-gentei/member-gentei/gentei/async"
-	"github.com/member-gentei/member-gentei/gentei/ent/predicate"
-	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/member-gentei/member-gentei/gentei/membership"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -108,62 +106,51 @@ var checkCmd = &cobra.Command{
 			log.Fatal().Msg("narrowing options not supported without --uid")
 		} else {
 			// otherwise, refresh all guilds and check all stale users
-			var (
-				failedUserIDs []uint64
-				userCount     int
-			)
-			if flagCheckRefreshAllUsers {
-				log.Info().Msg("refreshing all UserGuildEdges")
-				failedUserIDs, userCount, err = membership.RefreshAllUserGuildEdges(ctx, db, discordConfig)
-			} else {
-				log.Info().Msg("refreshing stale UserGuildEdges")
-				failedUserIDs, userCount, err = membership.RefreshStaleUserGuildEdges(ctx, db, discordConfig, membership.DefaultCheckStaleOptions.StaleThreshold)
-			}
-			if err != nil {
-				log.Fatal().Err(err).Msg("error refreshing Discord Guild edges")
-			}
-			log.Info().
-				Int("total", userCount).
-				Int("succeeded", userCount-len(failedUserIDs)).
-				Msg("refreshed guild edges")
-			if !flagCheckNoEnforce {
-				for _, userID := range failedUserIDs {
-					var (
-						userIDStr = strconv.FormatUint(userID, 10)
-						logger    = log.With().Str("userID", userIDStr).Logger()
-					)
-					err = async.PublishGeneralMessage(ctx, asyncTopic, async.GeneralPSMessage{
-						UserDelete: &async.DeleteUserMessage{
-							UserID: json.Number(userIDStr),
-							Reason: "Discord token invalid/expired",
-						},
-					})
-					if err != nil {
-						logger.Fatal().Err(err).Msg("error publishing delete message")
-					} else {
-						logger.Info().Msg("issued delete for user")
+			userDeleteChan := make(chan uint64, 10)
+			go func() {
+				defer close(userDeleteChan)
+				if flagCheckNoEnforce {
+					for range userDeleteChan {
+					}
+				} else {
+					for userID := range userDeleteChan {
+						var (
+							userIDStr = strconv.FormatUint(userID, 10)
+							logger    = log.With().Str("userID", userIDStr).Logger()
+						)
+						err = async.PublishGeneralMessage(ctx, asyncTopic, async.GeneralPSMessage{
+							UserDelete: &async.DeleteUserMessage{
+								UserID: json.Number(userIDStr),
+								Reason: "Discord token invalid/expired",
+							},
+						})
+						if err != nil {
+							logger.Fatal().Err(err).Msg("error publishing delete message")
+						} else {
+							logger.Info().Msg("issued delete for user")
+						}
 					}
 				}
+			}()
+			opts := membership.DefaultPerformCheckOptions()
+			if flagCheckRefreshAllUsers {
+				log.Info().Msg("refreshing all UserGuildEdges")
+				opts.StaleThreshold = 0
+			} else {
+				log.Info().Msg("refreshing stale UserGuildEdges")
+			}
+			opts.Enforce = !flagCheckNoEnforce
+			err := membership.PerformCheckBatches(ctx, db, discordConfig, ytConfig, userDeleteChan, opts)
+			if err != nil {
+				log.Fatal().Err(err).Msg("error performing checks")
 			}
 			if flagCheckRefreshOnly {
 				return
 			}
-			var excludeToBeDeleted []predicate.User
-			if len(failedUserIDs) > 0 {
-				excludeToBeDeleted = append(excludeToBeDeleted, user.IDNotIn(failedUserIDs...))
-			}
-			err = membership.CheckStale(ctx, db, ytConfig, &membership.CheckStaleOptions{
-				StaleThreshold:           membership.DefaultCheckStaleOptions.StaleThreshold,
-				AdditionalUserPredicates: excludeToBeDeleted,
-				MaxWorkers:               100,
-			})
-			if err != nil {
-				log.Fatal().Err(err).Msg("error checking memberships")
-			}
 			err = async.PublishApplyMembershipMessage(ctx, asyncTopic, async.ApplyMembershipPSMessage{
 				EnforceAll: &async.EnforceAllMessage{
 					DryRun: flagCheckNoEnforce,
-					Reason: "daily role enforcement",
+					Reason: "periodic role enforcement",
 				},
 			})
 			if err != nil {

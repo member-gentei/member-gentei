@@ -126,31 +126,38 @@ func CheckStale(
 // RefreshAllUserGuildEdges refreshes guild edges for all registered users. Returns a slice of userIDs that could not be refreshed and a count of all users.
 func RefreshAllUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig *oauth2.Config) ([]uint64, int, error) {
 	// refresh everyone's tokens
-	return refreshUserGuildEdgesWithPredicates(ctx, db, discordConfig, nil)
+	failed, _, total, err := refreshUserGuildEdgesWithPredicates(ctx, db, discordConfig, -1, nil)
+	return failed, total, err
 }
 
-// RefreshStaleUserGuildEdges
+// RefreshStaleUserGuildEdgesrefreshes guild edges for all registered users below a freshness threshold. Returns a slice of userIDs that could not be refreshed and a count of all users.
 func RefreshStaleUserGuildEdges(ctx context.Context, db *ent.Client, discordConfig *oauth2.Config, staleThreshold time.Duration) ([]uint64, int, error) {
 	staleBefore := time.Now().Add(-staleThreshold)
-	return refreshUserGuildEdgesWithPredicates(ctx, db, discordConfig, user.LastCheckLT(staleBefore))
+	failed, _, total, err := refreshUserGuildEdgesWithPredicates(ctx, db, discordConfig, -1, user.LastCheckLT(staleBefore))
+	return failed, total, err
 }
 
-// refreshUserGuildEdgesWithPredicates is the inner implementation of all stale refreshes.
-func refreshUserGuildEdgesWithPredicates(ctx context.Context, db *ent.Client, discordConfig *oauth2.Config, predicates ...predicate.User) ([]uint64, int, error) {
+// refreshUserGuildEdgesWithPredicates is the inner implementation of all stale refreshes. Returns a slice of userIDs that could not be refreshed, a slice of those that succeeded, and a count of all users.
+func refreshUserGuildEdgesWithPredicates(ctx context.Context, db *ent.Client, discordConfig *oauth2.Config, max int, predicates ...predicate.User) ([]uint64, []uint64, int, error) {
 	var (
-		userTokensInvalid      []uint64
-		totalCount             int
-		after                  uint64
-		userTokensInvalidMutex = &sync.Mutex{}
+		userTokensInvalid []uint64
+		userTokensValid   []uint64
+		totalCount        int
+		after             uint64
+		userTokensMutex   = &sync.Mutex{}
 	)
 	totalCount, err := db.User.Query().
 		Where(predicates...).
 		Count(ctx)
 	if err != nil {
-		return nil, 0, fmt.Errorf("error getting total count of stale users: %w", err)
+		return nil, nil, 0, fmt.Errorf("error getting total count of stale users: %w", err)
 	}
 	log.Info().Int("total", totalCount).Msg("current stale user count")
-	const pageSize = 400
+	const defaultPageSize = 400
+	pageSize := defaultPageSize
+	if max > 0 && max < defaultPageSize {
+		pageSize = max
+	}
 	processedCounter := &atomic.Int64{}
 	for {
 		userIDs, err := db.User.Query().
@@ -162,10 +169,10 @@ func refreshUserGuildEdgesWithPredicates(ctx context.Context, db *ent.Client, di
 			Limit(pageSize).
 			IDs(ctx)
 		if err != nil {
-			return nil, 0, fmt.Errorf("error paginating user IDs: %w", err)
+			return nil, nil, 0, fmt.Errorf("error paginating user IDs: %w", err)
 		}
 		var eGroup errgroup.Group
-		eGroup.SetLimit(100)
+		eGroup.SetLimit(10) // I set this to 100 one time and got my airbnb IP banned, so don't go that high
 		for i := range userIDs {
 			userID := userIDs[i]
 			eGroup.Go(func() error {
@@ -179,10 +186,14 @@ func refreshUserGuildEdgesWithPredicates(ctx context.Context, db *ent.Client, di
 				}
 				token, err := ts.Token()
 				if err != nil {
+					if strings.Contains(err.Error(), "429") {
+						logger.Warn().Err(err).Msg("Encountered 429 for Discord TokenSource, skipping")
+						return nil
+					}
 					logger.Warn().Err(err).Msg("error getting Discord token for user, will revoke all roles")
-					userTokensInvalidMutex.Lock()
+					userTokensMutex.Lock()
 					userTokensInvalid = append(userTokensInvalid, userID)
-					userTokensInvalidMutex.Unlock()
+					userTokensMutex.Unlock()
 					return nil
 				}
 				logger.Debug().Msg("refreshing UserGuildEdges")
@@ -194,9 +205,9 @@ func refreshUserGuildEdgesWithPredicates(ctx context.Context, db *ent.Client, di
 							logger.Warn().Err(err).Msg("Discord API server error, skipping user")
 						} else {
 							logger.Warn().Err(err).Msg("error using Discord token for user, will revoke all roles")
-							userTokensInvalidMutex.Lock()
+							userTokensMutex.Lock()
 							userTokensInvalid = append(userTokensInvalid, userID)
-							userTokensInvalidMutex.Unlock()
+							userTokensMutex.Unlock()
 						}
 						return nil
 					}
@@ -213,14 +224,18 @@ func refreshUserGuildEdgesWithPredicates(ctx context.Context, db *ent.Client, di
 						Strs("removedGuildIDs", uints64ToStrs(removed)).
 						Msg("refreshed with changes")
 				} else {
-					logger.Debug().Msg("refreshed with no changes")
+					logger.Debug().Int64("progress", processedCounter.Load()+1).Msg("refreshed with no changes")
 				}
+				userTokensMutex.Lock()
+				userTokensValid = append(userTokensValid, userID)
+				userTokensMutex.Unlock()
 				return nil
 			})
 		}
 		if err = eGroup.Wait(); err != nil {
-			return userTokensInvalid, totalCount, err
+			return userTokensInvalid, userTokensValid, totalCount, err
 		}
+		after = userIDs[len(userIDs)-1]
 		log.Info().
 			Int64("count", processedCounter.Load()).
 			Int("total", totalCount).
@@ -228,13 +243,15 @@ func refreshUserGuildEdgesWithPredicates(ctx context.Context, db *ent.Client, di
 		if len(userIDs) < pageSize {
 			break
 		}
-		after = userIDs[len(userIDs)-1]
+		if max > 0 && int(processedCounter.Load()) >= max {
+			break
+		}
 	}
 	if len(userTokensInvalid) > 0 {
 		log.Info().Int("count", len(userTokensInvalid)).
 			Msg("failed to refresh some Discord tokens")
 	}
-	return userTokensInvalid, totalCount, nil
+	return userTokensInvalid, userTokensValid, totalCount, nil
 }
 
 // Refreshes guilds for all registered users.
