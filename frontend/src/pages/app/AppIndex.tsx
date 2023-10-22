@@ -17,18 +17,18 @@ import {
   List,
   ListItem,
 } from "@mui/material";
-import { Avatar, Box, Button, Tooltip, Typography } from "@mui/joy";
+import { Avatar, Box, Button, Container, Tooltip, Typography } from "@mui/joy";
 
 function AppIndex() {
   const actions = useUser()[1];
   actions.getMe();
   return (
     <Fragment>
-      <AppBar component="nav">
+      <AppBar component="nav" position="static">
         <Toolbar disableGutters>
           <IconButton>
             <Link to="/app" className="navbar-item">
-              <img src={logo128} alt="Gentei bot logo" />
+              <img src={logo128} alt="Gentei bot logo" height={40} />
             </Link>
           </IconButton>
           <Box sx={{ flexGrow: 1 }} />
@@ -37,9 +37,11 @@ function AppIndex() {
           </Box>
         </Toolbar>
       </AppBar>
-      <main>
-        <Outlet />
-      </main>
+      <Container>
+        <Box sx={{ mt: 4 }}>
+          <Outlet />
+        </Box>
+      </Container>
       <Footer withYouTubeImage />
     </Fragment>
   );

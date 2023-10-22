@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import { Fragment } from "react";
 import { RiCheckFill, RiCloseFill } from "react-icons/ri";
 import { SiDiscord } from "react-icons/si";
 import { LoadState, ZeroTime } from "../../lib/lib";
@@ -6,6 +6,18 @@ import { GuildContainer, useGuild } from "../../stores/GuildStore";
 import { Talent, useTalents } from "../../stores/TalentStore";
 import { useUser } from "../../stores/UserStore";
 import DiscordServerImg from "../DiscordServerImg";
+import {
+  Alert,
+  AspectRatio,
+  Card,
+  CardContent,
+  Divider,
+  Grid,
+  Link,
+  Skeleton,
+  Typography,
+} from "@mui/joy";
+import WarningIcon from "@mui/icons-material/Warning";
 
 export default function DiscordServers() {
   const [userStore] = useUser();
@@ -13,21 +25,22 @@ export default function DiscordServers() {
   let uncheckedNotice = null;
   if (userStore.userLoad <= LoadState.Started) {
     serverColumns = (
-      <div className="columns is-multiline">
-        <div className="column has-text-centered">
-          <span className="spinner mx-auto"></span>
-        </div>
-      </div>
+      <Skeleton>
+        <Grid container>
+          <Grid xs={6}></Grid>
+          <Grid xs={6}></Grid>
+        </Grid>
+      </Skeleton>
     );
   } else if (userStore.derived.sortedServers.length > 0) {
     serverColumns = (
-      <div className="columns is-multiline">
+      <Grid container sx={{ mt: 2, mb: 2 }} spacing={1}>
         {userStore.derived.sortedServers.map((serverID) => (
-          <div key={`dsr-${serverID}`} className="column is-half">
+          <Grid xs={6} key={`dsr-${serverID}`}>
             <DiscordServerWithRoles id={serverID} />
-          </div>
+          </Grid>
         ))}
-      </div>
+      </Grid>
     );
   }
   if (
@@ -35,44 +48,36 @@ export default function DiscordServers() {
     !!userStore.user?.YouTube.ID
   ) {
     uncheckedNotice = (
-      <div className="columns is-centered">
-        <div className="column is-half">
-          <div className="message is-warning">
-            <div className="message-header">
-              <p>Membership check not finished</p>
-            </div>
-            <div className="message-body">
-              <p>
-                <strong>
-                  The role assignments below do not yet reflect your current
-                  YouTube memberships.
-                </strong>{" "}
-                The job scheduled to check your memberships has not finished -
-                this message will disappear after it has.
-              </p>
-            </div>
-          </div>
+      <Alert startDecorator={<WarningIcon />} color="warning">
+        <div>
+          <div>Membership check not finished</div>
+          <Typography level="body-sm" color="warning">
+            The role assignments below do not yet reflect your current YouTube
+            memberships. The job scheduled to check your memberships has not
+            finished - this message will disappear after it has.
+          </Typography>
         </div>
-      </div>
+      </Alert>
     );
   }
   return (
-    <div className="container">
-      <h1 className="title is-2">Servers and Roles</h1>
-      <p className="mb-4">
+    <Fragment>
+      <Typography level="h2">Servers and Roles</Typography>
+      <Typography>
         Servers that you've joined that participate in Gentei's members-only
         role management are listed below.
-      </p>
+      </Typography>
+      <p className="mb-4"></p>
       {uncheckedNotice}
       {serverColumns}
-      <p>
+      <Typography>
         If a server you've joined is not shown above <strong>and</strong>{" "}
         <code>/gentei</code> is a slash command on that server, please wait a
         few minutes for the bot to refresh server memberships. Discord can take
         a few minutes to make server information available to integrations like
         Gentei.
-      </p>
-    </div>
+      </Typography>
+    </Fragment>
   );
 }
 
@@ -80,7 +85,7 @@ interface DiscordServerRoleProps {
   id: string;
 }
 
-function DiscordServerWithRoles(props: DiscordServerRoleProps) {
+export function DiscordServerWithRoles(props: DiscordServerRoleProps) {
   return (
     <GuildContainer isGlobal scope={props.id}>
       <DiscordServerWithRolesInner {...props} />
@@ -105,27 +110,31 @@ function DiscordServerWithRolesInner({ id }: DiscordServerRoleProps) {
       const talentID = k;
       const meta = (userStore.user?.Memberships || {})[k];
       return (
-        <RoleMembership
-          key={`${id}-${talentID}`}
-          talent={talentStore.talentsByID[talentID]}
-          roleName={v!.Name}
-          verifyTime={meta?.Failed ? 0 : meta?.LastVerified}
-        />
+        <Grid>
+          <RoleMembership
+            key={`${id}-${talentID}`}
+            talent={talentStore.talentsByID[talentID]}
+            roleName={v!.Name}
+            verifyTime={meta?.Failed ? 0 : meta?.LastVerified}
+          />
+        </Grid>
       );
-    },
+    }
   );
   if (memberships.length === 0) {
     membershipNode = (
-      <p className="content">
+      <Typography>
         This server has not configured memberships yet. Please be discreet until
         server moderation announces something!
-      </p>
+      </Typography>
     );
   } else {
     membershipNode = (
-      <div className="content">
-        <span className="is-size-6 has-text-weight-bold">Discord roles</span>
-        <div className="is-flex is-flex-wrap-wrap">{memberships}</div>
+      <div>
+        {/* <Typography sx={{ fontWeight: 600 }}>Discord roles</Typography> */}
+        <Grid container spacing={1}>
+          {memberships}
+        </Grid>
       </div>
     );
   }
@@ -135,41 +144,20 @@ function DiscordServerWithRolesInner({ id }: DiscordServerRoleProps) {
       <DiscordServerImg
         guildID={guild.ID}
         imgHash={guild.Icon}
-        size={128}
         className="is-rounded"
       />
     );
   } else {
-    iconNode = <SiDiscord size={64} />;
+    iconNode = <SiDiscord size={48} />;
   }
   return (
-    <div className="card">
-      <div className="card-content">
-        <div className="media">
-          <figure className="media-left">
-            <p className="image is-64x64">
-              <a href={serverURL} title="Link to Discord server">
-                {iconNode}
-              </a>
-            </p>
-          </figure>
-          <div className="media-content">
-            <div className="content">
-              <p>
-                <a
-                  className="is-size-5 has-text-weight-bold"
-                  href={serverURL}
-                  title="Link to Discord server"
-                >
-                  {guild.Name}
-                </a>
-              </p>
-            </div>
-            {membershipNode}
-          </div>
-        </div>
-      </div>
-    </div>
+    <Card orientation="horizontal">
+      {iconNode}
+      <CardContent>
+        <Link href={serverURL}>{guild.Name}</Link>
+        {membershipNode}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -182,54 +170,39 @@ interface RoleMembershipProps {
 function RoleMembership({ talent, roleName, verifyTime }: RoleMembershipProps) {
   if (talent === undefined) {
     return (
-      <div className="card m-2">
-        <div className="card-content has-text-centered">
-          <span className="spinner mx-auto"></span>
-        </div>
-      </div>
+      <Skeleton>
+        <Card>
+          <Skeleton>lorem ipsum lmao</Skeleton>
+        </Card>
+      </Skeleton>
     );
   }
   const channelURL = `https://youtube.com/channel/${talent.ID}`;
-  let footerItem: ReactNode;
+  let endDecorator = null;
+  let tooltip = null;
   if (!!verifyTime) {
     const verifyTs = new Date(verifyTime! * 1000);
     const verifyTimeStr = `${verifyTs.toDateString()} ${verifyTs.toTimeString()}`;
-    const tooltip = `Last verified at ${verifyTimeStr}`;
-    footerItem = (
-      <div className="card-footer-item has-background-success-light">
-        <span className="icon-text">
-          <span className="discord-role">@{roleName}</span>
-          <span
-            className="icon has-tooltip-arrow has-text-success-dark"
-            data-tooltip={tooltip}
-          >
-            <RiCheckFill color="green" />
-          </span>
-        </span>
-      </div>
-    );
+    tooltip = `Last verified at ${verifyTimeStr}`;
+    endDecorator = <RiCheckFill color="green" />;
   } else {
-    footerItem = (
-      <div className="card-footer-item">
-        <span className="icon-text">
-          <span className="discord-role">@{roleName}</span>
-          <span className="icon">
-            <RiCloseFill color="red" />
-          </span>
-        </span>
-      </div>
-    );
+    endDecorator = <RiCloseFill color="red" />;
   }
   return (
-    <div className="card m-2">
-      <div className="card-image">
-        <a href={channelURL} title={`YouTube channel for ${talent.Name}`}>
-          <figure className="image is-128x128">
-            <img className="is-rounded" src={talent.Thumbnail} alt="" />
-          </figure>
-        </a>
-      </div>
-      <div className="card-footer">{footerItem}</div>
-    </div>
+    <Card sx={{ alignItems: "center", textAlign: "center" }}>
+      <a href={channelURL} title={`YouTube channel for ${talent.Name}`}>
+        <AspectRatio ratio="1" sx={{ width: 128 }}>
+          <img
+            className="rounded"
+            src={talent.Thumbnail}
+            alt={`Channel icon for ${talent.Name}`}
+          />
+        </AspectRatio>
+      </a>
+      <Divider />
+      <Typography endDecorator={endDecorator}>
+        <span className="discord-mention">@{roleName}</span>
+      </Typography>
+    </Card>
   );
 }

@@ -1,3 +1,5 @@
+import { Avatar } from "@mui/joy";
+
 export interface DiscordServerImgProps {
   guildID: number | string;
   imgHash: string;
@@ -27,9 +29,9 @@ export default function DiscordServerImg({
     };
   }
   return (
-    <img
-      className={className}
+    <Avatar
       src={iconURL}
+      size="lg"
       alt="Discord server icon"
       onMouseOver={onHover}
       onMouseOut={offHover}
