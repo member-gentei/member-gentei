@@ -83,6 +83,17 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 			b.handleManage(ctx, i)
 		}
 	})
+	// bind large guild member handler first
+	b.session.AddHandler(func(s *discordgo.Session, gmc *discordgo.GuildMembersChunk) {
+		logger := log.With().
+			Str("guildID", gmc.GuildID).
+			Logger()
+		logger.Debug().Int("chunkIndex", gmc.ChunkIndex).Int("chunkCount", gmc.ChunkCount).Send()
+		if gmc.ChunkIndex == gmc.ChunkCount-1 {
+			logger.Info().Msg("got all guild member chunks")
+			b.guildMemberLoadMutexes[gmc.GuildID].Unlock()
+		}
+	})
 	// guild metadata updates
 	b.session.AddHandler(func(s *discordgo.Session, gc *discordgo.GuildCreate) {
 		logger := log.With().
@@ -158,16 +169,6 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 		err = b.db.Guild.DeleteOneID(guildID).Exec(context.Background())
 		if err != nil && !ent.IsNotFound(err) {
 			logger.Err(err).Msg("error deleting Guild at departure")
-		}
-	})
-	b.session.AddHandler(func(s *discordgo.Session, gmc *discordgo.GuildMembersChunk) {
-		logger := log.With().
-			Str("guildID", gmc.GuildID).
-			Logger()
-		logger.Debug().Int("chunkIndex", gmc.ChunkIndex).Int("chunkCount", gmc.ChunkCount).Send()
-		if gmc.ChunkIndex == gmc.ChunkCount-1 {
-			logger.Info().Msg("got all guild member chunks")
-			b.guildMemberLoadMutexes[gmc.GuildID].Unlock()
 		}
 	})
 	// register intents (new for v8 gateway)
