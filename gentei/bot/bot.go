@@ -89,8 +89,11 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 			Str("guildID", gmc.GuildID).
 			Logger()
 		logger.Debug().Int("chunkIndex", gmc.ChunkIndex).Int("chunkCount", gmc.ChunkCount).Send()
+		if gmc.ChunkIndex == 0 {
+			logger.Info().Int("total", gmc.ChunkCount).Msg("getting guild member chunks")
+		}
 		if gmc.ChunkIndex == gmc.ChunkCount-1 {
-			logger.Info().Msg("got all guild member chunks")
+			logger.Info().Int("total", gmc.ChunkCount).Msg("got all guild member chunks")
 			b.guildMemberLoadMutexes[gmc.GuildID].Unlock()
 		}
 	})
