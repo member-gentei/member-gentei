@@ -43,7 +43,7 @@ export default function UserDashboard() {
     );
   }
   return (
-    <Grid container rowSpacing={1}>
+    <Grid container rowSpacing={2}>
       <Grid xs={12}>
         {serversOrLoginNode}
         {loginRequiredOverlay}

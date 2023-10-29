@@ -20,3 +20,12 @@ code {
   background-color: rgba(88, 101, 242, 0.3);
   color: #505cdc;
 }
+
+.developed-with-youtube > img {
+  max-height: 13em;
+}
+
+.footer {
+  background-color: #fafafa;
+  padding: 3rem 1.5rem 6rem;
+}
