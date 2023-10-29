@@ -30,6 +30,7 @@ export default function DiscordServerImg({
   }
   return (
     <Avatar
+      sx={{ height: size, width: size }}
       src={iconURL}
       size="lg"
       alt="Discord server icon"

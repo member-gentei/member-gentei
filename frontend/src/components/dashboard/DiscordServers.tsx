@@ -110,9 +110,8 @@ function DiscordServerWithRolesInner({ id }: DiscordServerRoleProps) {
       const talentID = k;
       const meta = (userStore.user?.Memberships || {})[k];
       return (
-        <Grid>
+        <Grid xs={12} md={6} key={`${id}-${talentID}`}>
           <RoleMembership
-            key={`${id}-${talentID}`}
             talent={talentStore.talentsByID[talentID]}
             roleName={v!.Name}
             verifyTime={meta?.Failed ? 0 : meta?.LastVerified}
@@ -131,7 +130,6 @@ function DiscordServerWithRolesInner({ id }: DiscordServerRoleProps) {
   } else {
     membershipNode = (
       <div>
-        {/* <Typography sx={{ fontWeight: 600 }}>Discord roles</Typography> */}
         <Grid container spacing={1}>
           {memberships}
         </Grid>
@@ -144,6 +142,7 @@ function DiscordServerWithRolesInner({ id }: DiscordServerRoleProps) {
       <DiscordServerImg
         guildID={guild.ID}
         imgHash={guild.Icon}
+        size={48}
         className="is-rounded"
       />
     );
@@ -179,11 +178,10 @@ function RoleMembership({ talent, roleName, verifyTime }: RoleMembershipProps) {
   }
   const channelURL = `https://youtube.com/channel/${talent.ID}`;
   let endDecorator = null;
-  let tooltip = null;
   if (!!verifyTime) {
-    const verifyTs = new Date(verifyTime! * 1000);
-    const verifyTimeStr = `${verifyTs.toDateString()} ${verifyTs.toTimeString()}`;
-    tooltip = `Last verified at ${verifyTimeStr}`;
+    // const verifyTs = new Date(verifyTime! * 1000);
+    // const verifyTimeStr = `${verifyTs.toDateString()} ${verifyTs.toTimeString()}`;
+    // tooltip = `Last verified at ${verifyTimeStr}`;
     endDecorator = <RiCheckFill color="green" />;
   } else {
     endDecorator = <RiCloseFill color="red" />;

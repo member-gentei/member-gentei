@@ -21,18 +21,16 @@ function Footer({ withYouTubeImage }: FooterProps) {
     <footer className="footer pt-6 pb-4">
       <Container sx={{ textAlign: "center" }}>
         <Typography level="body-sm">
-          <div>
-            <a href="https://github.com/member-gentei/member-gentei">
-              <RiGithubFill />
-            </a>
-            <br />
-            <a href="/tos">Terms of Service</a> |{" "}
-            <a href="/privacy">Privacy Policy</a> | Gentei / 限定 <br />
-            Some graphics courtesy of{" "}
-            <a href="https://www.irasutoya.com">いらすとや</a>
-            {ytElement}
-          </div>
+          <a href="https://github.com/member-gentei/member-gentei">
+            <RiGithubFill />
+          </a>
+          <br />
+          <a href="/tos">Terms of Service</a> |{" "}
+          <a href="/privacy">Privacy Policy</a> | Gentei / 限定 <br />
+          Some graphics courtesy of{" "}
+          <a href="https://www.irasutoya.com">いらすとや</a>
         </Typography>
+        {ytElement}
       </Container>
     </footer>
   );
