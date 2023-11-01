@@ -131,7 +131,7 @@ function AdminServerSnippetInner({ guildID }: AdminServerSnippetProps) {
       <CardActions buttonFlex="0">
         <Button
           component="a"
-          href={`server/${guild.ID}`}
+          href={`/app/server/${guild.ID}`}
           size="sm"
           variant="soft"
         >

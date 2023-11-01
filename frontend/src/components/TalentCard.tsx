@@ -1,7 +1,16 @@
 import { IoPersonOutline } from "react-icons/io5";
 import { LoadState } from "../lib/lib";
 import { useTalents } from "../stores/TalentStore";
-import styles from "./TalentCard.module.css";
+import {
+  AspectRatio,
+  Button,
+  Card,
+  CardActions,
+  CardContent,
+  Divider,
+  Stack,
+  Typography,
+} from "@mui/joy";
 
 interface TalentCardProps {
   channelID: string;
@@ -21,33 +30,25 @@ export default function TalentCard({
     // TODO: spinners everywhere
   }
   const channelURL = `https://www.youtube.com/channel/${channelID}`;
-  let footerNode = null;
+  let cardActions = null;
   if (onDelete !== undefined) {
-    footerNode = (
-      <footer className="card-footer">
-        <button
-          className="card-footer-item button is-danger is-light"
-          onClick={onDelete}
-        >
+    cardActions = (
+      <CardActions>
+        <Button color="danger" onClick={onDelete}>
           Remove
-        </button>
-      </footer>
+        </Button>
+      </CardActions>
     );
   }
   const talent = store.talentsByID[channelID];
-  const cardClassName = `card mx-auto my-1 ${(cardClassNames || []).join(
-    " ",
-  )} ${styles.talentCard}`;
   if (!talent) {
     return (
-      <div className={cardClassName}>
-        <div className="card-image">
-          <figure className="image is-128x128 mx-auto">
-            <IoPersonOutline size={128} />
-          </figure>
-        </div>
-        <div className="card-content is-clipped">
-          <div className="content has-text-centered">
+      <Card sx={{ textAlign: "center" }}>
+        <AspectRatio ratio="1/1">
+          <IoPersonOutline size={128} />
+        </AspectRatio>
+        <CardContent>
+          <Stack spacing={1}>
             <em>
               <a href={channelURL}>
                 new channel <br />{" "}
@@ -56,50 +57,44 @@ export default function TalentCard({
                 </span>
               </a>
             </em>
-          </div>
-          <div className="content">
-            <hr />
-            New channels are processed after submission.
-          </div>
+            <Divider />
+            <Typography>
+              New channels are processed after submission.
+            </Typography>
+          </Stack>
+        </CardContent>
+        <div className="card-content is-clipped">
+          <div className="content has-text-centered"></div>
+          <div className="content"></div>
         </div>
-        {footerNode}
-      </div>
+        {cardActions}
+      </Card>
     );
   }
   let talentThumbnailNode;
   if (talent.Thumbnail !== "") {
     talentThumbnailNode = (
-      <img
-        className="is-rounded"
-        src={talent.Thumbnail}
-        alt="channel thumbnail"
-      />
+      <img src={talent.Thumbnail} alt="channel thumbnail" />
     );
   } else {
     talentThumbnailNode = <IoPersonOutline size={128} />;
   }
   return (
-    <div className={cardClassName}>
-      <div className="card-image">
-        <figure className="image is-128x128 mx-auto">
-          {talentThumbnailNode}
-        </figure>
-      </div>
-      <div className="card-content is-clipped">
-        <div className="content has-text-centered">
-          <strong>
-            <a
-              href={channelURL}
-              target="_blank"
-              rel="noreferrer"
-              title="Open channel in a new tab"
-            >
-              {talent.Name}
-            </a>
-          </strong>
-        </div>
-      </div>
-      {footerNode}
-    </div>
+    <Card sx={{ textAlign: "center" }}>
+      <AspectRatio ratio="1/1">{talentThumbnailNode}</AspectRatio>
+      <CardContent>
+        <strong>
+          <a
+            href={channelURL}
+            target="_blank"
+            rel="noreferrer"
+            title="Open channel in a new tab"
+          >
+            {talent.Name}
+          </a>
+        </strong>
+      </CardContent>
+      {cardActions}
+    </Card>
   );
 }

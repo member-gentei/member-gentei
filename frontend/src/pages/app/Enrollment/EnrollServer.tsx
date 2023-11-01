@@ -1,8 +1,9 @@
-import { Fragment, ReactNode } from "react";
+import { ReactNode } from "react";
 import { SiDiscord } from "react-icons/si";
 import { useLocation } from "react-router-dom";
 import { useDiscordBotURL, useOAuthState } from "../../../components/LoginURL";
 import { useEnroll } from "../../../stores/EnrollStore";
+import { Box, Button, Stack, Typography } from "@mui/joy";
 
 export default function EnrollServer() {
   const botURL = useDiscordBotURL();
@@ -33,28 +34,31 @@ export default function EnrollServer() {
     actions.verifySubmit(search, discordState);
   } else {
     enrollTop = (
-      <strong>
+      <Typography fontWeight="lg">
         After adding the bot, you will be redirected back to this page to prove
         that you, specifically, can manage that server!
-      </strong>
+      </Typography>
     );
   }
   return (
-    <Fragment>
-      <h2 className="title is-4">Enroll Server</h2>
-      <p className="content">
-        Enroll your server with <code>gentei-bouncer#9835</code> to enable
-        membership management.
-      </p>
-      <div className="content has-text-centered">
-        <div className="mb-2">{enrollTop}</div>
-        <a className="button is-primary spin-hover" href={botURL}>
-          <span className="icon-text">Invite gentei-bouncer#9835</span>
-          <span className="icon spin-me slow">
-            <SiDiscord />
-          </span>
-        </a>
-      </div>
-    </Fragment>
+    <Stack spacing={2}>
+      <Typography level="h3">Enroll Server</Typography>
+      <Typography>
+        Enroll your server by inviting <code>gentei-bouncer#9835</code> to
+        enable membership management.
+      </Typography>
+      <Box sx={{ textAlign: "center" }}>
+        <div>{enrollTop}</div>
+        <Button
+          component="a"
+          href={botURL}
+          className="spin-hover"
+          sx={{ mt: 1, mb: 1 }}
+          endDecorator={<SiDiscord className="spin-me" />}
+        >
+          Invite gentei-bouncer#9835
+        </Button>
+      </Box>
+    </Stack>
   );
 }

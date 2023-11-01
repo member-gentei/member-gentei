@@ -1,11 +1,12 @@
 import classNames from "classnames";
-import React, { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { SiDiscord } from "react-icons/si";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import TalentCard from "../../../components/TalentCard";
 import YouTubeChannelSelector from "../../../components/YouTubeChannelSelector";
 import { LoadState } from "../../../lib/lib";
 import { useGuild } from "../../../stores/GuildStore";
+import { Grid, Stack, Typography } from "@mui/joy";
 
 export default function SelectTalents() {
   const [search, setSearch] = useSearchParams();
@@ -57,7 +58,7 @@ function SelectTalentsInner() {
   const [search, setSearch] = useSearchParams();
   const [store, actions] = useGuild();
   const [selectedTalentIDs, setSelectedTalentIDs] = useState<string[]>(
-    search.getAll(talentGetParam),
+    search.getAll(talentGetParam)
   );
   useEffect(() => {
     if (store.saveTalentsState === LoadState.Succeeded) {
@@ -72,21 +73,22 @@ function SelectTalentsInner() {
   }, [search, selectedTalentIDs]);
   const talentCards = selectedTalentIDs.map((channelID) => {
     return (
-      <TalentCard
-        key={`tc-${channelID}`}
-        channelID={channelID}
-        error={!!store.guildError?.talents?.[channelID]}
-        onDelete={() => {
-          // recreate param
-          search.delete(talentGetParam);
-          selectedTalentIDs.forEach((v) => {
-            if (v !== channelID) {
-              search.append(talentGetParam, v);
-            }
-          });
-          setSearch(search);
-        }}
-      />
+      <Grid key={`tc-${channelID}`} xs={12} sm={6} md={3}>
+        <TalentCard
+          channelID={channelID}
+          error={!!store.guildError?.talents?.[channelID]}
+          onDelete={() => {
+            // recreate param
+            search.delete(talentGetParam);
+            selectedTalentIDs.forEach((v) => {
+              if (v !== channelID) {
+                search.append(talentGetParam, v);
+              }
+            });
+            setSearch(search);
+          }}
+        />
+      </Grid>
     );
   });
   let saveDisabled =
@@ -113,7 +115,7 @@ function SelectTalentsInner() {
             <li key={`${talentID}-error`}>
               <span className="has-text-weight-bold">{talentID}</span>: {msg}
             </li>
-          ),
+          )
         );
         errorNode = (
           <div className="message is-danger">
@@ -129,13 +131,13 @@ function SelectTalentsInner() {
     }
   }
   return (
-    <Fragment>
-      <h2 className="title is-4">Select Talent(s)</h2>
-      <p className="content">
+    <Stack spacing={2}>
+      <Typography level="h3">Select Talent(s)</Typography>
+      <Typography>
         Please select or add YouTube channels whose memberships should be
         monitored for the <strong>{store.guild?.Name}</strong> server.
-      </p>
-      <div className="content">
+      </Typography>
+      <div>
         <YouTubeChannelSelector
           selectedChannels={selectedTalentIDs}
           addChannel={(channelID) => {
@@ -146,9 +148,9 @@ function SelectTalentsInner() {
           }}
         />
       </div>
-      <div className="content is-flex is-flex-wrap-wrap is-justify-content-center is-align-items-center">
+      <Grid container spacing={2}>
         {talentCards}
-      </div>
+      </Grid>
       <div className="content">
         <div className="columns is-centered">
           <div className="column is-half">{errorNode}</div>
@@ -168,7 +170,7 @@ function SelectTalentsInner() {
           </button>
         </div>
       </div>
-    </Fragment>
+    </Stack>
   );
 }
 
@@ -176,7 +178,7 @@ function errorTalentsRemoved(
   errors: {
     [key: string]: string | undefined;
   },
-  selectedTalentIDs: string[],
+  selectedTalentIDs: string[]
 ): boolean {
   for (const talentID of selectedTalentIDs) {
     if (errors[talentID] !== undefined) {
