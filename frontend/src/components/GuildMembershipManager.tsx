@@ -3,6 +3,7 @@ import { RiCheckboxCircleFill, RiCloseCircleLine } from "react-icons/ri";
 import { useGuild } from "../stores/GuildStore";
 import styles from "./GuildMembershipManager.module.css";
 import TalentCard from "./TalentCard";
+import { Card, Grid, Table, Typography } from "@mui/joy";
 
 interface GuildMembershipManagerProps {
   talentID: string;
@@ -20,31 +21,27 @@ export default function GuildMembershipManager({
   if (roleMapping === undefined) {
     statusNode = (
       <Fragment>
-        <span className="icon-text">
-          <span className="icon">
-            <RiCloseCircleLine color="red" size={24} />
-          </span>
-          <span>
-            Not yet configured <br />
-            Please run{" "}
-            <code>
-              /gentei manage map youtube-channel-id:{talentID} role:@role
-            </code>
-          </span>
-        </span>
+        <Typography
+          startDecorator={<RiCloseCircleLine color="red" size={24} />}
+        >
+          Not yet configured <br />
+        </Typography>
+        <Typography level="body-xs">
+          Please run{" "}
+          <code>
+            /gentei manage map youtube-channel-id:{talentID} role:@role
+          </code>
+        </Typography>
       </Fragment>
     );
     roleNode = <code>-</code>;
   } else {
     statusNode = (
-      <Fragment>
-        <span className="icon-text">
-          <span className="icon">
-            <RiCheckboxCircleFill color="green" size={24} />
-          </span>
-          <span>Exclusive role management in effect</span>
-        </span>
-      </Fragment>
+      <Typography
+        startDecorator={<RiCheckboxCircleFill color="green" size={24} />}
+      >
+        Exclusive role management in effect
+      </Typography>
     );
     roleNode = (
       <Fragment>
@@ -54,13 +51,18 @@ export default function GuildMembershipManager({
     );
   }
   return (
-    <div className="columns">
-      <div className="column is-one-fifth">
+    <Grid container spacing={4}>
+      <Grid xs={2}>
         <TalentCard cardClassNames={[styles.height200]} channelID={talentID} />
-      </div>
-      <div className="column">
-        <div className={`box m-1 ${styles.scrolly}`}>
-          <table className="table is-narrow" style={{ width: "auto" }}>
+      </Grid>
+      <Grid xs>
+        <Card>
+          <Table
+            sx={{
+              "& th": { width: "10rem" },
+              overflow: "hidden",
+            }}
+          >
             <tbody>
               <tr>
                 <th>Status</th>
@@ -70,32 +72,32 @@ export default function GuildMembershipManager({
                 <th>Discord Role</th>
                 <td>
                   {roleNode}
-                  <span className="help">
+                  <Typography level="body-xs">
                     To change, use{" "}
                     <code>
                       /gentei manage map youtube-channel-id:{talentID}{" "}
                       role:@role
                     </code>
                     .
-                  </span>
+                  </Typography>
                 </td>
               </tr>
               <tr>
                 <th>Membership count</th>
                 <td>
                   {roleMapping ? <span>? members</span> : <code>-</code>}
-                  <span className="help">
+                  <Typography level="body-xs">
                     Members in this server with the role. Count refreshed daily.
-                  </span>
+                  </Typography>
                 </td>
               </tr>
             </tbody>
-          </table>
+          </Table>
           <div className="message is-info">
             <div className="message-body">Customization coming soon!</div>
           </div>
-        </div>
-      </div>
-    </div>
+        </Card>
+      </Grid>
+    </Grid>
   );
 }

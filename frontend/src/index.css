@@ -21,6 +21,11 @@ code {
   color: #505cdc;
 }
 
+.discord-role {
+  color: rgb(80, 92, 220);
+  background: rgba(88, 101, 242, 0.15);
+}
+
 .developed-with-youtube > img {
   max-height: 13em;
 }
