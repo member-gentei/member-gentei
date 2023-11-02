@@ -107,7 +107,10 @@ function AdminServerSnippetInner({ guildID }: AdminServerSnippetProps) {
     <Card>
       <CardContent orientation="horizontal">
         {iconNode}
-        <Table borderAxis="bothBetween">
+        <Table
+          borderAxis="bothBetween"
+          sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
+        >
           <tbody>
             <tr>
               <th style={{ width: "10rem" }}>Name</th>
