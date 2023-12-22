@@ -1,6 +1,6 @@
 module github.com/member-gentei/member-gentei/gentei
 
-go 1.20
+go 1.21
 
 require (
 	cloud.google.com/go/pubsub v1.33.0
