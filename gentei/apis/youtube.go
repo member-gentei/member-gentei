@@ -8,6 +8,7 @@ import (
 	"io"
 	irand "math/rand"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -99,11 +100,16 @@ func refreshingTokenSourceNotify(ctx context.Context, db *ent.Client, userID uin
 }
 
 func scavengeRetrieveError(err error) (*oauth2.RetrieveError, bool) {
+	// unwrap all *url.Error
+	if urlErr, ok := err.(*url.Error); ok {
+		err = errors.Unwrap(urlErr)
+		log.Debug().Type("errType", err).Msg("unwrapped *url.Error")
+	}
 	if rErr, ok := err.(*oauth2.RetrieveError); ok {
 		return rErr, ok
 	}
 	errString := err.Error()
-	log.Debug().Str("errString", errString).Msg("oauth2.RetrieveError?")
+	log.Debug().Str("errString", errString).Type("errType", err).Msg("oauth2.RetrieveError?")
 	if strings.Contains(errString, "oauth2: cannot fetch token: ") {
 		rIdx := strings.Index(errString, "\nResponse: ")
 		stringBody := errString[rIdx+len("\nResponse: "):]
