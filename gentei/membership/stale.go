@@ -235,6 +235,10 @@ func refreshUserGuildEdgesWithPredicates(ctx context.Context, db *ent.Client, di
 		if err = eGroup.Wait(); err != nil {
 			return userTokensInvalid, userTokensValid, totalCount, err
 		}
+		if len(userIDs) == 0 {
+			log.Debug().Msg("no users to refresh, breaking out early")
+			break
+		}
 		after = userIDs[len(userIDs)-1]
 		log.Info().
 			Int64("count", processedCounter.Load()).
