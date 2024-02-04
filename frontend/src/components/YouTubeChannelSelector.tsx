@@ -1,8 +1,16 @@
 import { Autocomplete, TextField } from "@mui/material";
-import classNames from "classnames";
 import React, { useEffect, useState } from "react";
 import { LoadState } from "../lib/lib";
 import { useTalents } from "../stores/TalentStore";
+import {
+  Select,
+  Option,
+  Grid,
+  Input,
+  FormHelperText,
+  FormControl,
+  Button,
+} from "@mui/joy";
 
 interface YouTubeChannelSelectorProps {
   selectedChannels: string[];
@@ -12,7 +20,9 @@ interface YouTubeChannelSelectorProps {
 const initialHelpText =
   "If you can't find a talent's YouTube channel by name, you can add their channel by URL.";
 
-const reYouTubeChannelID = "https://(www.)?youtube.com/channel/(.{24})";
+const reYouTubeChannelID = new RegExp(
+  "^https://(www.)?youtube.com/channel/(UC.{22})$",
+);
 
 export default function YouTubeChannelSelector({
   addChannel,
@@ -54,54 +64,42 @@ export default function YouTubeChannelSelector({
   }
   return (
     <form onSubmit={onSubmit}>
-      <div className="field is-horizontal">
-        <div className="field-label is-normal">
-          <label className="label">Channel</label>
-        </div>
-        <div className="field-body">
-          <div className="field has-addons">
-            <div className="control">
-              <span
-                className={classNames("select", { "is-success": !!inputValid })}
-              >
-                <select
-                  name="channel-type"
-                  value={channelInputType}
-                  onChange={(e) => {
-                    setChannelInputType(
-                      e.target.value.toLowerCase() as "name" | "url",
-                    );
-                  }}
-                >
-                  <option value="name">Name</option>
-                  <option value="url">URL</option>
-                </select>
-              </span>
-            </div>
-            {channelInputType === "name" ? (
-              <ChannelNameSelector addChannel={addChannel} />
-            ) : (
-              <ChannelURLEntryControls
-                valid={inputValid}
-                setValid={setInputValid}
-                channelURL={channelURL}
-                setChannelURL={setChannelURL}
-              />
-            )}
-          </div>
-        </div>
-      </div>
-      {channelInputType === "url" ? (
-        <div className="field">
-          <div className="control has-text-centered">
-            <input
-              className="button is-primary"
-              type="submit"
-              value="Add channel"
-              disabled={!inputValid}
+      <Grid container sx={{ flexGrow: 1 }}>
+        <Grid sm={12} md="auto" lg="auto">
+          <Select
+            defaultValue="name"
+            onChange={(_, value) => {
+              setChannelInputType(
+                (value || "").toLowerCase() as "name" | "url",
+              );
+            }}
+          >
+            <Option value="name">Name</Option>
+            <Option value="url">URL</Option>
+          </Select>
+        </Grid>
+        <Grid sm={12} md lg>
+          {channelInputType === "name" ? (
+            <ChannelNameSelector addChannel={addChannel} />
+          ) : (
+            <ChannelURLEntryControls
+              valid={inputValid}
+              setValid={setInputValid}
+              channelURL={channelURL}
+              setChannelURL={setChannelURL}
             />
-          </div>
-        </div>
+          )}
+        </Grid>
+      </Grid>
+      {channelInputType === "url" ? (
+        <Grid container sx={{ mt: 1 }}>
+          <Grid sm={0} md={2} lg={1}></Grid>
+          <Grid sm md lg sx={{ textAlign: "center" }}>
+            <Button type="submit" size="lg" disabled={!inputValid}>
+              Add channel
+            </Button>
+          </Grid>
+        </Grid>
       ) : null}
     </form>
   );
@@ -133,7 +131,7 @@ function ChannelNameSelector({ addChannel }: ChannelNameSelectorProps) {
     }),
   );
   return (
-    <div className="control is-expanded">
+    <FormControl>
       <Autocomplete
         disablePortal
         options={talentsByName}
@@ -142,8 +140,8 @@ function ChannelNameSelector({ addChannel }: ChannelNameSelectorProps) {
         onChange={(_, value) => setSelectedChannel(value)}
         renderInput={(params) => <TextField {...params} label="Channel name" />}
       />
-      <p className="help">{initialHelpText}</p>
-    </div>
+      <FormHelperText>{initialHelpText}</FormHelperText>
+    </FormControl>
   );
 }
 
@@ -161,6 +159,7 @@ function ChannelURLEntryControls({
   setChannelURL,
 }: ChannelURLEntryProps) {
   const [helpText, setHelpText] = useState(initialHelpText);
+  const [neverTouched, setNeverTouched] = useState(true);
   useEffect(() => {
     if (channelURL === "") {
       setValid(undefined);
@@ -168,20 +167,20 @@ function ChannelURLEntryControls({
     }
   }, [channelURL, setValid, setHelpText]);
   return (
-    <div className="control is-expanded">
-      <input
+    <FormControl>
+      <Input
         type="url"
-        className={classNames("input", {
-          "is-danger": valid === undefined ? false : !valid,
-          "is-success": valid,
-        })}
+        error={!valid && !neverTouched}
         placeholder="https://www.youtube.com/channel/UC9ruVYPv7yJmV0Rh0NKA-Lw"
         value={channelURL}
-        pattern={reYouTubeChannelID}
         onChange={(e) => {
-          if (!e.target.validity.valid) {
+          setNeverTouched(false);
+          const valid = e.target.value.match(reYouTubeChannelID);
+          if (!valid) {
             setValid(false);
-            setHelpText("Please input a YouTube channel URL.");
+            setHelpText(
+              "Please input a YouTube channel URL. See the placeholder text for an example.",
+            );
           } else {
             setValid(true);
             setHelpText("");
@@ -190,14 +189,7 @@ function ChannelURLEntryControls({
         }}
         required
       />
-      <p
-        className={classNames("help", {
-          "is-danger": valid === undefined ? false : !valid,
-          "is-success": valid,
-        })}
-      >
-        {helpText}
-      </p>
-    </div>
+      <FormHelperText>{helpText}</FormHelperText>
+    </FormControl>
   );
 }

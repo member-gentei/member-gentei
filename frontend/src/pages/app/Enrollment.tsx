@@ -1,8 +1,9 @@
 import { Step, StepLabel, Stepper } from "@mui/material";
-import { Link, useLocation } from "react-router-dom";
+import { Link as RRDLink, useLocation } from "react-router-dom";
 import { GuildContainer } from "../../stores/GuildStore";
 import EnrollServer from "./Enrollment/EnrollServer";
 import SelectTalents from "./Enrollment/SelectTalents";
+import { Box, Breadcrumbs, Link, Stack, Typography } from "@mui/joy";
 
 enum StepEnum {
   ENROLL_SERVER,
@@ -14,19 +15,15 @@ export default function Enrollment() {
   const location = useLocation();
   const currentStep = evalStep(new URLSearchParams(location.search));
   return (
-    <section className="section">
-      <div className="container">
-        <nav className="breadcrumb">
-          <ul>
-            <li>
-              <Link to="/app">Home</Link>
-            </li>
-            <li className="is-active">
-              <Link to="#">Server Enrollment</Link>
-            </li>
-          </ul>
-        </nav>
-        <h1 className="title">Server Enrollment</h1>
+    <Box component="section" sx={{ mb: 2 }}>
+      <Stack spacing={2}>
+        <Breadcrumbs>
+          <RRDLink to="/app">
+            <Link>Home</Link>
+          </RRDLink>
+          <Typography>Server Enrollment</Typography>
+        </Breadcrumbs>
+        <Typography level="h2">Server Enrollment</Typography>
         <Stepper activeStep={currentStep}>
           <Step>
             <StepLabel>Invite the bot</StepLabel>
@@ -40,8 +37,8 @@ export default function Enrollment() {
         </Stepper>
         <hr />
         <EnrollmentStep current={currentStep} />
-      </div>
-    </section>
+      </Stack>
+    </Box>
   );
 }
 
@@ -59,9 +56,7 @@ function EnrollmentStep({ current }: { current: StepEnum }) {
   }
   return (
     <GuildContainer>
-      <div className="mt-4">
-        <Component />
-      </div>
+      <Component />
     </GuildContainer>
   );
 }

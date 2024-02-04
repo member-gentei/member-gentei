@@ -1,5 +1,5 @@
 import classNames from "classnames";
-import React, { Fragment, useState } from "react";
+import React, { Fragment, useRef, useState } from "react";
 import { RiArrowDropDownLine } from "react-icons/ri";
 import { SiDiscord } from "react-icons/si";
 import { Link, Outlet } from "react-router-dom";
@@ -8,62 +8,40 @@ import Footer from "../../components/Footer";
 import { useDiscordLoginURL } from "../../components/LoginURL";
 import { LoadState, useWindowSize } from "../../lib/lib";
 import { useUser } from "../../stores/UserStore";
-
-const discordInviteURL = "https://discord.gg/xJd9Der";
+import {
+  AppBar,
+  IconButton,
+  Toolbar,
+  Menu,
+  MenuItem,
+  List,
+  ListItem,
+} from "@mui/material";
+import { Avatar, Box, Button, Container, Tooltip, Typography } from "@mui/joy";
 
 function AppIndex() {
   const actions = useUser()[1];
-  const [navActive, setNavActive] = useState(false);
   actions.getMe();
   return (
     <Fragment>
-      <nav className="navbar is-dark">
-        <div className="navbar-brand">
-          <Link to="/app" className="navbar-item">
-            <img src={logo128} alt="Gentei bot logo" />
-          </Link>
-          <a
-            href="#"
-            role="button"
-            className={classNames("navbar-burger", { "is-active": navActive })}
-            onClick={() => setNavActive((v) => !v)}
-          >
-            <span aria-hidden="true"></span>
-            <span aria-hidden="true"></span>
-            <span aria-hidden="true"></span>
-          </a>
-        </div>
-        <div className={classNames("navbar-menu", { "is-active": navActive })}>
-          <div className="navbar-start"></div>
-          <div className="navbar-end">
-            <div className="navbar-item">{<AuthButtons />}</div>
-          </div>
-        </div>
-      </nav>
-      <section className="section pt-4 pb-0">
-        <div
-          className="message is-info"
-          style={{
-            maxWidth: 640,
-            margin: "auto",
-          }}
-        >
-          <div className="message-header">
-            <p>Soft launch preview</p>
-          </div>
-          <div className="message-body">
-            <p>
-              Missing features and documentation will be slowly turned on over
-              the next couple of weeks. Please see the{" "}
-              <code>#gentei-announce</code> channel in the{" "}
-              <a href={discordInviteURL}>Hololive Creators Club Discord</a>{" "}
-              server for updates and instructions - both for users and community
-              admins - while this message visible.
-            </p>
-          </div>
-        </div>
-      </section>
-      <Outlet />
+      <AppBar component="nav" position="static">
+        <Toolbar disableGutters>
+          <IconButton>
+            <Link to="/app" className="navbar-item">
+              <img src={logo128} alt="Gentei bot logo" height={40} />
+            </Link>
+          </IconButton>
+          <Box sx={{ flexGrow: 1 }} />
+          <Box sx={{ flexGrow: 0 }}>
+            <AuthButtons />
+          </Box>
+        </Toolbar>
+      </AppBar>
+      <Container>
+        <Box sx={{ mt: 4 }}>
+          <Outlet />
+        </Box>
+      </Container>
       <Footer withYouTubeImage />
     </Fragment>
   );
@@ -71,67 +49,68 @@ function AppIndex() {
 
 function AuthButtons() {
   const [store, actions] = useUser();
+  const [menuActive, setMenuActive] = useState(false);
   const loginURL = useDiscordLoginURL();
-  const windowSize = useWindowSize();
-  if (store.userLoad <= LoadState.Started || !loginURL) {
-    return (
-      <progress className="progress is-small" max="100">
-        69%
-      </progress>
-    );
-  }
-  const logout: React.MouseEventHandler<HTMLAnchorElement> = (e) => {
-    e.preventDefault();
-    actions.logout();
-  };
+  const iconButtonRef = useRef(null);
+  let innards = null;
+  let menu = null;
   if (store.userLoad === LoadState.Succeeded && !!store.user) {
     const user = store.user!;
     const avatarURL = `https://cdn.discordapp.com/avatars/${user.ID}/${user.AvatarHash}.webp?size=64`;
-    return (
-      <div
-        className={classNames("dropdown is-hoverable", {
-          "is-right": windowSize.width >= 1024,
-        })}
+    const logout: React.MouseEventHandler<HTMLAnchorElement> = (e) => {
+      e.preventDefault();
+      actions.logout();
+    };
+    innards = (
+      <Avatar alt={`Discord avatar for ${user.FullName}`} src={avatarURL} />
+    );
+    menu = (
+      <Menu
+        anchorEl={iconButtonRef.current}
+        open={menuActive}
+        onClose={() => setMenuActive(false)}
+        keepMounted
       >
-        <div className="dropdown-trigger">
-          <button className="button is-black outlined">
-            <span>
-              <figure className="image avatar is-square">
-                <img
-                  src={avatarURL}
-                  alt={`Discord avatar for ${user.FullName}`}
-                  className="is-rounded"
-                />
-              </figure>
-            </span>
-            <span className="icon">
-              <RiArrowDropDownLine size="2em" />
-            </span>
-          </button>
-        </div>
-        <div className="dropdown-menu">
-          <div className="dropdown-content">
-            <span className="dropdown-item">{user.FullName}</span>
-            <hr className="dropdown-divider" />
-            <a className="dropdown-item" href="/logout" onClick={logout}>
+        <MenuItem>
+          <Typography textAlign="center">{user.FullName}</Typography>
+        </MenuItem>
+        <MenuItem>
+          <Typography textAlign="center">
+            <Link to="/logout" onClick={logout}>
               Sign out
-            </a>
-          </div>
-        </div>
-      </div>
+            </Link>
+          </Typography>
+        </MenuItem>
+      </Menu>
+    );
+  } else {
+    return (
+      <List>
+        <ListItem>
+          <Button
+            component="a"
+            href={loginURL || "#"}
+            startDecorator={<SiDiscord />}
+            variant="soft"
+          >
+            Register / Sign in with Discord
+          </Button>
+        </ListItem>
+      </List>
     );
   }
   return (
-    <div className="buttons">
-      <a className="button is-primary" href={loginURL}>
-        <span className="icon-text">
-          <span>Register / Sign in with Discord</span>
-          <span className="icon">
-            <SiDiscord />
-          </span>
-        </span>
-      </a>
-    </div>
+    <Fragment>
+      <Tooltip title="Open settings">
+        <IconButton
+          ref={iconButtonRef}
+          onClick={() => setMenuActive((v) => !v)}
+        >
+          {innards}
+        </IconButton>
+      </Tooltip>
+      {menu}
+    </Fragment>
   );
 }
 

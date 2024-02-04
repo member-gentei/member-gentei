@@ -1,10 +1,20 @@
-import React from "react";
 import { SiDiscord } from "react-icons/si";
 import { Link } from "react-router-dom";
 import { LoadState } from "../../lib/lib";
 import { GuildContainer, useGuild } from "../../stores/GuildStore";
 import { useUser } from "../../stores/UserStore";
 import DiscordServerImg from "../DiscordServerImg";
+import {
+  Box,
+  Button,
+  Card,
+  CardActions,
+  CardContent,
+  Grid,
+  Stack,
+  Table,
+  Typography,
+} from "@mui/joy";
 
 export default function AdminServers() {
   const [store, actions] = useUser();
@@ -13,7 +23,7 @@ export default function AdminServers() {
     return (
       <div className="section">
         <div className="container">
-          <h2 className="title is-3">Administration</h2>
+          <Typography level="h2">Administration</Typography>
           <div className="has-text-centered`">
             <span className="spinner mx-auto"></span>
           </div>
@@ -21,17 +31,19 @@ export default function AdminServers() {
       </div>
     );
   }
-  let serverNode;
+  let serverGrid;
   if (!!store.user?.ServerAdmin) {
-    serverNode = (
-      <div className="content is-flex is-flex-wrap-wrap is-justify-content-center">
+    serverGrid = (
+      <Grid container spacing={1}>
         {store.user.ServerAdmin.map((guildID) => (
-          <AdminServerSnippet key={`${guildID}-admin`} guildID={guildID} />
+          <Grid xs={12} md={6} key={`${guildID}-admin`}>
+            <AdminServerSnippet guildID={guildID} />
+          </Grid>
         ))}
-      </div>
+      </Grid>
     );
   } else {
-    serverNode = (
+    serverGrid = (
       <p className="content">
         You do not have permission to configure or audit Gentei for any Discord
         server integrations.
@@ -39,22 +51,17 @@ export default function AdminServers() {
     );
   }
   return (
-    <section className="section">
-      <div className="container">
-        <h2 className="title is-3">Administration</h2>
-        {serverNode}
-        <div className="has-text-centered mt-4">
-          <Link to="enroll" className="button is-primary spin-hover">
-            <span className="icon-text">
-              <span>Enroll a new Discord server</span>
-              <span className="icon spin-me">
-                <SiDiscord />
-              </span>
-            </span>
-          </Link>
-        </div>
-      </div>
-    </section>
+    <Stack component="section" spacing={2} mb={2}>
+      <Typography level="h2">Administration</Typography>
+      {serverGrid}
+      <Box sx={{ textAlign: "center" }}>
+        <Link to="enroll" className="button spin-hover">
+          <Button size="lg" endDecorator={<SiDiscord className="spin-me" />}>
+            Enroll a new Discord server
+          </Button>
+        </Link>
+      </Box>
+    </Stack>
   );
 }
 
@@ -97,37 +104,43 @@ function AdminServerSnippetInner({ guildID }: AdminServerSnippetProps) {
     iconNode = <SiDiscord size={128} />;
   }
   return (
-    <div className="box m-1">
-      <div className="media">
-        <figure className="media-left">
-          <p className="image is-128x128">{iconNode}</p>
-        </figure>
-        <div className="media-content">
-          <table className="table">
-            <tbody>
-              <tr>
-                <th>Name</th>
-                <th>{guild.Name}</th>
-              </tr>
-              <tr>
-                <th>ID / Link</th>
-                <td>
-                  <a href={`https://discord.com/channels/${guild.ID}`}>
-                    {guild.ID}
-                  </a>
-                </td>
-              </tr>
-              <tr>
-                <th>Membership roles</th>
-                <td>{Object.keys(guild.RolesByTalent).length}</td>
-              </tr>
-            </tbody>
-          </table>
-          <Link className="button is-link is-small" to={`server/${guild.ID}`}>
-            View/Edit
-          </Link>
-        </div>
-      </div>
-    </div>
+    <Card>
+      <CardContent orientation="horizontal">
+        {iconNode}
+        <Table
+          borderAxis="bothBetween"
+          sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
+        >
+          <tbody>
+            <tr>
+              <th style={{ width: "10rem" }}>Name</th>
+              <th>{guild.Name}</th>
+            </tr>
+            <tr>
+              <th>ID / Link</th>
+              <td>
+                <a href={`https://discord.com/channels/${guild.ID}`}>
+                  {guild.ID}
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <th>Membership roles</th>
+              <td>{Object.keys(guild.RolesByTalent).length}</td>
+            </tr>
+          </tbody>
+        </Table>
+      </CardContent>
+      <CardActions buttonFlex="0">
+        <Button
+          component="a"
+          href={`/app/server/${guild.ID}`}
+          size="sm"
+          variant="soft"
+        >
+          View/Edit
+        </Button>
+      </CardActions>
+    </Card>
   );
 }

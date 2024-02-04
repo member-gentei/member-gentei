@@ -1,8 +1,18 @@
 import { Fragment } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link as RRDLink, useParams } from "react-router-dom";
 import GuildMembershipManager from "../../components/GuildMembershipManager";
 import { LoadState } from "../../lib/lib";
 import { GuildContainer, useGuild } from "../../stores/GuildStore";
+import {
+  Box,
+  Breadcrumbs,
+  Button,
+  Grid,
+  Link,
+  Stack,
+  Table,
+  Typography,
+} from "@mui/joy";
 
 export default function GuildAdmin() {
   const { guildID } = useParams();
@@ -40,44 +50,46 @@ function GuildAdminInner({ guildID }: GuildAdminInnerProps) {
     <GuildMembershipManager key={`manage-${talentID}`} talentID={talentID} />
   ));
   return (
-    <section className="section">
-      <div className="container">
-        <nav className="breadcrumb">
-          <ul>
-            <li>
-              <Link to="/app">Home</Link>
-            </li>
-            <li className="is-active">
-              <Link to="#">{guild.Name}</Link>
-            </li>
-          </ul>
-        </nav>
-        <h1 className="title">{guild.Name}</h1>
-        <div className="content">
-          <dl>
-            <dt>Server ID and Link</dt>
-            <dd>
-              <a
+    <Stack component="section" spacing={2} sx={{ mb: 2 }}>
+      <Breadcrumbs>
+        <RRDLink to="/app">
+          <Link>Home</Link>
+        </RRDLink>
+        <Typography>{guild.Name}</Typography>
+      </Breadcrumbs>
+      <Typography level="h2">{guild.Name}</Typography>
+      <Table>
+        <tbody>
+          <tr>
+            <th>Server ID and Link</th>
+            <td>
+              <Link
                 href={guildURL}
                 target="_blank"
                 rel="noreferrer"
                 title="Open server in a new tab"
               >
                 {guild.ID}
-              </a>
-            </dd>
-            <dt>Server Name</dt>
-            <dd>{guild.Name}</dd>
-            <dt>Discord IDs with admin access</dt>
-            <dd>
+              </Link>
+            </td>
+          </tr>
+          <tr>
+            <th>Server Name</th>
+            <td>{guild.Name}</td>
+          </tr>
+          <tr>
+            <th>Discord IDs with admin access</th>
+            <td>
               {guild.AdminIDs.map((snowflake) => (
                 <Fragment key={snowflake}>
                   <code>{snowflake}</code>{" "}
                 </Fragment>
               ))}
-            </dd>
-            <dt>Audit log channel ID and link</dt>
-            <dd>
+            </td>
+          </tr>
+          <tr>
+            <th>Audit log channel ID and link</th>
+            <td>
               {guild.AuditLogChannelID ? (
                 <a
                   href={`${guildURL}/${guild.AuditLogChannelID}`}
@@ -90,41 +102,37 @@ function GuildAdminInner({ guildID }: GuildAdminInnerProps) {
               ) : (
                 <code>- (none)</code>
               )}
-
-              <p className="help">
+              <Typography level="body-sm">
                 To change, use{" "}
                 <code>/gentei manage audit-log channel:#channel</code>
-              </p>
-            </dd>
-          </dl>
-          <p>
-            For other information and nicely formatted{" "}
-            <span className="discord-role">@mentions</span>, please run{" "}
-            <code>/gentei info</code> in your server.
-          </p>
-        </div>
-        <div>
-          <h2 className="title is-4">Memberships</h2>
-          <p className="mb-1">
-            Settings that are hard to configure using slash commands can be
-            edited below.
-          </p>
-          {membershipManagers}
-        </div>
-        <div className="mt-4">
-          <div className="control has-text-centered">
-            <Link
-              className="button is-primary is-medium"
-              to={{
-                pathname: "/app/enroll",
-                search: new URLSearchParams({ server: guildID }).toString(),
-              }}
-            >
-              Add/Remove Memberships
-            </Link>
-          </div>
-        </div>
-      </div>
-    </section>
+              </Typography>
+            </td>
+          </tr>
+        </tbody>
+      </Table>
+      <Typography>
+        For other information and nicely formatted{" "}
+        <span className="discord-role">@mentions</span>, please run{" "}
+        <code>/gentei info</code> in your server.
+      </Typography>
+      <Box>
+        <Typography level="h3">Memberships</Typography>
+        <Typography>
+          Settings that are hard to configure using slash commands can be edited
+          below.
+        </Typography>
+        <Stack spacing={2}>{membershipManagers}</Stack>
+      </Box>
+      <Box sx={{ textAlign: "center" }}>
+        <RRDLink
+          to={{
+            pathname: "/app/enroll",
+            search: new URLSearchParams({ server: guildID }).toString(),
+          }}
+        >
+          <Button>Add/Remove Memberships</Button>
+        </RRDLink>
+      </Box>
+    </Stack>
   );
 }

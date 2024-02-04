@@ -5,6 +5,7 @@ import SelfManage from "../../components/dashboard/SelfManage";
 import { YouTubeLoginOverlay } from "../../components/dashboard/YouTubeLogin";
 import { LoadState } from "../../lib/lib";
 import { useUser } from "../../stores/UserStore";
+import { Grid } from "@mui/joy";
 
 export default function UserDashboard() {
   const [store] = useUser();
@@ -29,26 +30,30 @@ export default function UserDashboard() {
   let serversOrLoginNode;
   if (store.user === undefined || !store.user.YouTube.Valid) {
     serversOrLoginNode = (
-      <section className="section">
+      <section>
         <DiscordServers />
         <YouTubeLoginOverlay />
       </section>
     );
   } else {
     serversOrLoginNode = (
-      <section className="section" style={{ position: "relative" }}>
+      <section>
         <DiscordServers />
       </section>
     );
   }
   return (
-    <Fragment>
-      <div style={{ position: "relative" }}>
+    <Grid container rowSpacing={2}>
+      <Grid xs={12}>
         {serversOrLoginNode}
         {loginRequiredOverlay}
-      </div>
-      <SelfManage />
-      <AdminServers />
-    </Fragment>
+      </Grid>
+      <Grid xs={12}>
+        <SelfManage />
+      </Grid>
+      <Grid xs={12}>
+        <AdminServers />
+      </Grid>
+    </Grid>
   );
 }

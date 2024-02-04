@@ -1,121 +1,137 @@
 import { RiGithubFill } from "react-icons/ri";
-import { Link } from "react-router-dom";
+import { Link as RRDLink } from "react-router-dom";
 import membershipDiagram from "../assets/img/01.png";
 import securityKeibiRobot from "../assets/img/security_keibi_robot.png";
 import Footer from "../components/Footer";
+import {
+  Box,
+  Button,
+  Container,
+  Grid,
+  Link,
+  Sheet,
+  Stack,
+  Typography,
+} from "@mui/joy";
 
 function Home() {
   return (
     <div className="home">
-      <section className="hero is-medium is-primary is-bold">
-        <div className="hero-body">
-          <div className="container">
-            <h1 className="title">Gentei / 限定</h1>
-            <h2 className="subtitle">VTuber channel membership verification</h2>
-          </div>
-        </div>
-        <div className="hero-foot has-text-centered pb-5">
-          <Link to="/app">
-            <button className="button is-link is-size-4">
+      <Sheet
+        variant="solid"
+        sx={{
+          backgroundColor: "rgb(39, 128, 227)",
+          padding: 4,
+          mb: 12,
+        }}
+      >
+        <Box sx={{ mt: 8, mb: 6 }}>
+          <Typography level="h1" sx={{ color: "white" }}>
+            Gentei / 限定
+          </Typography>
+          <Typography level="title-lg" sx={{ color: "white" }}>
+            VTuber channel membership verification
+          </Typography>
+        </Box>
+        <Box sx={{ textAlign: "center" }}>
+          <RRDLink to="/app">
+            <Button size="lg" variant="soft">
               Enroll a Community / Validate Membership
-            </button>
-          </Link>
-        </div>
-      </section>
-      <section className="section"></section>
-      <section className="section" role="main">
-        <div className="container">
-          <div className="columns">
-            <div className="column">
-              <div className="content has-text-centered">
-                <img src={membershipDiagram} alt="scuffed membership diagram" />
-              </div>
-            </div>
-            <div className="column">
-              <div className="content">
-                <h3>Free membership verification for fans</h3>
-                <p>
-                  Administrators of fan communities and Discord servers for
-                  YouTube channels no longer need to resort to asking for
-                  regular screenshots to verify YouTube channel memberships.
-                </p>
-                <p>
-                  Gentei runs a membership verification process on their behalf
-                  - this verifies membership via the YouTube API on a regular
-                  basis! All for free, no catch.
-                </p>
-                <p>
-                  For technical and administrative documentation, see{" "}
-                  <a
-                    href="https://docs.gentei.tindabox.net"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    https://docs.gentei.tindabox.net
-                  </a>
-                  !
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="columns">
-            <div className="column">
-              <div className="content">
-                <h3>Discord role assignment bot</h3>
-                <p>
-                  Take advantage of a Discord bot that can automatically assign
-                  and unassign roles to Discord server users. Please use the
-                  "Enroll a Community" button above, if interested!
-                </p>
-                <p>
-                  For more info on the bot, please see{" "}
-                  <a
-                    href="https://docs.gentei.tindabox.net/bot/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    the subpage in the documentation
-                  </a>
-                  .
-                </p>
-              </div>
-            </div>
-            <div className="column">
-              <div className="content has-text-centered">
-                <img
-                  src={securityKeibiRobot}
-                  style={{ maxHeight: 180 }}
-                  alt="security robot"
-                />
-              </div>
-            </div>
-          </div>
-          <div className="columns">
-            <div className="column">
-              <div className="content has-text-centered">
-                <RiGithubFill size={180} />
-              </div>
-            </div>
-            <div className="column">
-              <div className="content">
-                <h3>Open Source</h3>
-                <p>
-                  Gentei is an open source, AGPLv3-licensed SaaS project both
-                  hosted on GitHub and deployed straight from the project for
-                  transparency.
-                </p>
-                <p>
-                  To check out the code and infrastructure, see{" "}
-                  <a href="https://github.com/member-gentei">
-                    https://github.com/member-gentei
-                  </a>
-                  .
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+            </Button>
+          </RRDLink>
+        </Box>
+      </Sheet>
+      <Container component="section" role="main">
+        <Grid container spacing={4} sx={{ mb: 2 }}>
+          <Grid xs={6}>
+            <Box>
+              <img
+                src={membershipDiagram}
+                alt="scuffed membership diagram"
+                style={{ maxWidth: "100%" }}
+              />
+            </Box>
+          </Grid>
+          <Grid xs={6}>
+            <Stack spacing={2}>
+              <Typography level="h3">
+                Free membership verification for fans
+              </Typography>
+              <Typography>
+                Administrators of fan communities and Discord servers for
+                YouTube channels no longer need to resort to asking for regular
+                screenshots to verify YouTube channel memberships.
+              </Typography>
+              <Typography>
+                Gentei runs a membership verification process on their behalf -
+                this verifies membership via the YouTube API on a regular basis!
+                All for free, no catch.
+              </Typography>
+              <Typography>
+                For technical and administrative documentation, see{" "}
+                <Link
+                  href="https://docs.gentei.tindabox.net"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  https://docs.gentei.tindabox.net
+                </Link>
+                !
+              </Typography>
+            </Stack>
+          </Grid>
+          <Grid xs={6}>
+            <Stack spacing={2}>
+              <Typography level="h3">Discord role assignment bot</Typography>
+              <Typography>
+                Take advantage of a Discord bot that can automatically assign
+                and unassign roles to Discord server users. Please use the
+                "Enroll a Community" button above, if interested!
+              </Typography>
+              <Typography>
+                For more info on the bot, please see{" "}
+                <Link
+                  href="https://docs.gentei.tindabox.net/bot/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  the subpage in the documentation
+                </Link>
+                !
+              </Typography>
+            </Stack>
+          </Grid>
+          <Grid xs={6}>
+            <Box textAlign="center">
+              <img
+                src={securityKeibiRobot}
+                style={{ maxHeight: 180 }}
+                alt="security robot"
+              />
+            </Box>
+          </Grid>
+          <Grid xs={6}>
+            <RiGithubFill size={180} />
+          </Grid>
+          <Grid xs={6}>
+            <Stack spacing={2}>
+              <Typography level="h3">Open Source</Typography>
+              <Typography>
+                Gentei is an open source, AGPLv3-licensed SaaS project both
+                hosted on GitHub and deployed straight from the project for
+                transparency.
+              </Typography>
+              <Typography>
+                To check out the code and infrastructure, see{" "}
+                <Link href="https://github.com/member-gentei">
+                  https://github.com/member-gentei
+                </Link>
+                .
+              </Typography>
+            </Stack>
+          </Grid>
+        </Grid>
+      </Container>
       <Footer />
     </div>
   );
