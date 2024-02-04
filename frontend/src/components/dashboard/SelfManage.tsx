@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogTitle,
   Grid,
+  Link,
   Modal,
   ModalClose,
   ModalDialog,
@@ -34,9 +35,9 @@ export default function SelfManage() {
   if (user.YouTube.ID !== "") {
     const channelURL = `https://youtube.com/channel/${user.YouTube.ID}`;
     youTubeChannelElement = (
-      <a href={channelURL} target="_blank" rel="noreferrer">
+      <Link href={channelURL} target="_blank" rel="noreferrer">
         {channelURL}
-      </a>
+      </Link>
     );
   } else {
     youTubeChannelElement = <code>(no channel connected)</code>;
@@ -72,14 +73,14 @@ export default function SelfManage() {
               <th scope="row">Actions</th>
               <td>
                 <Grid container columnSpacing={3} sx={{ textAlign: "center" }}>
-                  <Grid>
+                  <Grid sm={6} md={4}>
                     <div className="mb-1">
                       Connect a {user.YouTube.ID === "" ? "" : "different "}
                       YouTube account
                     </div>
                     <YouTubeLogin className="" />
                   </Grid>
-                  <Grid>
+                  <Grid sm={6} md={4}>
                     <div className="mb-1">
                       Disconnect YouTube account <br />
                       (revokes Discord roles)
@@ -92,7 +93,7 @@ export default function SelfManage() {
                       Disconnect
                     </Button>
                   </Grid>
-                  <Grid>
+                  <Grid md={4}>
                     <div className="mb-1">
                       Remove your accounts from Gentei and revoke Discord roles
                     </div>

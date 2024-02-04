@@ -58,7 +58,15 @@ const actions = {
         return;
       }
       setState({ userLoad: LoadState.Started });
-      const response = await authedFetchJSON(`${API_BASE_URL}/me`);
+      let response: Response;
+      try {
+        response = await authedFetchJSON(`${API_BASE_URL}/me`);
+      } catch (e: any) {
+        if (e?.message === "Failed to fetch") {
+          return;
+        }
+        throw e;
+      }
       switch (response.status) {
         case 400:
           const data: { message: string } = await response.json();
@@ -80,7 +88,7 @@ const actions = {
       const user: State["user"] = await response.json();
       // concat servers
       const serverSet = new Set(
-        (user?.Servers || []).concat(user?.ServerAdmin || []),
+        (user?.Servers || []).concat(user?.ServerAdmin || [])
       );
       let sortedServers = [];
       for (const key of serverSet.keys()) {
@@ -101,7 +109,7 @@ const actions = {
       const response = await authedFetchJSON(
         `${API_BASE_URL}/login/discord`,
         "POST",
-        { code, state },
+        { code, state }
       );
       if (!response.ok) {
         setState({
@@ -122,7 +130,7 @@ const actions = {
       const response = await authedFetchJSON(
         `${API_BASE_URL}/login/youtube`,
         "POST",
-        { code, state },
+        { code, state }
       );
       if (!response.ok) {
         setState({
@@ -165,7 +173,7 @@ const actions = {
       setState({ disconnect: LoadState.Started });
       const response = await authedFetchJSON(
         `${API_BASE_URL}/me/youtube`,
-        "DELETE",
+        "DELETE"
       );
       if (!response.ok) {
         setState({

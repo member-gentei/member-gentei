@@ -36,7 +36,7 @@ export default function DiscordServers() {
     serverColumns = (
       <Grid container sx={{ mt: 2, mb: 2 }} spacing={1}>
         {userStore.derived.sortedServers.map((serverID) => (
-          <Grid xs={6} key={`dsr-${serverID}`}>
+          <Grid xs={12} sm={6} key={`dsr-${serverID}`}>
             <DiscordServerWithRoles id={serverID} />
           </Grid>
         ))}
@@ -188,7 +188,7 @@ function RoleMembership({ talent, roleName, verifyTime }: RoleMembershipProps) {
   }
   return (
     <Card sx={{ alignItems: "center", textAlign: "center" }}>
-      <a href={channelURL} title={`YouTube channel for ${talent.Name}`}>
+      <Link href={channelURL} title={`YouTube channel for ${talent.Name}`}>
         <AspectRatio ratio="1" sx={{ width: 128 }}>
           <img
             className="rounded"
@@ -196,7 +196,7 @@ function RoleMembership({ talent, roleName, verifyTime }: RoleMembershipProps) {
             alt={`Channel icon for ${talent.Name}`}
           />
         </AspectRatio>
-      </a>
+      </Link>
       <Divider />
       <Typography endDecorator={endDecorator}>
         <span className="discord-mention">@{roleName}</span>

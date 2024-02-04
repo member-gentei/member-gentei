@@ -5,6 +5,7 @@ import Footer from "../components/Footer";
 import { useDiscordLoginURL, useYouTubeLoginURL } from "../components/LoginURL";
 import { LoadState } from "../lib/lib";
 import { useUser } from "../stores/UserStore";
+import { Typography } from "@mui/joy";
 
 export function LoginDiscord() {
   const [search] = useSearchParams();
@@ -114,29 +115,35 @@ export function LoginYouTube() {
         case "invalid_grant":
           explainer = (
             <Fragment>
-              <p>Google says that the token is invalid - please try again.</p>
-              <p>(This is known to happen when you refresh this page.)</p>
+              <Typography>
+                Google says that the token is invalid - please try again.
+              </Typography>
+              <Typography>
+                (This is known to happen when you refresh this page.)
+              </Typography>
             </Fragment>
           );
           break;
         case "YouTube channel belongs to a different user":
           explainer = (
             <Fragment>
-              <p>
+              <Typography>
                 The YouTube channel you tried to log in with belongs to a
                 different Discord user of Gentei.
-              </p>
-              <p>
+              </Typography>
+              <Typography>
                 If you want to associate that channel with your currently logged
                 in user, sign in as that other user and remove your account.
-              </p>
+              </Typography>
             </Fragment>
           );
           break;
         default:
           explainer = (
             <Fragment>
-              Unhandled error logging in - please try again later.
+              <Typography>
+                Unhandled error logging in - please try again later.
+              </Typography>
             </Fragment>
           );
           break;
