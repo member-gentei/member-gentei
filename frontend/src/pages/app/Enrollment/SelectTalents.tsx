@@ -6,7 +6,7 @@ import TalentCard from "../../../components/TalentCard";
 import YouTubeChannelSelector from "../../../components/YouTubeChannelSelector";
 import { LoadState } from "../../../lib/lib";
 import { useGuild } from "../../../stores/GuildStore";
-import { Grid, Stack, Typography } from "@mui/joy";
+import { Button, Grid, Stack, Typography } from "@mui/joy";
 
 export default function SelectTalents() {
   const [search, setSearch] = useSearchParams();
@@ -156,10 +156,8 @@ function SelectTalentsInner() {
           <div className="column is-half">{errorNode}</div>
         </div>
         <div className="has-text-centered">
-          <button
-            className={`button is-primary is-medium ${classNames({
-              "is-loading": store.saveTalentsState === LoadState.Started,
-            })}`}
+          <Button
+            type="submit"
             disabled={saveDisabled}
             onClick={(e) => {
               e.preventDefault();
@@ -167,7 +165,7 @@ function SelectTalentsInner() {
             }}
           >
             Save YouTube Channels
-          </button>
+          </Button>
         </div>
       </div>
     </Stack>

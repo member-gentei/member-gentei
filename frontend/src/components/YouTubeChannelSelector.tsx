@@ -21,7 +21,7 @@ const initialHelpText =
   "If you can't find a talent's YouTube channel by name, you can add their channel by URL.";
 
 const reYouTubeChannelID = new RegExp(
-  "^https://(www.)?youtube.com/channel/UC(.{22})$"
+  "^https://(www.)?youtube.com/channel/(UC.{22})$"
 );
 
 export default function YouTubeChannelSelector({
