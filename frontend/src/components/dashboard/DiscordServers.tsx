@@ -118,7 +118,7 @@ function DiscordServerWithRolesInner({ id }: DiscordServerRoleProps) {
           />
         </Grid>
       );
-    }
+    },
   );
   if (memberships.length === 0) {
     membershipNode = (

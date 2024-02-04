@@ -58,7 +58,7 @@ function SelectTalentsInner() {
   const [search, setSearch] = useSearchParams();
   const [store, actions] = useGuild();
   const [selectedTalentIDs, setSelectedTalentIDs] = useState<string[]>(
-    search.getAll(talentGetParam)
+    search.getAll(talentGetParam),
   );
   useEffect(() => {
     if (store.saveTalentsState === LoadState.Succeeded) {
@@ -115,7 +115,7 @@ function SelectTalentsInner() {
             <li key={`${talentID}-error`}>
               <span className="has-text-weight-bold">{talentID}</span>: {msg}
             </li>
-          )
+          ),
         );
         errorNode = (
           <div className="message is-danger">
@@ -176,7 +176,7 @@ function errorTalentsRemoved(
   errors: {
     [key: string]: string | undefined;
   },
-  selectedTalentIDs: string[]
+  selectedTalentIDs: string[],
 ): boolean {
   for (const talentID of selectedTalentIDs) {
     if (errors[talentID] !== undefined) {

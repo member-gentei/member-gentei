@@ -21,14 +21,14 @@ const initialHelpText =
   "If you can't find a talent's YouTube channel by name, you can add their channel by URL.";
 
 const reYouTubeChannelID = new RegExp(
-  "^https://(www.)?youtube.com/channel/(UC.{22})$"
+  "^https://(www.)?youtube.com/channel/(UC.{22})$",
 );
 
 export default function YouTubeChannelSelector({
   addChannel,
 }: YouTubeChannelSelectorProps) {
   const [channelInputType, setChannelInputType] = useState<"name" | "url">(
-    "name"
+    "name",
   );
   const [channelURL, setChannelURL] = useState("");
   const [inputValid, setInputValid] = useState<boolean>();
@@ -70,7 +70,7 @@ export default function YouTubeChannelSelector({
             defaultValue="name"
             onChange={(_, value) => {
               setChannelInputType(
-                (value || "").toLowerCase() as "name" | "url"
+                (value || "").toLowerCase() as "name" | "url",
               );
             }}
           >
@@ -128,7 +128,7 @@ function ChannelNameSelector({ addChannel }: ChannelNameSelectorProps) {
     (channelID) => ({
       id: channelID,
       label: state.talentsByID[channelID]!.Name,
-    })
+    }),
   );
   return (
     <FormControl>
@@ -179,7 +179,7 @@ function ChannelURLEntryControls({
           if (!valid) {
             setValid(false);
             setHelpText(
-              "Please input a YouTube channel URL. See the placeholder text for an example."
+              "Please input a YouTube channel URL. See the placeholder text for an example.",
             );
           } else {
             setValid(true);
