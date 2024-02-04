@@ -402,7 +402,7 @@ func meResponseFromUser(user *ent.User) (meResponse, error) {
 	}
 	return meResponse{
 		ID:            strconv.FormatUint(user.ID, 10),
-		FullName:      user.FullName,
+		FullName:      strings.TrimSuffix(user.FullName, "#0"),
 		AvatarHash:    user.AvatarHash,
 		LastRefreshed: user.LastCheck.Unix(),
 		YouTube:       yt,
