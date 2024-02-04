@@ -21,6 +21,7 @@ code {
 
 .developed-with-youtube > img {
   max-height: 13em;
+  max-width: 100%;
 }
 
 .footer {

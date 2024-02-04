@@ -2,7 +2,7 @@ import React from "react";
 import { RiGithubFill } from "react-icons/ri";
 
 import developedWithYouTube from "../assets/img/developed-with-youtube-sentence-case-dark.png";
-import { Container, Link, Typography } from "@mui/joy";
+import { Box, Container, Link, Typography } from "@mui/joy";
 
 interface FooterProps {
   withYouTubeImage?: boolean;
@@ -12,9 +12,9 @@ function Footer({ withYouTubeImage }: FooterProps) {
   let ytElement = null;
   if (withYouTubeImage) {
     ytElement = (
-      <div className="is-centered developed-with-youtube">
+      <Box className="developed-with-youtube">
         <img src={developedWithYouTube} alt="developed with YouTube" />
-      </div>
+      </Box>
     );
   }
   return (
