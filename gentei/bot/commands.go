@@ -24,6 +24,9 @@ import (
 
 const (
 	commandName            = "gentei"
+	adminCommandPrefix     = "gentei-"
+	adminAuditCommandName  = adminCommandPrefix + "audit"
+	adminMapCommandName    = adminCommandPrefix + "map"
 	eaCommandDescription   = "Gentei membership management (early access)"
 	prodCommandDescription = "Gentei membership management"
 )
@@ -56,6 +59,7 @@ var (
 			},
 		},
 	}
+	// /gentei
 	globalCommand = &discordgo.ApplicationCommand{
 		Name:        commandName,
 		Description: prodCommandDescription,
@@ -132,6 +136,70 @@ var (
 					},
 				},
 			},
+		},
+	}
+	// /gentei-admin
+	adminCommands = []*discordgo.ApplicationCommand{
+		{
+			Name:                     adminAuditCommandName,
+			Description:              "Admin: manage memberships and server settings",
+			DefaultMemberPermissions: ptr[int64](0),
+			DMPermission:             ptr(false),
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:        "set",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Description: "Set/change role management audit log settings.",
+					Options: []*discordgo.ApplicationCommandOption{
+						{
+							Name:         "channel",
+							Description:  "The Discord channel that will receive audit logs.",
+							Type:         discordgo.ApplicationCommandOptionChannel,
+							ChannelTypes: []discordgo.ChannelType{discordgo.ChannelTypeGuildText},
+							Required:     true,
+						},
+					},
+				},
+				{
+					Name:        "unset",
+					Description: "Turns off role management audit logs.",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+				},
+			},
+		},
+		{
+			Name:                     adminMapCommandName,
+			Description:              "Admin: set/unset role mapping of a channel -> Discord role.",
+			DefaultMemberPermissions: ptr[int64](0),
+			DMPermission:             ptr(false),
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:        "set",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Description: "Set/change mapping between channel -> Discord role",
+					Options:     _adminMapOptions,
+				},
+				{
+					Name:        "unset",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Description: "Remove mapping between channel -> Discord role",
+					Options:     _adminMapOptions,
+				},
+			},
+		},
+	}
+	_adminMapOptions = []*discordgo.ApplicationCommandOption{
+		{
+			Name:        "youtube-channel-id",
+			Description: "The YouTube channel ID whose memberships should be monitored. (e.g. UCAL_ZudIZXhCDrniD4ZQobQ)",
+			Type:        discordgo.ApplicationCommandOptionString,
+			Required:    true,
+		},
+		{
+			Name:        "role",
+			Description: "The Discord role for members of this YouTube channel",
+			Type:        discordgo.ApplicationCommandOptionRole,
+			Required:    true,
 		},
 	}
 )
@@ -599,4 +667,21 @@ func ensureRegisteredUserHasGuildEdge(ctx context.Context, db *ent.Client, guild
 
 func ptr[T any](o T) *T {
 	return &o
+}
+
+// just in case you screw it up...
+func adminOnlyCommand(cmd *discordgo.ApplicationCommand) *discordgo.ApplicationCommand {
+	if cmd.DefaultMemberPermissions == nil || *cmd.DefaultMemberPermissions != 0 {
+		cmd.DefaultMemberPermissions = ptr[int64](0)
+	}
+	if cmd.DMPermission == nil || *cmd.DMPermission {
+		cmd.DMPermission = ptr(false)
+	}
+	return cmd
+}
+
+func init() {
+	for i := range adminCommands {
+		adminCommands[i] = adminOnlyCommand(adminCommands[i])
+	}
 }
