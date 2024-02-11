@@ -278,6 +278,54 @@ var (
 	mysteriousErrorMessage = ptr("A mysterious error occured, and this bot's author has been notified. Try again later? :(")
 )
 
+func (b *DiscordBot) handleInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	var (
+		ctx, cancel    = context.WithCancel(context.Background())
+		appCommandData = i.ApplicationCommandData()
+	)
+	defer cancel()
+	log.Debug().Interface("appCommandData", appCommandData).Send()
+	switch appCommandData.Name {
+	case commandName:
+		// subcommand
+		subcommand := appCommandData.Options[0]
+		switch subcommand.Name {
+		case "check":
+			b.handleCheck(ctx, i)
+		case "info":
+			b.handleInfo(ctx, i)
+		case "manage":
+			b.handleManage(ctx, i)
+		}
+	case adminAuditCommandName:
+		b.deferredReply(ctx, i, adminAuditCommandName, true, func(logger zerolog.Logger) (*discordgo.WebhookEdit, error) {
+			switch subcommand := appCommandData.Options[0]; subcommand.Name {
+			case "set":
+				return b.handleManageAuditSet(ctx, logger, i, subcommand)
+			case "unset":
+				return b.handleManageAuditOff(ctx, logger, i, subcommand)
+			default:
+				return &discordgo.WebhookEdit{
+					Content: ptr("You've somehow sent an unknown `/gentei-audit` command. Discord is not supposed to allow this to happen so... try reloading this browser window or your Discord client? :thinking:"),
+				}, nil
+			}
+		})
+	case adminMapCommandName:
+		b.deferredReply(ctx, i, adminMapCommandName, true, func(logger zerolog.Logger) (*discordgo.WebhookEdit, error) {
+			switch subcommand := appCommandData.Options[0]; subcommand.Name {
+			case "set":
+				return b.handleManageMap(ctx, logger, i, subcommand)
+			case "unset":
+				return b.handleManageUnmap(ctx, logger, i, subcommand)
+			default:
+				return &discordgo.WebhookEdit{
+					Content: ptr("You've somehow sent an unknown `/gentei-map` command. Discord is not supposed to allow this to happen so... try reloading this browser window or your Discord client? :thinking:"),
+				}, nil
+			}
+		})
+	}
+}
+
 func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCreate) {
 	b.deferredReply(ctx, i, "check", true, func(logger zerolog.Logger) (*discordgo.WebhookEdit, error) {
 		var response *discordgo.WebhookEdit
