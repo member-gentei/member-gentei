@@ -24,6 +24,9 @@ import (
 
 const (
 	commandName            = "gentei"
+	adminCommandPrefix     = "gentei-"
+	adminAuditCommandName  = adminCommandPrefix + "audit"
+	adminMapCommandName    = adminCommandPrefix + "map"
 	eaCommandDescription   = "Gentei membership management (early access)"
 	prodCommandDescription = "Gentei membership management"
 )
@@ -56,6 +59,7 @@ var (
 			},
 		},
 	}
+	// /gentei
 	globalCommand = &discordgo.ApplicationCommand{
 		Name:        commandName,
 		Description: prodCommandDescription,
@@ -134,6 +138,70 @@ var (
 			},
 		},
 	}
+	// /gentei-admin
+	adminCommands = []*discordgo.ApplicationCommand{
+		{
+			Name:                     adminAuditCommandName,
+			Description:              "Admin: manage memberships and server settings",
+			DefaultMemberPermissions: ptr[int64](0),
+			DMPermission:             ptr(false),
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:        "set",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Description: "Set/change role management audit log settings.",
+					Options: []*discordgo.ApplicationCommandOption{
+						{
+							Name:         "channel",
+							Description:  "The Discord channel that will receive audit logs.",
+							Type:         discordgo.ApplicationCommandOptionChannel,
+							ChannelTypes: []discordgo.ChannelType{discordgo.ChannelTypeGuildText},
+							Required:     true,
+						},
+					},
+				},
+				{
+					Name:        "unset",
+					Description: "Turns off role management audit logs.",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+				},
+			},
+		},
+		{
+			Name:                     adminMapCommandName,
+			Description:              "Admin: set/unset role mapping of a channel -> Discord role.",
+			DefaultMemberPermissions: ptr[int64](0),
+			DMPermission:             ptr(false),
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:        "set",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Description: "Set/change mapping between channel -> Discord role",
+					Options:     _adminMapOptions,
+				},
+				{
+					Name:        "unset",
+					Type:        discordgo.ApplicationCommandOptionSubCommand,
+					Description: "Remove mapping between channel -> Discord role",
+					Options:     _adminMapOptions,
+				},
+			},
+		},
+	}
+	_adminMapOptions = []*discordgo.ApplicationCommandOption{
+		{
+			Name:        "youtube-channel-id",
+			Description: "The YouTube channel ID whose memberships should be monitored. (e.g. UCAL_ZudIZXhCDrniD4ZQobQ)",
+			Type:        discordgo.ApplicationCommandOptionString,
+			Required:    true,
+		},
+		{
+			Name:        "role",
+			Description: "The Discord role for members of this YouTube channel",
+			Type:        discordgo.ApplicationCommandOptionRole,
+			Required:    true,
+		},
+	}
 )
 
 func (b *DiscordBot) PushCommands(global, earlyAccess bool) error {
@@ -152,8 +220,8 @@ func (b *DiscordBot) PushCommands(global, earlyAccess bool) error {
 		}
 	}
 	if global {
-		log.Info().Msg("pushing global command - new command set will be available in 1~2 hours")
-		pushed, err := b.session.ApplicationCommandBulkOverwrite(self.ID, "", []*discordgo.ApplicationCommand{globalCommand})
+		log.Info().Msg("pushing global commands - new command set will be available in 1~2 hours")
+		pushed, err := b.session.ApplicationCommandBulkOverwrite(self.ID, "", append(adminCommands, globalCommand))
 		if err != nil {
 			return fmt.Errorf("error loading global command: %w", err)
 		}
@@ -161,7 +229,7 @@ func (b *DiscordBot) PushCommands(global, earlyAccess bool) error {
 		for _, cmd := range pushed {
 			versions = append(versions, cmd.Version)
 		}
-		log.Info().Strs("versions", versions).Msg("push global command")
+		log.Info().Strs("versions", versions).Msg("pushed global commands")
 	}
 	return nil
 }
@@ -209,6 +277,54 @@ type slashResponseFunc func(logger zerolog.Logger) (*discordgo.WebhookEdit, erro
 var (
 	mysteriousErrorMessage = ptr("A mysterious error occured, and this bot's author has been notified. Try again later? :(")
 )
+
+func (b *DiscordBot) handleInteractionCreate(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	var (
+		ctx, cancel    = context.WithCancel(context.Background())
+		appCommandData = i.ApplicationCommandData()
+	)
+	defer cancel()
+	log.Debug().Interface("appCommandData", appCommandData).Send()
+	switch appCommandData.Name {
+	case commandName:
+		// subcommand
+		subcommand := appCommandData.Options[0]
+		switch subcommand.Name {
+		case "check":
+			b.handleCheck(ctx, i)
+		case "info":
+			b.handleInfo(ctx, i)
+		case "manage":
+			b.handleManage(ctx, i)
+		}
+	case adminAuditCommandName:
+		b.deferredReply(ctx, i, adminAuditCommandName, true, func(logger zerolog.Logger) (*discordgo.WebhookEdit, error) {
+			switch subcommand := appCommandData.Options[0]; subcommand.Name {
+			case "set":
+				return b.handleManageAuditSet(ctx, logger, i, subcommand)
+			case "unset":
+				return b.handleManageAuditOff(ctx, logger, i, subcommand)
+			default:
+				return &discordgo.WebhookEdit{
+					Content: ptr("You've somehow sent an unknown `/gentei-audit` command. Discord is not supposed to allow this to happen so... try reloading this browser window or your Discord client? :thinking:"),
+				}, nil
+			}
+		})
+	case adminMapCommandName:
+		b.deferredReply(ctx, i, adminMapCommandName, true, func(logger zerolog.Logger) (*discordgo.WebhookEdit, error) {
+			switch subcommand := appCommandData.Options[0]; subcommand.Name {
+			case "set":
+				return b.handleManageMap(ctx, logger, i, subcommand)
+			case "unset":
+				return b.handleManageUnmap(ctx, logger, i, subcommand)
+			default:
+				return &discordgo.WebhookEdit{
+					Content: ptr("You've somehow sent an unknown `/gentei-map` command. Discord is not supposed to allow this to happen so... try reloading this browser window or your Discord client? :thinking:"),
+				}, nil
+			}
+		})
+	}
+}
 
 func (b *DiscordBot) handleCheck(ctx context.Context, i *discordgo.InteractionCreate) {
 	b.deferredReply(ctx, i, "check", true, func(logger zerolog.Logger) (*discordgo.WebhookEdit, error) {
@@ -599,4 +715,21 @@ func ensureRegisteredUserHasGuildEdge(ctx context.Context, db *ent.Client, guild
 
 func ptr[T any](o T) *T {
 	return &o
+}
+
+// just in case you screw it up...
+func adminOnlyCommand(cmd *discordgo.ApplicationCommand) *discordgo.ApplicationCommand {
+	if cmd.DefaultMemberPermissions == nil || *cmd.DefaultMemberPermissions != 0 {
+		cmd.DefaultMemberPermissions = ptr[int64](0)
+	}
+	if cmd.DMPermission == nil || *cmd.DMPermission {
+		cmd.DMPermission = ptr(false)
+	}
+	return cmd
+}
+
+func init() {
+	for i := range adminCommands {
+		adminCommands[i] = adminOnlyCommand(adminCommands[i])
+	}
 }

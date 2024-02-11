@@ -65,24 +65,7 @@ func New(db *ent.Client, token string, youTubeConfig *oauth2.Config) (*DiscordBo
 
 func (b *DiscordBot) Start(prod bool) (err error) {
 	// register handlers on bot start
-	b.session.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		var (
-			ctx, cancel    = context.WithCancel(context.Background())
-			appCommandData = i.ApplicationCommandData()
-		)
-		defer cancel()
-		log.Debug().Interface("appCommandData", appCommandData).Send()
-		// subcommand
-		subcommand := appCommandData.Options[0]
-		switch subcommand.Name {
-		case "check":
-			b.handleCheck(ctx, i)
-		case "info":
-			b.handleInfo(ctx, i)
-		case "manage":
-			b.handleManage(ctx, i)
-		}
-	})
+	b.session.AddHandler(b.handleInteractionCreate)
 	// bind large guild member handler first
 	b.session.AddHandler(func(s *discordgo.Session, gmc *discordgo.GuildMembersChunk) {
 		logger := log.With().
