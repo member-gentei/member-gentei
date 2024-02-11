@@ -220,8 +220,8 @@ func (b *DiscordBot) PushCommands(global, earlyAccess bool) error {
 		}
 	}
 	if global {
-		log.Info().Msg("pushing global command - new command set will be available in 1~2 hours")
-		pushed, err := b.session.ApplicationCommandBulkOverwrite(self.ID, "", []*discordgo.ApplicationCommand{globalCommand})
+		log.Info().Msg("pushing global commands - new command set will be available in 1~2 hours")
+		pushed, err := b.session.ApplicationCommandBulkOverwrite(self.ID, "", append(adminCommands, globalCommand))
 		if err != nil {
 			return fmt.Errorf("error loading global command: %w", err)
 		}
@@ -229,7 +229,7 @@ func (b *DiscordBot) PushCommands(global, earlyAccess bool) error {
 		for _, cmd := range pushed {
 			versions = append(versions, cmd.Version)
 		}
-		log.Info().Strs("versions", versions).Msg("push global command")
+		log.Info().Strs("versions", versions).Msg("pushed global commands")
 	}
 	return nil
 }
