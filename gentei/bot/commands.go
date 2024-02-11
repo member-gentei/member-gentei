@@ -543,6 +543,7 @@ func (b *DiscordBot) handleManage(ctx context.Context, i *discordgo.InteractionC
 		b.replyNoDM(i)
 		return
 	}
+	ctx = deprecatedContext(ctx)
 	b.deferredReply(ctx, i, "manage", true,
 		// the calling user has to be an admin of some sort to run this command
 		func(logger zerolog.Logger) (*discordgo.WebhookEdit, error) {
@@ -570,6 +571,23 @@ func (b *DiscordBot) handleManage(ctx context.Context, i *discordgo.InteractionC
 }
 
 // helpers
+type ctxKey int
+
+// Context key whose value should specifically not be nil to be set
+var manageCommandDeprecated ctxKey
+
+func deprecatedContext(ctx context.Context) context.Context {
+	return context.WithValue(ctx, manageCommandDeprecated, true)
+}
+
+func isDeprecatedContext(ctx context.Context) bool {
+	value, _ := ctx.Value(manageCommandDeprecated).(bool)
+	return value
+}
+
+const (
+	manageDeprecatedPrefix = "⚠️ `/gentei manage` will be removed soon. Please use the replacement commands `/gentei-audit` and `/gentei-map`, which are admin-only by default! ⚠️"
+)
 
 // deferredReply can only be called once, but it'll process each responseFunc in serial. If it gets a WebHookEdit payload, it sends that and stops processing later responseFuncs.
 func (b *DiscordBot) deferredReply(ctx context.Context, i *discordgo.InteractionCreate, commandName string, ephemeral bool, responseFuncs ...slashResponseFunc) {
@@ -613,6 +631,9 @@ func (b *DiscordBot) deferredReply(ctx context.Context, i *discordgo.Interaction
 		}
 		if response == nil {
 			continue
+		}
+		if isDeprecatedContext(ctx) && response.Content != nil {
+			response.Content = ptr(fmt.Sprintf("%s\n\n%s", manageDeprecatedPrefix, *response.Content))
 		}
 		_, err = b.session.InteractionResponseEdit(i.Interaction, response)
 		if err != nil {
