@@ -469,9 +469,7 @@ func deleteYouTube(db *ent.Client, topic *pubsub.Topic) echo.HandlerFunc {
 				Msg("async pubsub topic unspecified, would've sent YoutubeDelete message")
 		} else {
 			err = async.PublishGeneralMessage(ctx, topic, async.GeneralPSMessage{
-				YouTubeRegistration: &async.YouTubeRegistrationMessage{
-					UserID: json.Number(claims.Id),
-				},
+				YouTubeDelete: json.Number(claims.Id),
 			})
 			if err != nil {
 				return err
