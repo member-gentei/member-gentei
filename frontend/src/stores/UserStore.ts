@@ -182,6 +182,13 @@ const actions = {
         setState({
           disconnect: LoadState.Failed,
           disconnectError: await response.json(),
+          user: {
+            ...getState().user!,
+            YouTube: {
+              ID: "",
+              Valid: false,
+            },
+          }
         });
         return;
       }
