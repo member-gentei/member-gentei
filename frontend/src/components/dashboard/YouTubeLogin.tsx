@@ -3,19 +3,22 @@ import signInDarkFocusWeb from "../../../src/assets/img/btn_google_signin_dark_f
 import signInDarkNormalWeb from "../../../src/assets/img/btn_google_signin_dark_normal_web.png";
 import signInDarkPressedWeb from "../../../src/assets/img/btn_google_signin_dark_pressed_web.png";
 import { useYouTubeLoginURL } from "../LoginURL";
+import { Box, Card, CardContent, Typography } from "@mui/joy";
+import { Backdrop } from "@mui/material";
+import { useUser } from "../../stores/UserStore";
 
 export function YouTubeLoginOverlay() {
+  const [store] = useUser()
   return (
-    <div className="overlay is-flex is-justify-content-center is-align-content-center is-align-items-center">
-      <div className="card">
-        <div className="card-content content has-text-centered">
-          <p>
-            Please connect your YouTube account below to verify memberships.
-          </p>
-          <p>(it's the "Sign in with Google" button below)</p>
-        </div>
-      </div>
-    </div>
+    <Backdrop open
+      sx={{ position: "absolute" }}>
+      <Card>
+        <CardContent sx={{textAlign: "center"}}>
+          <Typography>Please connect your YouTube account to verify memberships.</Typography>
+          <Typography>({!store.user? "after logging in," : null} it's the "Sign in with Google" button below)</Typography>
+        </CardContent>
+      </Card>
+    </Backdrop>
   );
 }
 

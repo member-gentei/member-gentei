@@ -63,6 +63,9 @@ const actions = {
         response = await authedFetchJSON(`${API_BASE_URL}/me`);
       } catch (e: any) {
         if (e?.message === "Failed to fetch") {
+          setState({
+            userLoad: LoadState.Failed,
+          })
           return;
         }
         throw e;
