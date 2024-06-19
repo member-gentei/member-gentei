@@ -12,7 +12,7 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.4.8
 	github.com/jellydator/ttlcache/v3 v3.0.1
 	github.com/labstack/echo/v4 v4.10.2
-	github.com/lib/pq v1.10.7
+	github.com/lib/pq v1.10.9
 	github.com/mark-ignacio/zerolog-gcp v0.5.0
 	github.com/mattn/go-sqlite3 v1.14.19
 	github.com/mitchellh/mapstructure v1.5.0
