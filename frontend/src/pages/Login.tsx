@@ -1,11 +1,26 @@
 import React, { Fragment, ReactNode, useEffect } from "react";
 import { SiDiscord } from "react-icons/si";
-import { Link, Navigate, useSearchParams } from "react-router-dom";
+import {
+  Link as RouterLink,
+  Navigate,
+  useSearchParams,
+} from "react-router-dom";
 import Footer from "../components/Footer";
 import { useDiscordLoginURL, useYouTubeLoginURL } from "../components/LoginURL";
 import { LoadState } from "../lib/lib";
 import { useUser } from "../stores/UserStore";
-import { Typography } from "@mui/joy";
+import {
+  Alert,
+  Button,
+  Card,
+  CardActions,
+  CardContent,
+  CircularProgress,
+  Container,
+  Grid,
+  Stack,
+  Typography,
+} from "@mui/joy";
 
 export function LoginDiscord() {
   const [search] = useSearchParams();
@@ -33,31 +48,34 @@ export function LoginDiscord() {
       switch (store.discordLoginError?.error_description) {
         case `Invalid "code" in request.`:
           explainer = (
-            <Fragment>
+            <>
               The login code given to us by Discord can't be used - this usually
               means it expired. Please try again!
-            </Fragment>
+            </>
           );
           break;
         default:
-          explainer = (
-            <Fragment>
-              Unhandled error logging in - please try again later.
-            </Fragment>
-          );
+          explainer = <>Unhandled error logging in - please try again later.</>;
           break;
       }
       cardContent = (
         <Fragment>
-          <div className="notification is-danger">{explainer}</div>
-          <div className="buttons is-centered">
-            <Link to="/app" className="button is-secondary">
+          <CardContent>
+            <Alert color="warning">{explainer}</Alert>
+          </CardContent>
+          <CardActions>
+            <Button
+              component={RouterLink}
+              to="/app"
+              variant="outlined"
+              color="neutral"
+            >
               Back to app home
-            </Link>
-            <a className="button is-primary" href={loginURL!}>
+            </Button>
+            <Button component="a" href={loginURL!}>
               Try again
-            </a>
-          </div>
+            </Button>
+          </CardActions>
         </Fragment>
       );
       break;
@@ -76,20 +94,21 @@ export function LoginDiscord() {
       );
   }
   return (
-    <section className="section">
-      <div className="container">
-        <div className={`columns is-mobile is-centered mt-4 ${columnsClasses}`}>
-          <div className={`column ${columnClasses}`}>
-            <div className="card">
-              <div className="card-content has-text-centered">
-                {cardContent}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <>
+      <Grid
+        container
+        direction="column"
+        alignItems="center"
+        justifyContent="center"
+        mt={4}
+        mb={4}
+      >
+        <Grid xs={12} sm={6}>
+          <Card>{cardContent}</Card>
+        </Grid>
+      </Grid>
       <Footer />
-    </section>
+    </>
   );
 }
 
@@ -114,19 +133,19 @@ export function LoginYouTube() {
       switch (store.youtubeLoginError?.error) {
         case "invalid_grant":
           explainer = (
-            <Fragment>
+            <>
               <Typography>
                 Google says that the token is invalid - please try again.
               </Typography>
               <Typography>
                 (This is known to happen when you refresh this page.)
               </Typography>
-            </Fragment>
+            </>
           );
           break;
         case "YouTube channel belongs to a different user":
           explainer = (
-            <Fragment>
+            <>
               <Typography>
                 The YouTube channel you tried to log in with belongs to a
                 different Discord user of Gentei.
@@ -135,60 +154,64 @@ export function LoginYouTube() {
                 If you want to associate that channel with your currently logged
                 in user, sign in as that other user and remove your account.
               </Typography>
-            </Fragment>
+            </>
           );
           break;
         default:
           explainer = (
-            <Fragment>
+            <>
               <Typography>
                 Unhandled error logging in - please try again later.
               </Typography>
-            </Fragment>
+            </>
           );
           break;
       }
       cardContent = (
-        <Fragment>
-          <div className="notification is-danger">{explainer}</div>
-          <div className="buttons is-centered">
-            <Link to="/app" className="button is-secondary">
+        <>
+          <CardContent>
+            <Alert color="warning">{explainer}</Alert>
+          </CardContent>
+          <CardActions>
+            <Button component={RouterLink} to="/app">
               Back to app home
-            </Link>
-            <a className="button is-primary" href={loginURL!}>
+            </Button>
+            <Button component="a" href={loginURL!}>
               Try again
-            </a>
-          </div>
-        </Fragment>
+            </Button>
+          </CardActions>
+        </>
       );
       break;
     case LoadState.Succeeded:
       return <Navigate to="/app" />;
     default:
       cardContent = (
-        <Fragment>
-          <span>Connecting YouTube...</span>
-          <div className="mt-2">
-            <span className="spin icon m-auto">
-              <span className="spinner"></span>
-            </span>
-          </div>
-        </Fragment>
+        <>
+          <CardContent>
+            <Stack spacing={1}>
+              <Typography>Connecting your YouTube account...</Typography>
+              <CircularProgress />
+            </Stack>
+          </CardContent>
+        </>
       );
   }
   return (
-    <section className="section">
-      <div className="container">
-        <div className="columns">
-          <div className="column">
-            <div className="card">
-              <div className="card-content has-text-centered">
-                {cardContent}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+    <>
+      <Grid
+        container
+        direction="column"
+        alignItems="center"
+        justifyContent="center"
+        mt={4}
+        mb={4}
+      >
+        <Grid xs={12} sm={6}>
+          <Card>{cardContent}</Card>
+        </Grid>
+      </Grid>
+      <Footer />
+    </>
   );
 }

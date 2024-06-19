@@ -1,4 +1,3 @@
-import React, { Fragment } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 // import "./App.scss";
 import AppIndex from "./pages/app/AppIndex";
@@ -13,7 +12,7 @@ import { CssBaseline } from "@mui/material";
 
 function App() {
   return (
-    <Fragment>
+    <>
       <CssBaseline />
       <BrowserRouter>
         <Routes>
@@ -29,7 +28,7 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
-    </Fragment>
+    </>
   );
 }
 
