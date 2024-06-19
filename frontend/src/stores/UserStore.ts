@@ -65,7 +65,7 @@ const actions = {
         if (e?.message === "Failed to fetch") {
           setState({
             userLoad: LoadState.Failed,
-          })
+          });
           return;
         }
         throw e;

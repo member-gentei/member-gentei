@@ -1,11 +1,26 @@
 import React, { Fragment, ReactNode, useEffect } from "react";
 import { SiDiscord } from "react-icons/si";
-import { Link as RouterLink, Navigate, useSearchParams } from "react-router-dom";
+import {
+  Link as RouterLink,
+  Navigate,
+  useSearchParams,
+} from "react-router-dom";
 import Footer from "../components/Footer";
 import { useDiscordLoginURL, useYouTubeLoginURL } from "../components/LoginURL";
 import { LoadState } from "../lib/lib";
 import { useUser } from "../stores/UserStore";
-import { Alert, Button, Card, CardActions, CardContent, CircularProgress, Container, Grid, Stack, Typography } from "@mui/joy";
+import {
+  Alert,
+  Button,
+  Card,
+  CardActions,
+  CardContent,
+  CircularProgress,
+  Container,
+  Grid,
+  Stack,
+  Typography,
+} from "@mui/joy";
 
 export function LoginDiscord() {
   const [search] = useSearchParams();
@@ -40,11 +55,7 @@ export function LoginDiscord() {
           );
           break;
         default:
-          explainer = (
-            <>
-              Unhandled error logging in - please try again later.
-            </>
-          );
+          explainer = <>Unhandled error logging in - please try again later.</>;
           break;
       }
       cardContent = (
@@ -53,11 +64,15 @@ export function LoginDiscord() {
             <Alert color="warning">{explainer}</Alert>
           </CardContent>
           <CardActions>
-            <Button component={RouterLink} to="/app"
-              variant="outlined" color="neutral">
+            <Button
+              component={RouterLink}
+              to="/app"
+              variant="outlined"
+              color="neutral"
+            >
               Back to app home
             </Button>
-            <Button component="a" href={loginURL!} >
+            <Button component="a" href={loginURL!}>
               Try again
             </Button>
           </CardActions>
@@ -80,7 +95,14 @@ export function LoginDiscord() {
   }
   return (
     <>
-      <Grid container direction="column" alignItems="center" justifyContent="center" mt={4} mb={4}>
+      <Grid
+        container
+        direction="column"
+        alignItems="center"
+        justifyContent="center"
+        mt={4}
+        mb={4}
+      >
         <Grid xs={12} sm={6}>
           <Card>{cardContent}</Card>
         </Grid>
@@ -151,10 +173,10 @@ export function LoginYouTube() {
             <Alert color="warning">{explainer}</Alert>
           </CardContent>
           <CardActions>
-            <Button component={RouterLink} to="/app" >
+            <Button component={RouterLink} to="/app">
               Back to app home
             </Button>
-            <Button component="a" href={loginURL!} >
+            <Button component="a" href={loginURL!}>
               Try again
             </Button>
           </CardActions>
@@ -177,7 +199,14 @@ export function LoginYouTube() {
   }
   return (
     <>
-      <Grid container direction="column" alignItems="center" justifyContent="center" mt={4} mb={4}>
+      <Grid
+        container
+        direction="column"
+        alignItems="center"
+        justifyContent="center"
+        mt={4}
+        mb={4}
+      >
         <Grid xs={12} sm={6}>
           <Card>{cardContent}</Card>
         </Grid>

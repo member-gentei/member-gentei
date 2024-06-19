@@ -8,14 +8,18 @@ import { Backdrop } from "@mui/material";
 import { useUser } from "../../stores/UserStore";
 
 export function YouTubeLoginOverlay() {
-  const [store] = useUser()
+  const [store] = useUser();
   return (
-    <Backdrop open
-      sx={{ position: "absolute" }}>
+    <Backdrop open sx={{ position: "absolute" }}>
       <Card>
-        <CardContent sx={{textAlign: "center"}}>
-          <Typography>Please connect your YouTube account to verify memberships.</Typography>
-          <Typography>({!store.user? "after logging in," : null} it's the "Sign in with Google" button below)</Typography>
+        <CardContent sx={{ textAlign: "center" }}>
+          <Typography>
+            Please connect your YouTube account to verify memberships.
+          </Typography>
+          <Typography>
+            ({!store.user ? "after logging in," : null} it's the "Sign in with
+            Google" button below)
+          </Typography>
         </CardContent>
       </Card>
     </Backdrop>

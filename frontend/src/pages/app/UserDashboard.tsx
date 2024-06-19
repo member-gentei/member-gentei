@@ -31,15 +31,11 @@ export default function UserDashboard() {
   }
   return (
     <Grid container rowSpacing={2}>
-      <Grid xs={12}>
-        {serversOrLoginNode}
-      </Grid>
+      <Grid xs={12}>{serversOrLoginNode}</Grid>
       <Grid xs={12}>
         <SelfManage />
       </Grid>
-      <Grid xs={12}>
-        {!!store.user ? <AdminServers /> : null}
-      </Grid>
+      <Grid xs={12}>{!!store.user ? <AdminServers /> : null}</Grid>
     </Grid>
   );
 }
@@ -56,5 +52,5 @@ function RegisterSignIn() {
         Register / Sign in with Discord
       </Button>
     </Box>
-  )
+  );
 }
