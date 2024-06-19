@@ -20,7 +20,7 @@ import {
 } from "@mui/joy";
 
 export default function SelfManage() {
-  const [store] = useUser();
+  const [store, actions] = useUser();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   useEffect(() => {
     if (store.user === undefined && showDeleteModal) {
@@ -89,6 +89,8 @@ export default function SelfManage() {
                       color="danger"
                       variant="soft"
                       disabled={user.YouTube.ID === ""}
+                      loading={store.disconnect === LoadState.Started}
+                      onClick={() => actions.disconnectYouTube()}
                     >
                       Disconnect
                     </Button>
