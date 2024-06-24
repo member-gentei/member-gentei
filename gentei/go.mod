@@ -8,7 +8,7 @@ require (
 	github.com/bwmarrin/discordgo v0.27.1
 	github.com/cbroglie/mustache v1.4.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/hashicorp/go-retryablehttp v0.7.5
+	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/jedib0t/go-pretty/v6 v6.4.8
 	github.com/jellydator/ttlcache/v3 v3.0.1
 	github.com/labstack/echo/v4 v4.10.2
@@ -58,7 +58,7 @@ require (
 	github.com/labstack/gommon v0.4.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/mitchellh/go-wordwrap v0.0.0-20150314170334-ad45545899c7 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
@@ -85,7 +85,7 @@ require (
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.23.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
