@@ -76,6 +76,9 @@ func youTubeAPIRetryPolicy(ctx context.Context, r *http.Response, err error) (bo
 					return true, nil
 				}
 			}
+		} else if strings.HasSuffix(err.Error(), "processingFailure") {
+			log.Warn().Err(err).Type("errType", err).Msg("retryable processingFailure, non-googleapi.Error")
+			return true, nil
 		}
 	}
 	return retryablehttp.DefaultRetryPolicy(ctx, r, err)
