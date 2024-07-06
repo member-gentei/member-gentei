@@ -44,19 +44,6 @@ var (
 			globalCommand.Options[0],
 			// check
 			globalCommand.Options[1],
-			{
-				Name:        "manage",
-				Description: "Admin-only: manage memberships",
-				Type:        discordgo.ApplicationCommandOptionSubCommandGroup,
-				Options: []*discordgo.ApplicationCommandOption{
-					// audit
-					globalCommand.Options[2].Options[0],
-					// map
-					globalCommand.Options[2].Options[1],
-					// unmap
-					globalCommand.Options[2].Options[2],
-				},
-			},
 		},
 	}
 	// /gentei
@@ -73,68 +60,6 @@ var (
 				Name:        "check",
 				Description: "Check membership eligiblity.",
 				Type:        discordgo.ApplicationCommandOptionSubCommand,
-			},
-			{
-				Name:        "manage",
-				Description: "Admin-only: manage memberships and server settings",
-				Type:        discordgo.ApplicationCommandOptionSubCommandGroup,
-				Options: []*discordgo.ApplicationCommandOption{
-					{
-						Name:        "audit-set",
-						Description: "Set/change role management audit log settings.",
-						Type:        discordgo.ApplicationCommandOptionSubCommand,
-						Options: []*discordgo.ApplicationCommandOption{
-							{
-								Name:         "channel",
-								Description:  "The Discord channel to recieve audit logs.",
-								Type:         discordgo.ApplicationCommandOptionChannel,
-								ChannelTypes: []discordgo.ChannelType{discordgo.ChannelTypeGuildText},
-								Required:     true,
-							},
-						},
-					},
-					{
-						Name:        "audit-off",
-						Description: "Turns off role management audit logs.",
-						Type:        discordgo.ApplicationCommandOptionSubCommand,
-					},
-					{
-						Name:        "map",
-						Description: "Set/change role mapping of a channel -> Discord role.",
-						Type:        discordgo.ApplicationCommandOptionSubCommand,
-						Options: []*discordgo.ApplicationCommandOption{
-							{
-								Name:        "youtube-channel-id",
-								Description: "The YouTube channel ID whose memberships should be monitored. (e.g. UCAL_ZudIZXhCDrniD4ZQobQ)",
-								Type:        discordgo.ApplicationCommandOptionString,
-								Required:    true,
-							},
-							{
-								Name:        "role",
-								Description: "The Discord role for members of this YouTube channel",
-								Type:        discordgo.ApplicationCommandOptionRole,
-								Required:    true,
-							},
-						},
-					},
-					{
-						Name:        "unmap",
-						Description: "Remove role mapping by referencing either the YouTube channel or Discord role.",
-						Type:        discordgo.ApplicationCommandOptionSubCommand,
-						Options: []*discordgo.ApplicationCommandOption{
-							{
-								Name:        "youtube-channel-id",
-								Description: "The YouTube channel ID whose memberships we should stop monitoring. (e.g. UCAL_ZudIZXhCDrniD4ZQobQ)",
-								Type:        discordgo.ApplicationCommandOptionString,
-							},
-							{
-								Name:        "role",
-								Description: "The Discord role for members of a YouTube channel",
-								Type:        discordgo.ApplicationCommandOptionRole,
-							},
-						},
-					},
-				},
 			},
 		},
 	}
@@ -294,8 +219,6 @@ func (b *DiscordBot) handleInteractionCreate(s *discordgo.Session, i *discordgo.
 			b.handleCheck(ctx, i)
 		case "info":
 			b.handleInfo(ctx, i)
-		case "manage":
-			b.handleManage(ctx, i)
 		}
 	case adminAuditCommandName:
 		b.deferredReply(ctx, i, adminAuditCommandName, true, func(logger zerolog.Logger) (*discordgo.WebhookEdit, error) {
@@ -538,56 +461,8 @@ func (b *DiscordBot) handleInfo(ctx context.Context, i *discordgo.InteractionCre
 	})
 }
 
-func (b *DiscordBot) handleManage(ctx context.Context, i *discordgo.InteractionCreate) {
-	if i.User != nil {
-		b.replyNoDM(i)
-		return
-	}
-	ctx = deprecatedContext(ctx)
-	b.deferredReply(ctx, i, "manage", true,
-		// the calling user has to be an admin of some sort to run this command
-		func(logger zerolog.Logger) (*discordgo.WebhookEdit, error) {
-			return b.deferredRequireModeratorOrAdmin(ctx, i)
-		},
-		func(logger zerolog.Logger) (*discordgo.WebhookEdit, error) {
-			manageCmd := i.ApplicationCommandData().Options[0]
-			subcommand := manageCmd.Options[0]
-			switch subcommand.Name {
-			case "audit-set":
-				return b.handleManageAuditSet(ctx, logger, i, subcommand)
-			case "audit-off":
-				return b.handleManageAuditOff(ctx, logger, i, subcommand)
-			case "map":
-				return b.handleManageMap(ctx, logger, i, subcommand)
-			case "unmap":
-				return b.handleManageUnmap(ctx, logger, i, subcommand)
-			default:
-				return &discordgo.WebhookEdit{
-					Content: ptr("You've somehow sent an unknown `/gentei manage` command. Discord is not supposed to allow this to happen so... try reloading this browser window or your Discord client? :thinking:"),
-				}, nil
-			}
-		},
-	)
-}
-
 // helpers
 type ctxKey int
-
-// Context key whose value should specifically not be nil to be set
-var manageCommandDeprecated ctxKey
-
-func deprecatedContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, manageCommandDeprecated, true)
-}
-
-func isDeprecatedContext(ctx context.Context) bool {
-	value, _ := ctx.Value(manageCommandDeprecated).(bool)
-	return value
-}
-
-const (
-	manageDeprecatedPrefix = "⚠️ `/gentei manage` will be removed soon. Please use the replacement commands `/gentei-audit` and `/gentei-map`, which are admin-only by default! ⚠️"
-)
 
 // deferredReply can only be called once, but it'll process each responseFunc in serial. If it gets a WebHookEdit payload, it sends that and stops processing later responseFuncs.
 func (b *DiscordBot) deferredReply(ctx context.Context, i *discordgo.InteractionCreate, commandName string, ephemeral bool, responseFuncs ...slashResponseFunc) {
@@ -631,9 +506,6 @@ func (b *DiscordBot) deferredReply(ctx context.Context, i *discordgo.Interaction
 		}
 		if response == nil {
 			continue
-		}
-		if isDeprecatedContext(ctx) && response.Content != nil {
-			response.Content = ptr(fmt.Sprintf("%s\n\n%s", manageDeprecatedPrefix, *response.Content))
 		}
 		_, err = b.session.InteractionResponseEdit(i.Interaction, response)
 		if err != nil {
