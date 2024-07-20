@@ -22,6 +22,7 @@ func (b *DiscordBot) StartPSApplier(parentCtx context.Context, sub *pubsub.Subsc
 	b.cancelPSApplier = cancel
 	go func() {
 		defer cancel()
+		log.Debug().Msg("starting pubsub message receiver")
 		err := sub.Receive(pCtx, b.handlePSMessage)
 		if err != nil {
 			log.Err(err).Msg("bot PSApplier crashed?")
@@ -42,6 +43,7 @@ func (b *DiscordBot) handlePSMessage(ctx context.Context, m *pubsub.Message) {
 		m.Ack()
 		return
 	}
+	log.Debug().Any("psmessage", message).Msg("processing message")
 	switch {
 	case message.DeleteSingle != nil:
 		var (
@@ -62,6 +64,7 @@ func (b *DiscordBot) handlePSMessage(ctx context.Context, m *pubsub.Message) {
 			reason = "user deleted"
 		}
 		logger := log.With().Str("userID", strconv.FormatUint(userID, 10)).Logger()
+		logger.Debug().Msg("revoking memberships for deleted user")
 		err = b.revokeMembershipsByUserID(ctx, userID, reason)
 		if err != nil {
 			logger.Err(err).Msg("error revoking all memberships before deletion")
@@ -70,10 +73,14 @@ func (b *DiscordBot) handlePSMessage(ctx context.Context, m *pubsub.Message) {
 		// now actually delete the user
 		err = b.db.User.DeleteOneID(userID).Exec(ctx)
 		if err != nil {
-			return
+			if !ent.IsNotFound(err) {
+				logger.Err(err).Msg("unhandled error while attempting to delete user")
+				return
+			}
 		}
 		m.Ack()
 		// best-effort attempt at sending the user deletion DM
+		logger.Debug().Msg("attempting to send deletion confirmation message")
 		ch, err := b.session.UserChannelCreate(userIDStr)
 		if err != nil {
 			logger.Err(err).Msg("error creating UserChannel to inform of deletion")
@@ -121,6 +128,8 @@ func (b *DiscordBot) handlePSMessage(ctx context.Context, m *pubsub.Message) {
 			log.Err(err).Msg("error enforcing all roles")
 			return
 		}
+	default:
+		log.Warn().Any("psmessage", message).Msg("acking mystery message")
 	}
 	m.Ack()
 }

@@ -157,6 +157,8 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 	b.session.Identify.Intents = discordgo.IntentsGuilds | discordgo.IntentsGuildMembers
 	// declare large_threshold explicitly
 	b.session.Identify.LargeThreshold = largeThreshold
+	// avoid data race conditions
+	b.session.SyncEvents = true
 	if err = b.session.Open(); err != nil {
 		return fmt.Errorf("error opening discordgo session: %w", err)
 	}
