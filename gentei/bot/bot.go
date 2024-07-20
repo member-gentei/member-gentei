@@ -11,6 +11,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/jellydator/ttlcache/v3"
+	"github.com/mark-ignacio/gsync"
 	"github.com/member-gentei/member-gentei/gentei/bot/roles"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
@@ -35,8 +36,7 @@ type DiscordBot struct {
 	// roleEnforcementMutex is held by overall role enforcement runs.
 	roleEnforcementMutex *sync.Mutex
 	// guildMemberLoadMutexes are held by the guild member load process.
-	guildMemberLoadMutexes      map[string]*sync.Mutex
-	guildMemberLoadMutexesMutex *sync.Mutex
+	guildMemberLoadMutexes gsync.Map[string, *sync.Mutex]
 	// auditChannelCache's key is the Guild ID
 	auditChannelCache *ttlcache.Cache[uint64, uint64]
 }
@@ -52,14 +52,13 @@ func New(db *ent.Client, token string, youTubeConfig *oauth2.Config) (*DiscordBo
 	)
 	go acc.Start()
 	return &DiscordBot{
-		session:                     session,
-		db:                          db,
-		rut:                         rut,
-		youTubeConfig:               youTubeConfig,
-		roleEnforcementMutex:        &sync.Mutex{},
-		guildMemberLoadMutexes:      map[string]*sync.Mutex{},
-		guildMemberLoadMutexesMutex: &sync.Mutex{},
-		auditChannelCache:           acc,
+		session:                session,
+		db:                     db,
+		rut:                    rut,
+		youTubeConfig:          youTubeConfig,
+		roleEnforcementMutex:   &sync.Mutex{},
+		guildMemberLoadMutexes: gsync.Map[string, *sync.Mutex]{},
+		auditChannelCache:      acc,
 	}, nil
 }
 
@@ -77,7 +76,8 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 		}
 		if gmc.ChunkIndex == gmc.ChunkCount-1 {
 			logger.Info().Int("total", gmc.ChunkCount).Msg("got all guild member chunks")
-			b.guildMemberLoadMutexes[gmc.GuildID].Unlock()
+			m, _ := b.guildMemberLoadMutexes.Load(gmc.GuildID)
+			m.Unlock()
 		}
 	})
 	// guild metadata updates
@@ -89,14 +89,10 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 		logger.Info().Msg("joined Guild")
 		// start guild member load if > largeThreshold
 		// (see why at https://discord.com/developers/docs/topics/gateway-events#request-guild-members)
-		b.guildMemberLoadMutexesMutex.Lock()
-		if b.guildMemberLoadMutexes[gc.ID] == nil {
-			b.guildMemberLoadMutexes[gc.ID] = &sync.Mutex{}
-		}
-		b.guildMemberLoadMutexesMutex.Unlock()
+		m, _ := b.guildMemberLoadMutexes.LoadOrStore(gc.ID, &sync.Mutex{})
 		if gc.MemberCount > largeThreshold {
 			logger.Info().Int("memberCount", gc.MemberCount).Msg("big server; requesting Guild members")
-			b.guildMemberLoadMutexes[gc.ID].Lock()
+			m.Lock()
 			if err = b.session.RequestGuildMembers(gc.ID, "", 0, "", false); err != nil {
 				logger.Err(err).Msg("error requesting guild members")
 			}
