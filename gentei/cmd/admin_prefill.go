@@ -25,7 +25,7 @@ var prefillCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal().Err(err).Msg("error creating session")
 		}
-		userGuilds, err := session.UserGuilds(0, "", "")
+		userGuilds, err := session.UserGuilds(0, "", "", false, nil)
 		if err != nil {
 			log.Fatal().Err(err).Msg("error listing own guilds")
 		}
