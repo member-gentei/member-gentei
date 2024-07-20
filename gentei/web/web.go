@@ -172,7 +172,7 @@ func loginDiscord(
 			return err
 		}
 		if !isUpdate {
-			userGuilds, err := svc.UserGuilds(0, "", "")
+			userGuilds, err := svc.UserGuilds(0, "", "", false, nil)
 			if err != nil {
 				return err
 			}
