@@ -220,7 +220,9 @@ func (b *DiscordBot) handleManageUnmap(
 	if cidVal, exists := options["youtube-channel-id"]; exists {
 		youtubeID := cidVal.StringValue()
 		dg, err := b.db.Guild.Query().
-			WithRoles().
+			WithRoles(func(grq *ent.GuildRoleQuery) {
+				grq.WithTalent()
+			}).
 			Where(
 				guild.ID(guildID),
 				guild.HasYoutubeTalentsWith(youtubetalent.ID(youtubeID)),
