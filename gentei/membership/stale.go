@@ -270,7 +270,7 @@ func RefreshUserGuildEdges(
 		err = fmt.Errorf("error creating discordgo.Session: %w", err)
 		return
 	}
-	userGuilds, err := svc.UserGuilds(0, "", "", false, nil)
+	userGuilds, err := svc.UserGuilds(0, "", "", false)
 	if err != nil {
 		err = fmt.Errorf("error getting UserGuilds: %w", err)
 		return
