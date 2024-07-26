@@ -141,7 +141,7 @@ func repairGuilds(ctx context.Context, db *ent.Client, session *discordgo.Sessio
 	}
 	var afterID string
 	for {
-		guilds, err := session.UserGuilds(100, "", afterID, false, nil)
+		guilds, err := session.UserGuilds(100, "", afterID, false)
 		if err != nil {
 			return err
 		}
