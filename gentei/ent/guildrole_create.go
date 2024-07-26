@@ -104,7 +104,7 @@ func (grc *GuildRoleCreate) Mutation() *GuildRoleMutation {
 // Save creates the GuildRole in the database.
 func (grc *GuildRoleCreate) Save(ctx context.Context) (*GuildRole, error) {
 	grc.defaults()
-	return withHooks[*GuildRole, GuildRoleMutation](ctx, grc.sqlSave, grc.mutation, grc.hooks)
+	return withHooks(ctx, grc.sqlSave, grc.mutation, grc.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
@@ -427,12 +427,16 @@ func (u *GuildRoleUpsertOne) IDX(ctx context.Context) uint64 {
 // GuildRoleCreateBulk is the builder for creating many GuildRole entities in bulk.
 type GuildRoleCreateBulk struct {
 	config
+	err      error
 	builders []*GuildRoleCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the GuildRole entities in the database.
 func (grcb *GuildRoleCreateBulk) Save(ctx context.Context) ([]*GuildRole, error) {
+	if grcb.err != nil {
+		return nil, grcb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(grcb.builders))
 	nodes := make([]*GuildRole, len(grcb.builders))
 	mutators := make([]Mutator, len(grcb.builders))
@@ -631,6 +635,9 @@ func (u *GuildRoleUpsertBulk) UpdateLastUpdated() *GuildRoleUpsertBulk {
 
 // Exec executes the query.
 func (u *GuildRoleUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the GuildRoleCreateBulk instead", i)

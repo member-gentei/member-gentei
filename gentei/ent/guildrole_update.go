@@ -37,6 +37,14 @@ func (gru *GuildRoleUpdate) SetName(s string) *GuildRoleUpdate {
 	return gru
 }
 
+// SetNillableName sets the "name" field if the given value is not nil.
+func (gru *GuildRoleUpdate) SetNillableName(s *string) *GuildRoleUpdate {
+	if s != nil {
+		gru.SetName(*s)
+	}
+	return gru
+}
+
 // SetLastUpdated sets the "last_updated" field.
 func (gru *GuildRoleUpdate) SetLastUpdated(t time.Time) *GuildRoleUpdate {
 	gru.mutation.SetLastUpdated(t)
@@ -136,7 +144,7 @@ func (gru *GuildRoleUpdate) ClearTalent() *GuildRoleUpdate {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (gru *GuildRoleUpdate) Save(ctx context.Context) (int, error) {
-	return withHooks[int, GuildRoleMutation](ctx, gru.sqlSave, gru.mutation, gru.hooks)
+	return withHooks(ctx, gru.sqlSave, gru.mutation, gru.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
@@ -316,6 +324,14 @@ func (gruo *GuildRoleUpdateOne) SetName(s string) *GuildRoleUpdateOne {
 	return gruo
 }
 
+// SetNillableName sets the "name" field if the given value is not nil.
+func (gruo *GuildRoleUpdateOne) SetNillableName(s *string) *GuildRoleUpdateOne {
+	if s != nil {
+		gruo.SetName(*s)
+	}
+	return gruo
+}
+
 // SetLastUpdated sets the "last_updated" field.
 func (gruo *GuildRoleUpdateOne) SetLastUpdated(t time.Time) *GuildRoleUpdateOne {
 	gruo.mutation.SetLastUpdated(t)
@@ -428,7 +444,7 @@ func (gruo *GuildRoleUpdateOne) Select(field string, fields ...string) *GuildRol
 
 // Save executes the query and returns the updated GuildRole entity.
 func (gruo *GuildRoleUpdateOne) Save(ctx context.Context) (*GuildRole, error) {
-	return withHooks[*GuildRole, GuildRoleMutation](ctx, gruo.sqlSave, gruo.mutation, gruo.hooks)
+	return withHooks(ctx, gruo.sqlSave, gruo.mutation, gruo.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.

@@ -57,6 +57,14 @@ func (umu *UserMembershipUpdate) SetLastVerified(t time.Time) *UserMembershipUpd
 	return umu
 }
 
+// SetNillableLastVerified sets the "last_verified" field if the given value is not nil.
+func (umu *UserMembershipUpdate) SetNillableLastVerified(t *time.Time) *UserMembershipUpdate {
+	if t != nil {
+		umu.SetLastVerified(*t)
+	}
+	return umu
+}
+
 // SetFailCount sets the "fail_count" field.
 func (umu *UserMembershipUpdate) SetFailCount(i int) *UserMembershipUpdate {
 	umu.mutation.ResetFailCount()
@@ -163,7 +171,7 @@ func (umu *UserMembershipUpdate) RemoveRoles(g ...*GuildRole) *UserMembershipUpd
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (umu *UserMembershipUpdate) Save(ctx context.Context) (int, error) {
-	return withHooks[int, UserMembershipMutation](ctx, umu.sqlSave, umu.mutation, umu.hooks)
+	return withHooks(ctx, umu.sqlSave, umu.mutation, umu.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
@@ -372,6 +380,14 @@ func (umuo *UserMembershipUpdateOne) SetLastVerified(t time.Time) *UserMembershi
 	return umuo
 }
 
+// SetNillableLastVerified sets the "last_verified" field if the given value is not nil.
+func (umuo *UserMembershipUpdateOne) SetNillableLastVerified(t *time.Time) *UserMembershipUpdateOne {
+	if t != nil {
+		umuo.SetLastVerified(*t)
+	}
+	return umuo
+}
+
 // SetFailCount sets the "fail_count" field.
 func (umuo *UserMembershipUpdateOne) SetFailCount(i int) *UserMembershipUpdateOne {
 	umuo.mutation.ResetFailCount()
@@ -491,7 +507,7 @@ func (umuo *UserMembershipUpdateOne) Select(field string, fields ...string) *Use
 
 // Save executes the query and returns the updated UserMembership entity.
 func (umuo *UserMembershipUpdateOne) Save(ctx context.Context) (*UserMembership, error) {
-	return withHooks[*UserMembership, UserMembershipMutation](ctx, umuo.sqlSave, umuo.mutation, umuo.hooks)
+	return withHooks(ctx, umuo.sqlSave, umuo.mutation, umuo.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.

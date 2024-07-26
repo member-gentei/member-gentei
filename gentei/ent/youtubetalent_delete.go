@@ -27,7 +27,7 @@ func (yttd *YouTubeTalentDelete) Where(ps ...predicate.YouTubeTalent) *YouTubeTa
 
 // Exec executes the deletion query and returns how many vertices were deleted.
 func (yttd *YouTubeTalentDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks[int, YouTubeTalentMutation](ctx, yttd.sqlExec, yttd.mutation, yttd.hooks)
+	return withHooks(ctx, yttd.sqlExec, yttd.mutation, yttd.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.

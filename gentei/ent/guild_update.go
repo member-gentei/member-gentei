@@ -38,6 +38,14 @@ func (gu *GuildUpdate) SetName(s string) *GuildUpdate {
 	return gu
 }
 
+// SetNillableName sets the "name" field if the given value is not nil.
+func (gu *GuildUpdate) SetNillableName(s *string) *GuildUpdate {
+	if s != nil {
+		gu.SetName(*s)
+	}
+	return gu
+}
+
 // SetIconHash sets the "icon_hash" field.
 func (gu *GuildUpdate) SetIconHash(s string) *GuildUpdate {
 	gu.mutation.SetIconHash(s)
@@ -292,7 +300,7 @@ func (gu *GuildUpdate) RemoveYoutubeTalents(y ...*YouTubeTalent) *GuildUpdate {
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (gu *GuildUpdate) Save(ctx context.Context) (int, error) {
-	return withHooks[int, GuildMutation](ctx, gu.sqlSave, gu.mutation, gu.hooks)
+	return withHooks(ctx, gu.sqlSave, gu.mutation, gu.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
@@ -591,6 +599,14 @@ func (guo *GuildUpdateOne) SetName(s string) *GuildUpdateOne {
 	return guo
 }
 
+// SetNillableName sets the "name" field if the given value is not nil.
+func (guo *GuildUpdateOne) SetNillableName(s *string) *GuildUpdateOne {
+	if s != nil {
+		guo.SetName(*s)
+	}
+	return guo
+}
+
 // SetIconHash sets the "icon_hash" field.
 func (guo *GuildUpdateOne) SetIconHash(s string) *GuildUpdateOne {
 	guo.mutation.SetIconHash(s)
@@ -858,7 +874,7 @@ func (guo *GuildUpdateOne) Select(field string, fields ...string) *GuildUpdateOn
 
 // Save executes the query and returns the updated Guild entity.
 func (guo *GuildUpdateOne) Save(ctx context.Context) (*Guild, error) {
-	return withHooks[*Guild, GuildMutation](ctx, guo.sqlSave, guo.mutation, guo.hooks)
+	return withHooks(ctx, guo.sqlSave, guo.mutation, guo.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.

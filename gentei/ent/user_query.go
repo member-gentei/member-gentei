@@ -641,7 +641,7 @@ func (uq *UserQuery) loadMemberships(ctx context.Context, query *UserMembershipQ
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "user_memberships" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "user_memberships" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

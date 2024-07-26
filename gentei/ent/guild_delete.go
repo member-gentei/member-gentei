@@ -27,7 +27,7 @@ func (gd *GuildDelete) Where(ps ...predicate.Guild) *GuildDelete {
 
 // Exec executes the deletion query and returns how many vertices were deleted.
 func (gd *GuildDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks[int, GuildMutation](ctx, gd.sqlExec, gd.mutation, gd.hooks)
+	return withHooks(ctx, gd.sqlExec, gd.mutation, gd.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.

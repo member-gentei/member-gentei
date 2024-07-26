@@ -581,7 +581,7 @@ func (yttq *YouTubeTalentQuery) loadRoles(ctx context.Context, query *GuildRoleQ
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "you_tube_talent_roles" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "you_tube_talent_roles" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -612,7 +612,7 @@ func (yttq *YouTubeTalentQuery) loadMemberships(ctx context.Context, query *User
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "user_membership_youtube_talent" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "user_membership_youtube_talent" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

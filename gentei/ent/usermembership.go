@@ -49,12 +49,10 @@ type UserMembershipEdges struct {
 // UserOrErr returns the User value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e UserMembershipEdges) UserOrErr() (*User, error) {
-	if e.loadedTypes[0] {
-		if e.User == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: user.Label}
-		}
+	if e.User != nil {
 		return e.User, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: user.Label}
 	}
 	return nil, &NotLoadedError{edge: "user"}
 }
@@ -62,12 +60,10 @@ func (e UserMembershipEdges) UserOrErr() (*User, error) {
 // YoutubeTalentOrErr returns the YoutubeTalent value or an error if the edge
 // was not loaded in eager-loading, or loaded but was not found.
 func (e UserMembershipEdges) YoutubeTalentOrErr() (*YouTubeTalent, error) {
-	if e.loadedTypes[1] {
-		if e.YoutubeTalent == nil {
-			// Edge was loaded but was not found.
-			return nil, &NotFoundError{label: youtubetalent.Label}
-		}
+	if e.YoutubeTalent != nil {
 		return e.YoutubeTalent, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: youtubetalent.Label}
 	}
 	return nil, &NotLoadedError{edge: "youtube_talent"}
 }

@@ -1,3 +1,4 @@
+ariga.io/atlas v0.19.1-0.20240203083654-5948b60a8e43 h1:GwdJbXydHCYPedeeLt4x/lrlIISQ4JTH1mRWuE5ZZ14=
 cloud.google.com/go/accessapproval v1.7.4/go.mod h1:/aTEh45LzplQgFYdQdwPMR9YdX0UlhBmvB84uAmQKUc=
 cloud.google.com/go/accessapproval v1.7.7/go.mod h1:10ZDPYiTm8tgxuMPid8s2DL93BfCt6xBh/Vg0Xd8pU0=
 cloud.google.com/go/accesscontextmanager v1.8.4/go.mod h1:ParU+WbMpD34s5JFEnGAnPBYAgUHozaTmDJU7aCU9+M=
@@ -268,6 +269,7 @@ github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHm
 github.com/klauspost/asmfmt v1.3.2/go.mod h1:AG8TuvYojzulgDAMCnYn50l/5QV3Bs/tp6j0HLHbNSE=
 github.com/klauspost/compress v1.17.0/go.mod h1:ntbaceVETuRiXiv4DpjP66DpAtAGkEQskQzEyD//IeE=
 github.com/klauspost/cpuid/v2 v2.0.9/go.mod h1:FInQzS24/EEf25PyTYn52gqo7WaD8xa0213Md/qVLRg=
+github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/logrusorgru/aurora v2.0.3+incompatible/go.mod h1:7rIyQOR62GCctdiQpZ/zOJlFyk6y+94wXzv6RNZgaR4=
 github.com/mailgun/mailgun-go/v3 v3.6.4/go.mod h1:ZjVnH8S0dR2BLjvkZc/rxwerdcirzlA12LQDuGAadR0=
 github.com/mailru/easyjson v0.7.7/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
