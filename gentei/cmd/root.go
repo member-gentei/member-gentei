@@ -87,7 +87,10 @@ func Execute() {
 	defer func() {
 		zlg.Flush()
 		if r := recover(); r != nil {
-			log.Error().Interface("panic", r).Msg("recovered from panic before exiting, re-raising")
+			log.Error().
+				Any("panic", r).
+				Stack().
+				Msg("recovered from panic before exiting, re-raising")
 			zlg.Flush()
 			panic(r)
 		}
