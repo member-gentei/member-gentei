@@ -20,10 +20,11 @@ var triageCmd = &cobra.Command{
 	Short: "Displays data about a server + configuration for help with debugging things.",
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
-			guildID, _ = cmd.Flags().GetUint64("guild")
-			userID, _  = cmd.Flags().GetUint64("user")
-			ctx        = context.Background()
-			db         = mustOpenDB(ctx)
+			guildID, _   = cmd.Flags().GetUint64("guild")
+			userID, _    = cmd.Flags().GetUint64("user")
+			youtubeID, _ = cmd.Flags().GetString("youtube-channel")
+			ctx          = context.Background()
+			db           = mustOpenDB(ctx)
 		)
 		if guildID != 0 {
 			dg := db.Guild.Query().
@@ -63,7 +64,11 @@ var triageCmd = &cobra.Command{
 					})
 				}).
 				OnlyX(ctx)
-			log.Info().Uint64("userID", userID).Str("user", u.FullName).Msg("fetched user membership information")
+			log.Info().
+				Uint64("userID", userID).
+				Str("user", u.FullName).
+				Time("lastCheck", u.LastCheck).
+				Msg("fetched user membership information")
 			tw := table.NewWriter()
 			tw.AppendHeader(table.Row{
 				"Channel ID",
@@ -82,8 +87,30 @@ var triageCmd = &cobra.Command{
 				})
 			}
 			fmt.Println(tw.Render())
+		} else if youtubeID != "" {
+			y := db.YouTubeTalent.GetX(ctx, youtubeID)
+			tw := table.NewWriter()
+			tw.AppendHeader(table.Row{
+				"Channel ID",
+				"Channel Name",
+				"Membership Video ID",
+				"Last Updated",
+				"Last Membership Video ID Miss",
+				"Disabled",
+				"Disabled Permanently",
+			})
+			tw.AppendRow(table.Row{
+				y.ID,
+				y.ChannelName,
+				y.MembershipVideoID,
+				y.LastUpdated,
+				y.LastMembershipVideoIDMiss,
+				y.Disabled,
+				y.DisabledPermanently,
+			})
+			fmt.Println(tw.Render())
 		} else {
-			log.Fatal().Msg("--guild or --user required")
+			log.Fatal().Msg("--guild or --user or --youtube-channel required")
 		}
 	},
 }
@@ -102,4 +129,5 @@ func init() {
 	flags := triageCmd.Flags()
 	flags.Uint64P("guild", "s", 0, "Discord guild (+server) ID")
 	flags.Uint64P("user", "u", 0, "Discord user ID")
+	flags.StringP("youtube-channel", "y", "", "YouTube channel ID")
 }
