@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/jellydator/ttlcache/v3"
 	"github.com/mark-ignacio/gsync"
 	"github.com/member-gentei/member-gentei/gentei/bot/roles"
@@ -46,6 +47,7 @@ func New(db *ent.Client, token string, youTubeConfig *oauth2.Config) (*DiscordBo
 	if err != nil {
 		return nil, fmt.Errorf("error creating discordgo session: %w", err)
 	}
+	session.Client = retryablehttp.NewClient().HTTPClient
 	rut := roles.NewRoleUpdateTracker(session)
 	acc := ttlcache.New(
 		ttlcache.WithTTL[uint64, uint64](time.Minute * 5),
