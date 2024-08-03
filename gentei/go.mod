@@ -4,7 +4,7 @@ go 1.22.3
 
 require (
 	cloud.google.com/go/pubsub v1.40.0
-	entgo.io/ent v0.13.1
+	entgo.io/ent v0.14.0
 	github.com/bwmarrin/discordgo v0.28.1
 	github.com/cbroglie/mustache v1.4.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible

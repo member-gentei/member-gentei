@@ -198,7 +198,7 @@ func (umu *UserMembershipUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (umu *UserMembershipUpdate) check() error {
-	if _, ok := umu.mutation.YoutubeTalentID(); umu.mutation.YoutubeTalentCleared() && !ok {
+	if umu.mutation.YoutubeTalentCleared() && len(umu.mutation.YoutubeTalentIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "UserMembership.youtube_talent"`)
 	}
 	return nil
@@ -534,7 +534,7 @@ func (umuo *UserMembershipUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (umuo *UserMembershipUpdateOne) check() error {
-	if _, ok := umuo.mutation.YoutubeTalentID(); umuo.mutation.YoutubeTalentCleared() && !ok {
+	if umuo.mutation.YoutubeTalentCleared() && len(umuo.mutation.YoutubeTalentIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "UserMembership.youtube_talent"`)
 	}
 	return nil

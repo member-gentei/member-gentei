@@ -145,7 +145,7 @@ func (grc *GuildRoleCreate) check() error {
 	if _, ok := grc.mutation.LastUpdated(); !ok {
 		return &ValidationError{Name: "last_updated", err: errors.New(`ent: missing required field "GuildRole.last_updated"`)}
 	}
-	if _, ok := grc.mutation.GuildID(); !ok {
+	if len(grc.mutation.GuildIDs()) == 0 {
 		return &ValidationError{Name: "guild", err: errors.New(`ent: missing required edge "GuildRole.guild"`)}
 	}
 	return nil

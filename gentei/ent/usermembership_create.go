@@ -153,7 +153,7 @@ func (umc *UserMembershipCreate) check() error {
 	if _, ok := umc.mutation.FailCount(); !ok {
 		return &ValidationError{Name: "fail_count", err: errors.New(`ent: missing required field "UserMembership.fail_count"`)}
 	}
-	if _, ok := umc.mutation.YoutubeTalentID(); !ok {
+	if len(umc.mutation.YoutubeTalentIDs()) == 0 {
 		return &ValidationError{Name: "youtube_talent", err: errors.New(`ent: missing required edge "UserMembership.youtube_talent"`)}
 	}
 	return nil

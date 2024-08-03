@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -136,7 +137,7 @@ func (grq *GuildRoleQuery) QueryTalent() *YouTubeTalentQuery {
 // First returns the first GuildRole entity from the query.
 // Returns a *NotFoundError when no GuildRole was found.
 func (grq *GuildRoleQuery) First(ctx context.Context) (*GuildRole, error) {
-	nodes, err := grq.Limit(1).All(setContextOp(ctx, grq.ctx, "First"))
+	nodes, err := grq.Limit(1).All(setContextOp(ctx, grq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +160,7 @@ func (grq *GuildRoleQuery) FirstX(ctx context.Context) *GuildRole {
 // Returns a *NotFoundError when no GuildRole ID was found.
 func (grq *GuildRoleQuery) FirstID(ctx context.Context) (id uint64, err error) {
 	var ids []uint64
-	if ids, err = grq.Limit(1).IDs(setContextOp(ctx, grq.ctx, "FirstID")); err != nil {
+	if ids, err = grq.Limit(1).IDs(setContextOp(ctx, grq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -182,7 +183,7 @@ func (grq *GuildRoleQuery) FirstIDX(ctx context.Context) uint64 {
 // Returns a *NotSingularError when more than one GuildRole entity is found.
 // Returns a *NotFoundError when no GuildRole entities are found.
 func (grq *GuildRoleQuery) Only(ctx context.Context) (*GuildRole, error) {
-	nodes, err := grq.Limit(2).All(setContextOp(ctx, grq.ctx, "Only"))
+	nodes, err := grq.Limit(2).All(setContextOp(ctx, grq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +211,7 @@ func (grq *GuildRoleQuery) OnlyX(ctx context.Context) *GuildRole {
 // Returns a *NotFoundError when no entities are found.
 func (grq *GuildRoleQuery) OnlyID(ctx context.Context) (id uint64, err error) {
 	var ids []uint64
-	if ids, err = grq.Limit(2).IDs(setContextOp(ctx, grq.ctx, "OnlyID")); err != nil {
+	if ids, err = grq.Limit(2).IDs(setContextOp(ctx, grq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -235,7 +236,7 @@ func (grq *GuildRoleQuery) OnlyIDX(ctx context.Context) uint64 {
 
 // All executes the query and returns a list of GuildRoles.
 func (grq *GuildRoleQuery) All(ctx context.Context) ([]*GuildRole, error) {
-	ctx = setContextOp(ctx, grq.ctx, "All")
+	ctx = setContextOp(ctx, grq.ctx, ent.OpQueryAll)
 	if err := grq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -257,7 +258,7 @@ func (grq *GuildRoleQuery) IDs(ctx context.Context) (ids []uint64, err error) {
 	if grq.ctx.Unique == nil && grq.path != nil {
 		grq.Unique(true)
 	}
-	ctx = setContextOp(ctx, grq.ctx, "IDs")
+	ctx = setContextOp(ctx, grq.ctx, ent.OpQueryIDs)
 	if err = grq.Select(guildrole.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -275,7 +276,7 @@ func (grq *GuildRoleQuery) IDsX(ctx context.Context) []uint64 {
 
 // Count returns the count of the given query.
 func (grq *GuildRoleQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, grq.ctx, "Count")
+	ctx = setContextOp(ctx, grq.ctx, ent.OpQueryCount)
 	if err := grq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -293,7 +294,7 @@ func (grq *GuildRoleQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (grq *GuildRoleQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, grq.ctx, "Exist")
+	ctx = setContextOp(ctx, grq.ctx, ent.OpQueryExist)
 	switch _, err := grq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -754,7 +755,7 @@ func (grgb *GuildRoleGroupBy) Aggregate(fns ...AggregateFunc) *GuildRoleGroupBy 
 
 // Scan applies the selector query and scans the result into the given value.
 func (grgb *GuildRoleGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, grgb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, grgb.build.ctx, ent.OpQueryGroupBy)
 	if err := grgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -802,7 +803,7 @@ func (grs *GuildRoleSelect) Aggregate(fns ...AggregateFunc) *GuildRoleSelect {
 
 // Scan applies the selector query and scans the result into the given value.
 func (grs *GuildRoleSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, grs.ctx, "Select")
+	ctx = setContextOp(ctx, grs.ctx, ent.OpQuerySelect)
 	if err := grs.prepareQuery(ctx); err != nil {
 		return err
 	}

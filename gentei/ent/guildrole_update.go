@@ -171,7 +171,7 @@ func (gru *GuildRoleUpdate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (gru *GuildRoleUpdate) check() error {
-	if _, ok := gru.mutation.GuildID(); gru.mutation.GuildCleared() && !ok {
+	if gru.mutation.GuildCleared() && len(gru.mutation.GuildIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "GuildRole.guild"`)
 	}
 	return nil
@@ -471,7 +471,7 @@ func (gruo *GuildRoleUpdateOne) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (gruo *GuildRoleUpdateOne) check() error {
-	if _, ok := gruo.mutation.GuildID(); gruo.mutation.GuildCleared() && !ok {
+	if gruo.mutation.GuildCleared() && len(gruo.mutation.GuildIDs()) > 0 {
 		return errors.New(`ent: clearing a required unique edge "GuildRole.guild"`)
 	}
 	return nil
