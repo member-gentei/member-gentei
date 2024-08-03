@@ -165,7 +165,7 @@ func (gc *GuildCreate) Mutation() *GuildMutation {
 // Save creates the Guild in the database.
 func (gc *GuildCreate) Save(ctx context.Context) (*Guild, error) {
 	gc.defaults()
-	return withHooks[*Guild, GuildMutation](ctx, gc.sqlSave, gc.mutation, gc.hooks)
+	return withHooks(ctx, gc.sqlSave, gc.mutation, gc.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
@@ -722,12 +722,16 @@ func (u *GuildUpsertOne) IDX(ctx context.Context) uint64 {
 // GuildCreateBulk is the builder for creating many Guild entities in bulk.
 type GuildCreateBulk struct {
 	config
+	err      error
 	builders []*GuildCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the Guild entities in the database.
 func (gcb *GuildCreateBulk) Save(ctx context.Context) ([]*Guild, error) {
+	if gcb.err != nil {
+		return nil, gcb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(gcb.builders))
 	nodes := make([]*Guild, len(gcb.builders))
 	mutators := make([]Mutator, len(gcb.builders))
@@ -1031,6 +1035,9 @@ func (u *GuildUpsertBulk) ClearSettings() *GuildUpsertBulk {
 
 // Exec executes the query.
 func (u *GuildUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the GuildCreateBulk instead", i)

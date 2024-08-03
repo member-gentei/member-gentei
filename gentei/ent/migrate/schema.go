@@ -3,6 +3,7 @@
 package migrate
 
 import (
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/dialect/sql/schema"
 	"entgo.io/ent/schema/field"
 )
@@ -247,6 +248,7 @@ func init() {
 	GuildAdminsTable.ForeignKeys[1].RefTable = UsersTable
 	UserMembershipRolesTable.ForeignKeys[0].RefTable = UserMembershipsTable
 	UserMembershipRolesTable.ForeignKeys[1].RefTable = GuildRolesTable
+	UserMembershipRolesTable.Annotation = &entsql.Annotation{}
 	YouTubeTalentGuildsTable.ForeignKeys[0].RefTable = YouTubeTalentsTable
 	YouTubeTalentGuildsTable.ForeignKeys[1].RefTable = GuildsTable
 }

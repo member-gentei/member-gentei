@@ -37,9 +37,25 @@ func (yttu *YouTubeTalentUpdate) SetChannelName(s string) *YouTubeTalentUpdate {
 	return yttu
 }
 
+// SetNillableChannelName sets the "channel_name" field if the given value is not nil.
+func (yttu *YouTubeTalentUpdate) SetNillableChannelName(s *string) *YouTubeTalentUpdate {
+	if s != nil {
+		yttu.SetChannelName(*s)
+	}
+	return yttu
+}
+
 // SetThumbnailURL sets the "thumbnail_url" field.
 func (yttu *YouTubeTalentUpdate) SetThumbnailURL(s string) *YouTubeTalentUpdate {
 	yttu.mutation.SetThumbnailURL(s)
+	return yttu
+}
+
+// SetNillableThumbnailURL sets the "thumbnail_url" field if the given value is not nil.
+func (yttu *YouTubeTalentUpdate) SetNillableThumbnailURL(s *string) *YouTubeTalentUpdate {
+	if s != nil {
+		yttu.SetThumbnailURL(*s)
+	}
 	return yttu
 }
 
@@ -246,7 +262,7 @@ func (yttu *YouTubeTalentUpdate) RemoveMemberships(u ...*UserMembership) *YouTub
 
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (yttu *YouTubeTalentUpdate) Save(ctx context.Context) (int, error) {
-	return withHooks[int, YouTubeTalentMutation](ctx, yttu.sqlSave, yttu.mutation, yttu.hooks)
+	return withHooks(ctx, yttu.sqlSave, yttu.mutation, yttu.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.
@@ -471,9 +487,25 @@ func (yttuo *YouTubeTalentUpdateOne) SetChannelName(s string) *YouTubeTalentUpda
 	return yttuo
 }
 
+// SetNillableChannelName sets the "channel_name" field if the given value is not nil.
+func (yttuo *YouTubeTalentUpdateOne) SetNillableChannelName(s *string) *YouTubeTalentUpdateOne {
+	if s != nil {
+		yttuo.SetChannelName(*s)
+	}
+	return yttuo
+}
+
 // SetThumbnailURL sets the "thumbnail_url" field.
 func (yttuo *YouTubeTalentUpdateOne) SetThumbnailURL(s string) *YouTubeTalentUpdateOne {
 	yttuo.mutation.SetThumbnailURL(s)
+	return yttuo
+}
+
+// SetNillableThumbnailURL sets the "thumbnail_url" field if the given value is not nil.
+func (yttuo *YouTubeTalentUpdateOne) SetNillableThumbnailURL(s *string) *YouTubeTalentUpdateOne {
+	if s != nil {
+		yttuo.SetThumbnailURL(*s)
+	}
 	return yttuo
 }
 
@@ -693,7 +725,7 @@ func (yttuo *YouTubeTalentUpdateOne) Select(field string, fields ...string) *You
 
 // Save executes the query and returns the updated YouTubeTalent entity.
 func (yttuo *YouTubeTalentUpdateOne) Save(ctx context.Context) (*YouTubeTalent, error) {
-	return withHooks[*YouTubeTalent, YouTubeTalentMutation](ctx, yttuo.sqlSave, yttuo.mutation, yttuo.hooks)
+	return withHooks(ctx, yttuo.sqlSave, yttuo.mutation, yttuo.hooks)
 }
 
 // SaveX is like Save, but panics if an error occurs.

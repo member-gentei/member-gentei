@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -135,7 +136,7 @@ func (yttq *YouTubeTalentQuery) QueryMemberships() *UserMembershipQuery {
 // First returns the first YouTubeTalent entity from the query.
 // Returns a *NotFoundError when no YouTubeTalent was found.
 func (yttq *YouTubeTalentQuery) First(ctx context.Context) (*YouTubeTalent, error) {
-	nodes, err := yttq.Limit(1).All(setContextOp(ctx, yttq.ctx, "First"))
+	nodes, err := yttq.Limit(1).All(setContextOp(ctx, yttq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +159,7 @@ func (yttq *YouTubeTalentQuery) FirstX(ctx context.Context) *YouTubeTalent {
 // Returns a *NotFoundError when no YouTubeTalent ID was found.
 func (yttq *YouTubeTalentQuery) FirstID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = yttq.Limit(1).IDs(setContextOp(ctx, yttq.ctx, "FirstID")); err != nil {
+	if ids, err = yttq.Limit(1).IDs(setContextOp(ctx, yttq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -181,7 +182,7 @@ func (yttq *YouTubeTalentQuery) FirstIDX(ctx context.Context) string {
 // Returns a *NotSingularError when more than one YouTubeTalent entity is found.
 // Returns a *NotFoundError when no YouTubeTalent entities are found.
 func (yttq *YouTubeTalentQuery) Only(ctx context.Context) (*YouTubeTalent, error) {
-	nodes, err := yttq.Limit(2).All(setContextOp(ctx, yttq.ctx, "Only"))
+	nodes, err := yttq.Limit(2).All(setContextOp(ctx, yttq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +210,7 @@ func (yttq *YouTubeTalentQuery) OnlyX(ctx context.Context) *YouTubeTalent {
 // Returns a *NotFoundError when no entities are found.
 func (yttq *YouTubeTalentQuery) OnlyID(ctx context.Context) (id string, err error) {
 	var ids []string
-	if ids, err = yttq.Limit(2).IDs(setContextOp(ctx, yttq.ctx, "OnlyID")); err != nil {
+	if ids, err = yttq.Limit(2).IDs(setContextOp(ctx, yttq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -234,7 +235,7 @@ func (yttq *YouTubeTalentQuery) OnlyIDX(ctx context.Context) string {
 
 // All executes the query and returns a list of YouTubeTalents.
 func (yttq *YouTubeTalentQuery) All(ctx context.Context) ([]*YouTubeTalent, error) {
-	ctx = setContextOp(ctx, yttq.ctx, "All")
+	ctx = setContextOp(ctx, yttq.ctx, ent.OpQueryAll)
 	if err := yttq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -256,7 +257,7 @@ func (yttq *YouTubeTalentQuery) IDs(ctx context.Context) (ids []string, err erro
 	if yttq.ctx.Unique == nil && yttq.path != nil {
 		yttq.Unique(true)
 	}
-	ctx = setContextOp(ctx, yttq.ctx, "IDs")
+	ctx = setContextOp(ctx, yttq.ctx, ent.OpQueryIDs)
 	if err = yttq.Select(youtubetalent.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -274,7 +275,7 @@ func (yttq *YouTubeTalentQuery) IDsX(ctx context.Context) []string {
 
 // Count returns the count of the given query.
 func (yttq *YouTubeTalentQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, yttq.ctx, "Count")
+	ctx = setContextOp(ctx, yttq.ctx, ent.OpQueryCount)
 	if err := yttq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -292,7 +293,7 @@ func (yttq *YouTubeTalentQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (yttq *YouTubeTalentQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, yttq.ctx, "Exist")
+	ctx = setContextOp(ctx, yttq.ctx, ent.OpQueryExist)
 	switch _, err := yttq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -581,7 +582,7 @@ func (yttq *YouTubeTalentQuery) loadRoles(ctx context.Context, query *GuildRoleQ
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "you_tube_talent_roles" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "you_tube_talent_roles" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -612,7 +613,7 @@ func (yttq *YouTubeTalentQuery) loadMemberships(ctx context.Context, query *User
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "user_membership_youtube_talent" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "user_membership_youtube_talent" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -746,7 +747,7 @@ func (yttgb *YouTubeTalentGroupBy) Aggregate(fns ...AggregateFunc) *YouTubeTalen
 
 // Scan applies the selector query and scans the result into the given value.
 func (yttgb *YouTubeTalentGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, yttgb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, yttgb.build.ctx, ent.OpQueryGroupBy)
 	if err := yttgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -794,7 +795,7 @@ func (ytts *YouTubeTalentSelect) Aggregate(fns ...AggregateFunc) *YouTubeTalentS
 
 // Scan applies the selector query and scans the result into the given value.
 func (ytts *YouTubeTalentSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, ytts.ctx, "Select")
+	ctx = setContextOp(ctx, ytts.ctx, ent.OpQuerySelect)
 	if err := ytts.prepareQuery(ctx); err != nil {
 		return err
 	}

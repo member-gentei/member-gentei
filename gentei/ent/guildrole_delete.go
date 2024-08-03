@@ -27,7 +27,7 @@ func (grd *GuildRoleDelete) Where(ps ...predicate.GuildRole) *GuildRoleDelete {
 
 // Exec executes the deletion query and returns how many vertices were deleted.
 func (grd *GuildRoleDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks[int, GuildRoleMutation](ctx, grd.sqlExec, grd.mutation, grd.hooks)
+	return withHooks(ctx, grd.sqlExec, grd.mutation, grd.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.

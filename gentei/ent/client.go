@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"reflect"
 
 	"github.com/member-gentei/member-gentei/gentei/ent/migrate"
 
@@ -40,9 +41,7 @@ type Client struct {
 
 // NewClient creates a new client configured with the given options.
 func NewClient(opts ...Option) *Client {
-	cfg := config{log: log.Println, hooks: &hooks{}, inters: &inters{}}
-	cfg.options(opts...)
-	client := &Client{config: cfg}
+	client := &Client{config: newConfig(opts...)}
 	client.init()
 	return client
 }
@@ -73,6 +72,13 @@ type (
 	// Option function to configure the client.
 	Option func(*config)
 )
+
+// newConfig creates a new config for the client.
+func newConfig(opts ...Option) config {
+	cfg := config{log: log.Println, hooks: &hooks{}, inters: &inters{}}
+	cfg.options(opts...)
+	return cfg
+}
 
 // options applies the options on the config object.
 func (c *config) options(opts ...Option) {
@@ -121,11 +127,14 @@ func Open(driverName, dataSourceName string, options ...Option) (*Client, error)
 	}
 }
 
+// ErrTxStarted is returned when trying to start a new transaction from a transactional client.
+var ErrTxStarted = errors.New("ent: cannot start a transaction within a transaction")
+
 // Tx returns a new transactional client. The provided context
 // is used until the transaction is committed or rolled back.
 func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	if _, ok := c.driver.(*txDriver); ok {
-		return nil, errors.New("ent: cannot start a transaction within a transaction")
+		return nil, ErrTxStarted
 	}
 	tx, err := newTx(ctx, c.driver)
 	if err != nil {
@@ -258,6 +267,21 @@ func (c *GuildClient) Create() *GuildCreate {
 
 // CreateBulk returns a builder for creating a bulk of Guild entities.
 func (c *GuildClient) CreateBulk(builders ...*GuildCreate) *GuildCreateBulk {
+	return &GuildCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *GuildClient) MapCreateBulk(slice any, setFunc func(*GuildCreate, int)) *GuildCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &GuildCreateBulk{err: fmt.Errorf("calling to GuildClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*GuildCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
 	return &GuildCreateBulk{config: c.config, builders: builders}
 }
 
@@ -443,6 +467,21 @@ func (c *GuildRoleClient) CreateBulk(builders ...*GuildRoleCreate) *GuildRoleCre
 	return &GuildRoleCreateBulk{config: c.config, builders: builders}
 }
 
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *GuildRoleClient) MapCreateBulk(slice any, setFunc func(*GuildRoleCreate, int)) *GuildRoleCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &GuildRoleCreateBulk{err: fmt.Errorf("calling to GuildRoleClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*GuildRoleCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &GuildRoleCreateBulk{config: c.config, builders: builders}
+}
+
 // Update returns an update builder for GuildRole.
 func (c *GuildRoleClient) Update() *GuildRoleUpdate {
 	mutation := newGuildRoleMutation(c.config, OpUpdate)
@@ -606,6 +645,21 @@ func (c *UserClient) Create() *UserCreate {
 
 // CreateBulk returns a builder for creating a bulk of User entities.
 func (c *UserClient) CreateBulk(builders ...*UserCreate) *UserCreateBulk {
+	return &UserCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *UserClient) MapCreateBulk(slice any, setFunc func(*UserCreate, int)) *UserCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &UserCreateBulk{err: fmt.Errorf("calling to UserClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*UserCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
 	return &UserCreateBulk{config: c.config, builders: builders}
 }
 
@@ -775,6 +829,21 @@ func (c *UserMembershipClient) CreateBulk(builders ...*UserMembershipCreate) *Us
 	return &UserMembershipCreateBulk{config: c.config, builders: builders}
 }
 
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *UserMembershipClient) MapCreateBulk(slice any, setFunc func(*UserMembershipCreate, int)) *UserMembershipCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &UserMembershipCreateBulk{err: fmt.Errorf("calling to UserMembershipClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*UserMembershipCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &UserMembershipCreateBulk{config: c.config, builders: builders}
+}
+
 // Update returns an update builder for UserMembership.
 func (c *UserMembershipClient) Update() *UserMembershipUpdate {
 	mutation := newUserMembershipMutation(c.config, OpUpdate)
@@ -938,6 +1007,21 @@ func (c *YouTubeTalentClient) Create() *YouTubeTalentCreate {
 
 // CreateBulk returns a builder for creating a bulk of YouTubeTalent entities.
 func (c *YouTubeTalentClient) CreateBulk(builders ...*YouTubeTalentCreate) *YouTubeTalentCreateBulk {
+	return &YouTubeTalentCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *YouTubeTalentClient) MapCreateBulk(slice any, setFunc func(*YouTubeTalentCreate, int)) *YouTubeTalentCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &YouTubeTalentCreateBulk{err: fmt.Errorf("calling to YouTubeTalentClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*YouTubeTalentCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
 	return &YouTubeTalentCreateBulk{config: c.config, builders: builders}
 }
 

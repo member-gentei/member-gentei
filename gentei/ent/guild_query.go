@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -158,7 +159,7 @@ func (gq *GuildQuery) QueryYoutubeTalents() *YouTubeTalentQuery {
 // First returns the first Guild entity from the query.
 // Returns a *NotFoundError when no Guild was found.
 func (gq *GuildQuery) First(ctx context.Context) (*Guild, error) {
-	nodes, err := gq.Limit(1).All(setContextOp(ctx, gq.ctx, "First"))
+	nodes, err := gq.Limit(1).All(setContextOp(ctx, gq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +182,7 @@ func (gq *GuildQuery) FirstX(ctx context.Context) *Guild {
 // Returns a *NotFoundError when no Guild ID was found.
 func (gq *GuildQuery) FirstID(ctx context.Context) (id uint64, err error) {
 	var ids []uint64
-	if ids, err = gq.Limit(1).IDs(setContextOp(ctx, gq.ctx, "FirstID")); err != nil {
+	if ids, err = gq.Limit(1).IDs(setContextOp(ctx, gq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -204,7 +205,7 @@ func (gq *GuildQuery) FirstIDX(ctx context.Context) uint64 {
 // Returns a *NotSingularError when more than one Guild entity is found.
 // Returns a *NotFoundError when no Guild entities are found.
 func (gq *GuildQuery) Only(ctx context.Context) (*Guild, error) {
-	nodes, err := gq.Limit(2).All(setContextOp(ctx, gq.ctx, "Only"))
+	nodes, err := gq.Limit(2).All(setContextOp(ctx, gq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -232,7 +233,7 @@ func (gq *GuildQuery) OnlyX(ctx context.Context) *Guild {
 // Returns a *NotFoundError when no entities are found.
 func (gq *GuildQuery) OnlyID(ctx context.Context) (id uint64, err error) {
 	var ids []uint64
-	if ids, err = gq.Limit(2).IDs(setContextOp(ctx, gq.ctx, "OnlyID")); err != nil {
+	if ids, err = gq.Limit(2).IDs(setContextOp(ctx, gq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -257,7 +258,7 @@ func (gq *GuildQuery) OnlyIDX(ctx context.Context) uint64 {
 
 // All executes the query and returns a list of Guilds.
 func (gq *GuildQuery) All(ctx context.Context) ([]*Guild, error) {
-	ctx = setContextOp(ctx, gq.ctx, "All")
+	ctx = setContextOp(ctx, gq.ctx, ent.OpQueryAll)
 	if err := gq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -279,7 +280,7 @@ func (gq *GuildQuery) IDs(ctx context.Context) (ids []uint64, err error) {
 	if gq.ctx.Unique == nil && gq.path != nil {
 		gq.Unique(true)
 	}
-	ctx = setContextOp(ctx, gq.ctx, "IDs")
+	ctx = setContextOp(ctx, gq.ctx, ent.OpQueryIDs)
 	if err = gq.Select(guild.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -297,7 +298,7 @@ func (gq *GuildQuery) IDsX(ctx context.Context) []uint64 {
 
 // Count returns the count of the given query.
 func (gq *GuildQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, gq.ctx, "Count")
+	ctx = setContextOp(ctx, gq.ctx, ent.OpQueryCount)
 	if err := gq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -315,7 +316,7 @@ func (gq *GuildQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (gq *GuildQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, gq.ctx, "Exist")
+	ctx = setContextOp(ctx, gq.ctx, ent.OpQueryExist)
 	switch _, err := gq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -685,7 +686,7 @@ func (gq *GuildQuery) loadRoles(ctx context.Context, query *GuildRoleQuery, node
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected foreign-key "guild_roles" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "guild_roles" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
@@ -880,7 +881,7 @@ func (ggb *GuildGroupBy) Aggregate(fns ...AggregateFunc) *GuildGroupBy {
 
 // Scan applies the selector query and scans the result into the given value.
 func (ggb *GuildGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, ggb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, ggb.build.ctx, ent.OpQueryGroupBy)
 	if err := ggb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -928,7 +929,7 @@ func (gs *GuildSelect) Aggregate(fns ...AggregateFunc) *GuildSelect {
 
 // Scan applies the selector query and scans the result into the given value.
 func (gs *GuildSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, gs.ctx, "Select")
+	ctx = setContextOp(ctx, gs.ctx, ent.OpQuerySelect)
 	if err := gs.prepareQuery(ctx); err != nil {
 		return err
 	}

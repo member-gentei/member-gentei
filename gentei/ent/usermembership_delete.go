@@ -27,7 +27,7 @@ func (umd *UserMembershipDelete) Where(ps ...predicate.UserMembership) *UserMemb
 
 // Exec executes the deletion query and returns how many vertices were deleted.
 func (umd *UserMembershipDelete) Exec(ctx context.Context) (int, error) {
-	return withHooks[int, UserMembershipMutation](ctx, umd.sqlExec, umd.mutation, umd.hooks)
+	return withHooks(ctx, umd.sqlExec, umd.mutation, umd.hooks)
 }
 
 // ExecX is like Exec, but panics if an error occurs.

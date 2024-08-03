@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 
+	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -136,7 +137,7 @@ func (umq *UserMembershipQuery) QueryRoles() *GuildRoleQuery {
 // First returns the first UserMembership entity from the query.
 // Returns a *NotFoundError when no UserMembership was found.
 func (umq *UserMembershipQuery) First(ctx context.Context) (*UserMembership, error) {
-	nodes, err := umq.Limit(1).All(setContextOp(ctx, umq.ctx, "First"))
+	nodes, err := umq.Limit(1).All(setContextOp(ctx, umq.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +160,7 @@ func (umq *UserMembershipQuery) FirstX(ctx context.Context) *UserMembership {
 // Returns a *NotFoundError when no UserMembership ID was found.
 func (umq *UserMembershipQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = umq.Limit(1).IDs(setContextOp(ctx, umq.ctx, "FirstID")); err != nil {
+	if ids, err = umq.Limit(1).IDs(setContextOp(ctx, umq.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
@@ -182,7 +183,7 @@ func (umq *UserMembershipQuery) FirstIDX(ctx context.Context) int {
 // Returns a *NotSingularError when more than one UserMembership entity is found.
 // Returns a *NotFoundError when no UserMembership entities are found.
 func (umq *UserMembershipQuery) Only(ctx context.Context) (*UserMembership, error) {
-	nodes, err := umq.Limit(2).All(setContextOp(ctx, umq.ctx, "Only"))
+	nodes, err := umq.Limit(2).All(setContextOp(ctx, umq.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +211,7 @@ func (umq *UserMembershipQuery) OnlyX(ctx context.Context) *UserMembership {
 // Returns a *NotFoundError when no entities are found.
 func (umq *UserMembershipQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
-	if ids, err = umq.Limit(2).IDs(setContextOp(ctx, umq.ctx, "OnlyID")); err != nil {
+	if ids, err = umq.Limit(2).IDs(setContextOp(ctx, umq.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
 	switch len(ids) {
@@ -235,7 +236,7 @@ func (umq *UserMembershipQuery) OnlyIDX(ctx context.Context) int {
 
 // All executes the query and returns a list of UserMemberships.
 func (umq *UserMembershipQuery) All(ctx context.Context) ([]*UserMembership, error) {
-	ctx = setContextOp(ctx, umq.ctx, "All")
+	ctx = setContextOp(ctx, umq.ctx, ent.OpQueryAll)
 	if err := umq.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
@@ -257,7 +258,7 @@ func (umq *UserMembershipQuery) IDs(ctx context.Context) (ids []int, err error) 
 	if umq.ctx.Unique == nil && umq.path != nil {
 		umq.Unique(true)
 	}
-	ctx = setContextOp(ctx, umq.ctx, "IDs")
+	ctx = setContextOp(ctx, umq.ctx, ent.OpQueryIDs)
 	if err = umq.Select(usermembership.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
@@ -275,7 +276,7 @@ func (umq *UserMembershipQuery) IDsX(ctx context.Context) []int {
 
 // Count returns the count of the given query.
 func (umq *UserMembershipQuery) Count(ctx context.Context) (int, error) {
-	ctx = setContextOp(ctx, umq.ctx, "Count")
+	ctx = setContextOp(ctx, umq.ctx, ent.OpQueryCount)
 	if err := umq.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
@@ -293,7 +294,7 @@ func (umq *UserMembershipQuery) CountX(ctx context.Context) int {
 
 // Exist returns true if the query has elements in the graph.
 func (umq *UserMembershipQuery) Exist(ctx context.Context) (bool, error) {
-	ctx = setContextOp(ctx, umq.ctx, "Exist")
+	ctx = setContextOp(ctx, umq.ctx, ent.OpQueryExist)
 	switch _, err := umq.FirstID(ctx); {
 	case IsNotFound(err):
 		return false, nil
@@ -754,7 +755,7 @@ func (umgb *UserMembershipGroupBy) Aggregate(fns ...AggregateFunc) *UserMembersh
 
 // Scan applies the selector query and scans the result into the given value.
 func (umgb *UserMembershipGroupBy) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, umgb.build.ctx, "GroupBy")
+	ctx = setContextOp(ctx, umgb.build.ctx, ent.OpQueryGroupBy)
 	if err := umgb.build.prepareQuery(ctx); err != nil {
 		return err
 	}
@@ -802,7 +803,7 @@ func (ums *UserMembershipSelect) Aggregate(fns ...AggregateFunc) *UserMembership
 
 // Scan applies the selector query and scans the result into the given value.
 func (ums *UserMembershipSelect) Scan(ctx context.Context, v any) error {
-	ctx = setContextOp(ctx, ums.ctx, "Select")
+	ctx = setContextOp(ctx, ums.ctx, ent.OpQuerySelect)
 	if err := ums.prepareQuery(ctx); err != nil {
 		return err
 	}

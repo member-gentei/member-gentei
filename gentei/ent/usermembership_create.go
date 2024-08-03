@@ -112,7 +112,7 @@ func (umc *UserMembershipCreate) Mutation() *UserMembershipMutation {
 // Save creates the UserMembership in the database.
 func (umc *UserMembershipCreate) Save(ctx context.Context) (*UserMembership, error) {
 	umc.defaults()
-	return withHooks[*UserMembership, UserMembershipMutation](ctx, umc.sqlSave, umc.mutation, umc.hooks)
+	return withHooks(ctx, umc.sqlSave, umc.mutation, umc.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
@@ -153,7 +153,7 @@ func (umc *UserMembershipCreate) check() error {
 	if _, ok := umc.mutation.FailCount(); !ok {
 		return &ValidationError{Name: "fail_count", err: errors.New(`ent: missing required field "UserMembership.fail_count"`)}
 	}
-	if _, ok := umc.mutation.YoutubeTalentID(); !ok {
+	if len(umc.mutation.YoutubeTalentIDs()) == 0 {
 		return &ValidationError{Name: "youtube_talent", err: errors.New(`ent: missing required edge "UserMembership.youtube_talent"`)}
 	}
 	return nil
@@ -477,12 +477,16 @@ func (u *UserMembershipUpsertOne) IDX(ctx context.Context) int {
 // UserMembershipCreateBulk is the builder for creating many UserMembership entities in bulk.
 type UserMembershipCreateBulk struct {
 	config
+	err      error
 	builders []*UserMembershipCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the UserMembership entities in the database.
 func (umcb *UserMembershipCreateBulk) Save(ctx context.Context) ([]*UserMembership, error) {
+	if umcb.err != nil {
+		return nil, umcb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(umcb.builders))
 	nodes := make([]*UserMembership, len(umcb.builders))
 	mutators := make([]Mutator, len(umcb.builders))
@@ -699,6 +703,9 @@ func (u *UserMembershipUpsertBulk) UpdateFailCount() *UserMembershipUpsertBulk {
 
 // Exec executes the query.
 func (u *UserMembershipUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the UserMembershipCreateBulk instead", i)

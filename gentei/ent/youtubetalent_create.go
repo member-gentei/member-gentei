@@ -167,7 +167,7 @@ func (yttc *YouTubeTalentCreate) Mutation() *YouTubeTalentMutation {
 // Save creates the YouTubeTalent in the database.
 func (yttc *YouTubeTalentCreate) Save(ctx context.Context) (*YouTubeTalent, error) {
 	yttc.defaults()
-	return withHooks[*YouTubeTalent, YouTubeTalentMutation](ctx, yttc.sqlSave, yttc.mutation, yttc.hooks)
+	return withHooks(ctx, yttc.sqlSave, yttc.mutation, yttc.hooks)
 }
 
 // SaveX calls Save and panics if Save returns an error.
@@ -692,12 +692,16 @@ func (u *YouTubeTalentUpsertOne) IDX(ctx context.Context) string {
 // YouTubeTalentCreateBulk is the builder for creating many YouTubeTalent entities in bulk.
 type YouTubeTalentCreateBulk struct {
 	config
+	err      error
 	builders []*YouTubeTalentCreate
 	conflict []sql.ConflictOption
 }
 
 // Save creates the YouTubeTalent entities in the database.
 func (yttcb *YouTubeTalentCreateBulk) Save(ctx context.Context) ([]*YouTubeTalent, error) {
+	if yttcb.err != nil {
+		return nil, yttcb.err
+	}
 	specs := make([]*sqlgraph.CreateSpec, len(yttcb.builders))
 	nodes := make([]*YouTubeTalent, len(yttcb.builders))
 	mutators := make([]Mutator, len(yttcb.builders))
@@ -983,6 +987,9 @@ func (u *YouTubeTalentUpsertBulk) UpdateDisabledPermanently() *YouTubeTalentUpse
 
 // Exec executes the query.
 func (u *YouTubeTalentUpsertBulk) Exec(ctx context.Context) error {
+	if u.create.err != nil {
+		return u.create.err
+	}
 	for i, b := range u.create.builders {
 		if len(b.conflict) != 0 {
 			return fmt.Errorf("ent: OnConflict was set for builder %d. Set it on the YouTubeTalentCreateBulk instead", i)
