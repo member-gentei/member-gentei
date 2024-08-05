@@ -10,7 +10,7 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/jedib0t/go-pretty/v6 v6.4.8
-	github.com/jellydator/ttlcache/v3 v3.0.1
+	github.com/jellydator/ttlcache/v3 v3.2.0
 	github.com/labstack/echo/v4 v4.10.2
 	github.com/lib/pq v1.10.9
 	github.com/mark-ignacio/gsync v0.0.0-20240720162510-90768c6cda0f
