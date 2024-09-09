@@ -13,6 +13,7 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
+	"google.golang.org/api/googleapi"
 )
 
 // PSMessageType is a Pub/Sub message type enum, packed into the attributes field.
@@ -97,6 +98,14 @@ func ListenGeneral(
 					logger.Warn().Err(err).Msg("acking YouTube registration with errors")
 					m.Ack()
 					return
+				}
+				var gErr *googleapi.Error
+				if errors.As(err, &gErr) {
+					if gErr.Message == "Invalid Credentials" {
+						logger.Warn().Err(err).Msg("discarding bad registration creds")
+						m.Ack()
+						return
+					}
 				}
 				logger.Err(err).Msg("error processing YouTube registration")
 			} else {
