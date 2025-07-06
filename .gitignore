@@ -1,3 +1,4 @@
 *.sqlite3
 .*.json
 .env*
+backup.json
