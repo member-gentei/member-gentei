@@ -1,4 +1,3 @@
-import classNames from "classnames";
 import { useEffect, useState } from "react";
 import { SiDiscord } from "react-icons/si";
 import { useNavigate, useSearchParams } from "react-router-dom";

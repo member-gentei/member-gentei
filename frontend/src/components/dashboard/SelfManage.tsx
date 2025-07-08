@@ -4,7 +4,6 @@ import { LoadState } from "../../lib/lib";
 import { useUser } from "../../stores/UserStore";
 import YouTubeLogin from "./YouTubeLogin";
 import {
-  Box,
   Button,
   DialogContent,
   DialogTitle,
@@ -126,7 +125,7 @@ interface DeleteModalProps {
 }
 
 function DeleteModal({ show, hide }: DeleteModalProps) {
-  const [store, actions] = useUser();
+  const [_, actions] = useUser();
   const className = classNames("modal", { "is-active": show });
   // press escape to hide the modal
   useEffect(() => {
@@ -139,9 +138,6 @@ function DeleteModal({ show, hide }: DeleteModalProps) {
     return () => {
       document.removeEventListener("keydown", keyDownListener);
     };
-  });
-  const deleteButtonClassNames = classNames("button", "is-danger", {
-    "is-loading": store.remove === LoadState.Started,
   });
   return (
     <Modal
@@ -170,9 +166,7 @@ function DeleteModal({ show, hide }: DeleteModalProps) {
                 <li>
                   We will revoke all access tokens and delete all information
                   about you <em>except</em> your Discord user ID. It will still
-                  be present in audit logs, per-server access control lists for
-                  running management commands, and ~weekly discarded database
-                  backups.
+                  be present in audit logs and ~weekly discarded database backups.
                 </li>
                 <li>
                   If you added Gentei to a Discord server,{" "}

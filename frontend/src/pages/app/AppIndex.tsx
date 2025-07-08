@@ -1,12 +1,10 @@
-import classNames from "classnames";
 import React, { Fragment, useRef, useState } from "react";
-import { RiArrowDropDownLine } from "react-icons/ri";
 import { SiDiscord } from "react-icons/si";
 import { Link, Outlet } from "react-router-dom";
 import logo128 from "../../assets/img/logo-128.png";
 import Footer from "../../components/Footer";
 import { useDiscordLoginURL } from "../../components/LoginURL";
-import { LoadState, useWindowSize } from "../../lib/lib";
+import { LoadState } from "../../lib/lib";
 import { useUser } from "../../stores/UserStore";
 import {
   AppBar,

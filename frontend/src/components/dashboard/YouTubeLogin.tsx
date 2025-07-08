@@ -3,7 +3,7 @@ import signInDarkFocusWeb from "../../../src/assets/img/btn_google_signin_dark_f
 import signInDarkNormalWeb from "../../../src/assets/img/btn_google_signin_dark_normal_web.png";
 import signInDarkPressedWeb from "../../../src/assets/img/btn_google_signin_dark_pressed_web.png";
 import { useYouTubeLoginURL } from "../LoginURL";
-import { Box, Card, CardContent, Typography } from "@mui/joy";
+import { Card, CardContent, Typography } from "@mui/joy";
 import { Backdrop } from "@mui/material";
 import { useUser } from "../../stores/UserStore";
 

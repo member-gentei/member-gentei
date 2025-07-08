@@ -18,7 +18,7 @@ interface YouTubeChannelSelectorProps {
 }
 
 const initialHelpText =
-  "If you can't find a talent's YouTube channel by name, you can add their channel by URL.";
+  "This is a list of YouTube channels that other servers already use. If you can't find a talent's YouTube channel by name, you can add their channel by URL.";
 
 const reYouTubeChannelID = new RegExp(
   "^https://(www.)?youtube.com/channel/(UC.{22})$",
