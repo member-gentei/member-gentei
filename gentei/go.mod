@@ -7,11 +7,12 @@ require (
 	entgo.io/ent v0.14.0
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/cbroglie/mustache v1.4.0
-	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/jedib0t/go-pretty/v6 v6.4.8
 	github.com/jellydator/ttlcache/v3 v3.2.0
-	github.com/labstack/echo/v4 v4.10.2
+	github.com/labstack/echo-jwt/v4 v4.3.1
+	github.com/labstack/echo/v4 v4.13.3
 	github.com/lib/pq v1.10.9
 	github.com/mark-ignacio/gsync v0.0.0-20240720162510-90768c6cda0f
 	github.com/mark-ignacio/zerolog-gcp v0.5.0
@@ -19,10 +20,10 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/otiai10/opengraph/v2 v2.1.0
 	github.com/ravener/discord-oauth2 v0.0.0-20220615092331-f6a9839c223e
-	github.com/rs/zerolog v1.31.0
+	github.com/rs/zerolog v1.34.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.19.0
-	github.com/ziflex/lecho/v3 v3.7.0
+	github.com/ziflex/lecho/v3 v3.8.0
 	golang.org/x/oauth2 v0.28.0
 	golang.org/x/sync v0.15.0
 	google.golang.org/api v0.227.0
@@ -55,9 +56,9 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.13.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/labstack/gommon v0.4.0 // indirect
+	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/mitchellh/go-wordwrap v0.0.0-20150314170334-ad45545899c7 // indirect

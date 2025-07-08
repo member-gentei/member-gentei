@@ -14,7 +14,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqljson"
 	"github.com/bwmarrin/discordgo"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
+	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/member-gentei/member-gentei/gentei/async"
@@ -67,10 +68,12 @@ func ServeAPI(db *ent.Client, discordConfig *oauth2.Config, youTubeConfig *oauth
 		loginDiscord(db, discordConfig, jwtKey, !strings.Contains(address, "localhost:")),
 	)
 	loginRequired := g.Group("")
-	loginRequired.Use(middleware.JWTWithConfig(middleware.JWTConfig{
+	loginRequired.Use(echojwt.WithConfig(echojwt.Config{
 		TokenLookup: "cookie:token",
 		SigningKey:  jwtKey,
-		Claims:      &jwt.StandardClaims{},
+		NewClaimsFunc: func(c echo.Context) jwt.Claims {
+			return &jwt.RegisteredClaims{}
+		},
 	}))
 	loginRequired.POST("/login/youtube", loginYouTube(db, youTubeConfig, topic))
 	loginRequired.POST("/logout", logout())
@@ -138,10 +141,10 @@ func loginDiscord(
 		expiry := time.Now().Add(time.Hour * 24 * 14)
 		token := jwt.NewWithClaims(
 			jwt.SigningMethodHS256,
-			&jwt.StandardClaims{
-				Id:        discordUser.ID,
-				Audience:  "https://gentei.tindabox.net",
-				ExpiresAt: expiry.Unix(),
+			&jwt.RegisteredClaims{
+				ID:        discordUser.ID,
+				Audience:  jwt.ClaimStrings([]string{"https://gentei.tindabox.net"}),
+				ExpiresAt: jwt.NewNumericDate(expiry),
 			},
 		)
 		tokenStr, err := token.SignedString(jwtKey)
@@ -260,19 +263,19 @@ func loginYouTube(db *ent.Client, youtubeConfig *oauth2.Config, topic *pubsub.To
 		var (
 			ctx     = c.Request().Context()
 			jwtUser = c.Get("user").(*jwt.Token)
-			claims  = jwtUser.Claims.(*jwt.StandardClaims)
+			claims  = jwtUser.Claims.(*jwt.RegisteredClaims)
 			data    loginYouTubeData
 		)
 		err := c.Bind(&data)
 		if err != nil {
 			return err
 		}
-		userID, err := strconv.ParseUint(claims.Id, 10, 64)
+		userID, err := strconv.ParseUint(claims.ID, 10, 64)
 		if err != nil {
 			return err
 		}
 		logger := log.With().
-			Str("userID", claims.Id).
+			Str("userID", claims.ID).
 			Logger()
 		token, err := youtubeConfig.Exchange(ctx, data.Code)
 		var (
@@ -326,12 +329,12 @@ func loginYouTube(db *ent.Client, youtubeConfig *oauth2.Config, topic *pubsub.To
 		}
 		if topic == nil {
 			log.Warn().
-				Str("userID", claims.Id).
+				Str("userID", claims.ID).
 				Msg("async pubsub topic unspecified, would've sent YouTubeRegistration message")
 		} else {
 			err = async.PublishGeneralMessage(ctx, topic, async.GeneralPSMessage{
 				YouTubeRegistration: &async.YouTubeRegistrationMessage{
-					UserID: json.Number(claims.Id),
+					UserID: json.Number(claims.ID),
 				},
 			})
 			if err != nil {
@@ -417,9 +420,9 @@ func getMe(db *ent.Client) echo.HandlerFunc {
 		var (
 			ctx     = c.Request().Context()
 			jwtUser = c.Get("user").(*jwt.Token)
-			claims  = jwtUser.Claims.(*jwt.StandardClaims)
+			claims  = jwtUser.Claims.(*jwt.RegisteredClaims)
 		)
-		userID, err := strconv.ParseUint(claims.Id, 10, 64)
+		userID, err := strconv.ParseUint(claims.ID, 10, 64)
 		if err != nil {
 			return err
 		}
@@ -457,19 +460,19 @@ func deleteYouTube(db *ent.Client, topic *pubsub.Topic) echo.HandlerFunc {
 		var (
 			ctx     = c.Request().Context()
 			jwtUser = c.Get("user").(*jwt.Token)
-			claims  = jwtUser.Claims.(*jwt.StandardClaims)
+			claims  = jwtUser.Claims.(*jwt.RegisteredClaims)
 		)
-		userID, err := strconv.ParseUint(claims.Id, 10, 64)
+		userID, err := strconv.ParseUint(claims.ID, 10, 64)
 		if err != nil {
 			return err
 		}
 		if topic == nil {
 			log.Warn().
-				Str("userID", claims.Id).
+				Str("userID", claims.ID).
 				Msg("async pubsub topic unspecified, would've sent YoutubeDelete message")
 		} else {
 			err = async.PublishGeneralMessage(ctx, topic, async.GeneralPSMessage{
-				YouTubeDelete: json.Number(claims.Id),
+				YouTubeDelete: json.Number(claims.ID),
 			})
 			if err != nil {
 				return err
@@ -533,11 +536,11 @@ func deleteMe(db *ent.Client, topic *pubsub.Topic) echo.HandlerFunc {
 		var (
 			ctx     = c.Request().Context()
 			jwtUser = c.Get("user").(*jwt.Token)
-			claims  = jwtUser.Claims.(*jwt.StandardClaims)
+			claims  = jwtUser.Claims.(*jwt.RegisteredClaims)
 		)
 		err := async.PublishGeneralMessage(ctx, topic, async.GeneralPSMessage{
 			UserDelete: &async.DeleteUserMessage{
-				UserID: json.Number(claims.Id),
+				UserID: json.Number(claims.ID),
 				Reason: "user request",
 			},
 		})
@@ -576,7 +579,7 @@ func enrollGuild(db *ent.Client, discordConfig *oauth2.Config) echo.HandlerFunc 
 			data   enrollGuildData
 			ctx    = c.Request().Context()
 			user   = c.Get("user").(*jwt.Token)
-			claims = user.Claims.(*jwt.StandardClaims)
+			claims = user.Claims.(*jwt.RegisteredClaims)
 		)
 		if err := c.Bind(&data); err != nil {
 			return err
@@ -615,7 +618,7 @@ func enrollGuild(db *ent.Client, discordConfig *oauth2.Config) echo.HandlerFunc 
 			return err
 		}
 		// the user must match the userID we have in the JWT
-		if discordUser.ID != claims.Id {
+		if discordUser.ID != claims.ID {
 			// revoke! we don't want it!
 			values := url.Values{}
 			values.Set("client_id", discordConfig.ClientID)
@@ -632,7 +635,7 @@ func enrollGuild(db *ent.Client, discordConfig *oauth2.Config) echo.HandlerFunc 
 		}
 		// okay, *now* we can save it all
 		guildMap := oauthToken.Extra("guild").(map[string]interface{})
-		userID, err := strconv.ParseUint(claims.Id, 10, 64)
+		userID, err := strconv.ParseUint(claims.ID, 10, 64)
 		if err != nil {
 			return err
 		}
@@ -654,12 +657,12 @@ func getGuild(db *ent.Client) echo.HandlerFunc {
 			data    singleGuildData
 			ctx     = c.Request().Context()
 			jwtUser = c.Get("user").(*jwt.Token)
-			claims  = jwtUser.Claims.(*jwt.StandardClaims)
+			claims  = jwtUser.Claims.(*jwt.RegisteredClaims)
 		)
 		if err := c.Bind(&data); err != nil {
 			return err
 		}
-		userID, err := strconv.ParseUint(claims.Id, 10, 64)
+		userID, err := strconv.ParseUint(claims.ID, 10, 64)
 		if err != nil {
 			return err
 		}
@@ -713,12 +716,12 @@ func patchGuild(db *ent.Client) echo.HandlerFunc {
 			data    patchGuildData
 			ctx     = c.Request().Context()
 			jwtUser = c.Get("user").(*jwt.Token)
-			claims  = jwtUser.Claims.(*jwt.StandardClaims)
+			claims  = jwtUser.Claims.(*jwt.RegisteredClaims)
 		)
 		if err := c.Bind(&data); err != nil {
 			return err
 		}
-		userID, err := strconv.ParseUint(claims.Id, 10, 64)
+		userID, err := strconv.ParseUint(claims.ID, 10, 64)
 		if err != nil {
 			return err
 		}
