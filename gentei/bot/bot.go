@@ -100,23 +100,23 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 					m, _           = b.guildMemberLoadMutexes.LoadOrStore(gc.ID, &sync.Mutex{})
 					reRequestCount int
 				)
+				m.Lock()
 				for {
 					logger.Info().Int("memberCount", gc.MemberCount).Msg("big server; requesting Guild members")
-					m.Lock()
 					if err = b.session.RequestGuildMembers(gc.ID, "", 0, "", false); err != nil {
 						logger.Err(err).Msg("error requesting guild members")
 					}
 					// check that it's unlocked with a jitter of 10 seconds
 					jitter := time.Duration(float64(time.Second) * ((20 * rand.Float64()) - 10))
 					time.Sleep(baseDuration + jitter)
-					// if it's unlocked, issue another
-					if m.TryLock() {
+					// if it's still locked, issue another
+					if !m.TryLock() {
+						reRequestCount++
+						logger.Warn().Int("reRequests", reRequestCount).Msg("requesting guild members again")
+					} else {
 						// great, we're done
 						m.Unlock()
 						return
-					} else {
-						reRequestCount++
-						logger.Warn().Int("reRequests", reRequestCount).Msg("requesting guild members again")
 					}
 				}
 			}()
