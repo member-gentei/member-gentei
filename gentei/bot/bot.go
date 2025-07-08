@@ -145,6 +145,9 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 			logger.Err(err).Msg("error deleting Guild at departure")
 		}
 	})
+	// configure session before opening
+	// we currently both use and do not use session state; we should pick one or the other and toggle: b.session.StateEnabled
+	b.session.ShouldReconnectOnError = true
 	// register intents (new for v8 gateway)
 	b.session.Identify.Intents = discordgo.IntentsGuilds | discordgo.IntentsGuildMembers
 	// declare large_threshold explicitly
