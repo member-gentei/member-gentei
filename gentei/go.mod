@@ -20,7 +20,7 @@ require (
 	github.com/otiai10/opengraph/v2 v2.1.0
 	github.com/ravener/discord-oauth2 v0.0.0-20220615092331-f6a9839c223e
 	github.com/rs/zerolog v1.31.0
-	github.com/spf13/cobra v1.7.0
+	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.19.0
 	github.com/ziflex/lecho/v3 v3.7.0
 	golang.org/x/oauth2 v0.28.0
@@ -68,7 +68,7 @@ require (
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
