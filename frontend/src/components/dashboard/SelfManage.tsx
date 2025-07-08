@@ -166,7 +166,8 @@ function DeleteModal({ show, hide }: DeleteModalProps) {
                 <li>
                   We will revoke all access tokens and delete all information
                   about you <em>except</em> your Discord user ID. It will still
-                  be present in audit logs and ~weekly discarded database backups.
+                  be present in audit logs and ~weekly discarded database
+                  backups.
                 </li>
                 <li>
                   If you added Gentei to a Discord server,{" "}
