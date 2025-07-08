@@ -59,6 +59,7 @@ var checkCmd = &cobra.Command{
 			options.CheckDisabledChannels = true
 		}
 		if flagCheckUserID != 0 {
+			log.Debug().Msg("checking single user")
 			// refresh guilds for user
 			var (
 				ts    oauth2.TokenSource
