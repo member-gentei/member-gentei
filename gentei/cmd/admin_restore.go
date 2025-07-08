@@ -42,8 +42,6 @@ var restoreCmd = &cobra.Command{
 			gc := tx.Guild.Create().
 				SetID(g.ID).
 				SetName(g.Name).
-				SetAdminSnowflakes(g.AdminSnowflakes).
-				SetModeratorSnowflakes(g.ModeratorSnowflakes).
 				SetSettings(g.Settings)
 			// nillable stuff
 			if g.IconHash != "" {

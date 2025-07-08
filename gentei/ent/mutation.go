@@ -40,35 +40,31 @@ const (
 // GuildMutation represents an operation that mutates the Guild nodes in the graph.
 type GuildMutation struct {
 	config
-	op                         Op
-	typ                        string
-	id                         *uint64
-	name                       *string
-	icon_hash                  *string
-	audit_channel              *uint64
-	addaudit_channel           *int64
-	language                   *guild.Language
-	admin_snowflakes           *[]uint64
-	appendadmin_snowflakes     []uint64
-	moderator_snowflakes       *[]uint64
-	appendmoderator_snowflakes []uint64
-	settings                   **schema.GuildSettings
-	clearedFields              map[string]struct{}
-	members                    map[uint64]struct{}
-	removedmembers             map[uint64]struct{}
-	clearedmembers             bool
-	admins                     map[uint64]struct{}
-	removedadmins              map[uint64]struct{}
-	clearedadmins              bool
-	roles                      map[uint64]struct{}
-	removedroles               map[uint64]struct{}
-	clearedroles               bool
-	youtube_talents            map[string]struct{}
-	removedyoutube_talents     map[string]struct{}
-	clearedyoutube_talents     bool
-	done                       bool
-	oldValue                   func(context.Context) (*Guild, error)
-	predicates                 []predicate.Guild
+	op                     Op
+	typ                    string
+	id                     *uint64
+	name                   *string
+	icon_hash              *string
+	audit_channel          *uint64
+	addaudit_channel       *int64
+	language               *guild.Language
+	settings               **schema.GuildSettings
+	clearedFields          map[string]struct{}
+	members                map[uint64]struct{}
+	removedmembers         map[uint64]struct{}
+	clearedmembers         bool
+	admins                 map[uint64]struct{}
+	removedadmins          map[uint64]struct{}
+	clearedadmins          bool
+	roles                  map[uint64]struct{}
+	removedroles           map[uint64]struct{}
+	clearedroles           bool
+	youtube_talents        map[string]struct{}
+	removedyoutube_talents map[string]struct{}
+	clearedyoutube_talents bool
+	done                   bool
+	oldValue               func(context.Context) (*Guild, error)
+	predicates             []predicate.Guild
 }
 
 var _ ent.Mutation = (*GuildMutation)(nil)
@@ -364,122 +360,6 @@ func (m *GuildMutation) OldLanguage(ctx context.Context) (v guild.Language, err 
 // ResetLanguage resets all changes to the "language" field.
 func (m *GuildMutation) ResetLanguage() {
 	m.language = nil
-}
-
-// SetAdminSnowflakes sets the "admin_snowflakes" field.
-func (m *GuildMutation) SetAdminSnowflakes(u []uint64) {
-	m.admin_snowflakes = &u
-	m.appendadmin_snowflakes = nil
-}
-
-// AdminSnowflakes returns the value of the "admin_snowflakes" field in the mutation.
-func (m *GuildMutation) AdminSnowflakes() (r []uint64, exists bool) {
-	v := m.admin_snowflakes
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldAdminSnowflakes returns the old "admin_snowflakes" field's value of the Guild entity.
-// If the Guild object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GuildMutation) OldAdminSnowflakes(ctx context.Context) (v []uint64, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldAdminSnowflakes is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldAdminSnowflakes requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldAdminSnowflakes: %w", err)
-	}
-	return oldValue.AdminSnowflakes, nil
-}
-
-// AppendAdminSnowflakes adds u to the "admin_snowflakes" field.
-func (m *GuildMutation) AppendAdminSnowflakes(u []uint64) {
-	m.appendadmin_snowflakes = append(m.appendadmin_snowflakes, u...)
-}
-
-// AppendedAdminSnowflakes returns the list of values that were appended to the "admin_snowflakes" field in this mutation.
-func (m *GuildMutation) AppendedAdminSnowflakes() ([]uint64, bool) {
-	if len(m.appendadmin_snowflakes) == 0 {
-		return nil, false
-	}
-	return m.appendadmin_snowflakes, true
-}
-
-// ResetAdminSnowflakes resets all changes to the "admin_snowflakes" field.
-func (m *GuildMutation) ResetAdminSnowflakes() {
-	m.admin_snowflakes = nil
-	m.appendadmin_snowflakes = nil
-}
-
-// SetModeratorSnowflakes sets the "moderator_snowflakes" field.
-func (m *GuildMutation) SetModeratorSnowflakes(u []uint64) {
-	m.moderator_snowflakes = &u
-	m.appendmoderator_snowflakes = nil
-}
-
-// ModeratorSnowflakes returns the value of the "moderator_snowflakes" field in the mutation.
-func (m *GuildMutation) ModeratorSnowflakes() (r []uint64, exists bool) {
-	v := m.moderator_snowflakes
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldModeratorSnowflakes returns the old "moderator_snowflakes" field's value of the Guild entity.
-// If the Guild object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *GuildMutation) OldModeratorSnowflakes(ctx context.Context) (v []uint64, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldModeratorSnowflakes is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldModeratorSnowflakes requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldModeratorSnowflakes: %w", err)
-	}
-	return oldValue.ModeratorSnowflakes, nil
-}
-
-// AppendModeratorSnowflakes adds u to the "moderator_snowflakes" field.
-func (m *GuildMutation) AppendModeratorSnowflakes(u []uint64) {
-	m.appendmoderator_snowflakes = append(m.appendmoderator_snowflakes, u...)
-}
-
-// AppendedModeratorSnowflakes returns the list of values that were appended to the "moderator_snowflakes" field in this mutation.
-func (m *GuildMutation) AppendedModeratorSnowflakes() ([]uint64, bool) {
-	if len(m.appendmoderator_snowflakes) == 0 {
-		return nil, false
-	}
-	return m.appendmoderator_snowflakes, true
-}
-
-// ClearModeratorSnowflakes clears the value of the "moderator_snowflakes" field.
-func (m *GuildMutation) ClearModeratorSnowflakes() {
-	m.moderator_snowflakes = nil
-	m.appendmoderator_snowflakes = nil
-	m.clearedFields[guild.FieldModeratorSnowflakes] = struct{}{}
-}
-
-// ModeratorSnowflakesCleared returns if the "moderator_snowflakes" field was cleared in this mutation.
-func (m *GuildMutation) ModeratorSnowflakesCleared() bool {
-	_, ok := m.clearedFields[guild.FieldModeratorSnowflakes]
-	return ok
-}
-
-// ResetModeratorSnowflakes resets all changes to the "moderator_snowflakes" field.
-func (m *GuildMutation) ResetModeratorSnowflakes() {
-	m.moderator_snowflakes = nil
-	m.appendmoderator_snowflakes = nil
-	delete(m.clearedFields, guild.FieldModeratorSnowflakes)
 }
 
 // SetSettings sets the "settings" field.
@@ -781,7 +661,7 @@ func (m *GuildMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *GuildMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 5)
 	if m.name != nil {
 		fields = append(fields, guild.FieldName)
 	}
@@ -793,12 +673,6 @@ func (m *GuildMutation) Fields() []string {
 	}
 	if m.language != nil {
 		fields = append(fields, guild.FieldLanguage)
-	}
-	if m.admin_snowflakes != nil {
-		fields = append(fields, guild.FieldAdminSnowflakes)
-	}
-	if m.moderator_snowflakes != nil {
-		fields = append(fields, guild.FieldModeratorSnowflakes)
 	}
 	if m.settings != nil {
 		fields = append(fields, guild.FieldSettings)
@@ -819,10 +693,6 @@ func (m *GuildMutation) Field(name string) (ent.Value, bool) {
 		return m.AuditChannel()
 	case guild.FieldLanguage:
 		return m.Language()
-	case guild.FieldAdminSnowflakes:
-		return m.AdminSnowflakes()
-	case guild.FieldModeratorSnowflakes:
-		return m.ModeratorSnowflakes()
 	case guild.FieldSettings:
 		return m.Settings()
 	}
@@ -842,10 +712,6 @@ func (m *GuildMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldAuditChannel(ctx)
 	case guild.FieldLanguage:
 		return m.OldLanguage(ctx)
-	case guild.FieldAdminSnowflakes:
-		return m.OldAdminSnowflakes(ctx)
-	case guild.FieldModeratorSnowflakes:
-		return m.OldModeratorSnowflakes(ctx)
 	case guild.FieldSettings:
 		return m.OldSettings(ctx)
 	}
@@ -884,20 +750,6 @@ func (m *GuildMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetLanguage(v)
-		return nil
-	case guild.FieldAdminSnowflakes:
-		v, ok := value.([]uint64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetAdminSnowflakes(v)
-		return nil
-	case guild.FieldModeratorSnowflakes:
-		v, ok := value.([]uint64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetModeratorSnowflakes(v)
 		return nil
 	case guild.FieldSettings:
 		v, ok := value.(*schema.GuildSettings)
@@ -957,9 +809,6 @@ func (m *GuildMutation) ClearedFields() []string {
 	if m.FieldCleared(guild.FieldAuditChannel) {
 		fields = append(fields, guild.FieldAuditChannel)
 	}
-	if m.FieldCleared(guild.FieldModeratorSnowflakes) {
-		fields = append(fields, guild.FieldModeratorSnowflakes)
-	}
 	if m.FieldCleared(guild.FieldSettings) {
 		fields = append(fields, guild.FieldSettings)
 	}
@@ -983,9 +832,6 @@ func (m *GuildMutation) ClearField(name string) error {
 	case guild.FieldAuditChannel:
 		m.ClearAuditChannel()
 		return nil
-	case guild.FieldModeratorSnowflakes:
-		m.ClearModeratorSnowflakes()
-		return nil
 	case guild.FieldSettings:
 		m.ClearSettings()
 		return nil
@@ -1008,12 +854,6 @@ func (m *GuildMutation) ResetField(name string) error {
 		return nil
 	case guild.FieldLanguage:
 		m.ResetLanguage()
-		return nil
-	case guild.FieldAdminSnowflakes:
-		m.ResetAdminSnowflakes()
-		return nil
-	case guild.FieldModeratorSnowflakes:
-		m.ResetModeratorSnowflakes()
 		return nil
 	case guild.FieldSettings:
 		m.ResetSettings()

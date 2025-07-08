@@ -42,7 +42,6 @@ var prefillCmd = &cobra.Command{
 			if !db.Guild.Query().
 				Where(guild.ID(guildID)).
 				ExistX(ctx) {
-				ownerID, err := strconv.ParseUint(dg.OwnerID, 10, 64)
 				if err != nil {
 					panic(err)
 				}
@@ -50,7 +49,6 @@ var prefillCmd = &cobra.Command{
 					SetID(guildID).
 					SetName(dg.Name).
 					SetIconHash(dg.Icon).
-					SetAdminSnowflakes([]uint64{ownerID}).
 					SaveX(ctx)
 				log.Info().Interface("guild", entDG).Msg("inserted guild")
 			}

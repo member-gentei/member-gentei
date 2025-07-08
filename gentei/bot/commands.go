@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"entgo.io/ent/dialect/sql"
-	"entgo.io/ent/dialect/sql/sqljson"
 	"github.com/bwmarrin/discordgo"
 	"github.com/member-gentei/member-gentei/gentei/bot/commands"
 	"github.com/member-gentei/member-gentei/gentei/ent"
@@ -175,7 +173,7 @@ func (b *DiscordBot) ClearCommands(global, earlyAccess bool) error {
 			if err != nil {
 				return fmt.Errorf("error deleting global command: %w", err)
 			}
-			log.Info().Msg("cleared global command - it should take effect very soon")
+			log.Info().Str("command", c.Name).Msg("cleared global command - it should take effect very soon")
 		}
 	}
 	if earlyAccess {
@@ -461,9 +459,6 @@ func (b *DiscordBot) handleInfo(ctx context.Context, i *discordgo.InteractionCre
 	})
 }
 
-// helpers
-type ctxKey int
-
 // deferredReply can only be called once, but it'll process each responseFunc in serial. If it gets a WebHookEdit payload, it sends that and stops processing later responseFuncs.
 func (b *DiscordBot) deferredReply(ctx context.Context, i *discordgo.InteractionCreate, commandName string, ephemeral bool, responseFuncs ...slashResponseFunc) {
 	var (
@@ -533,46 +528,6 @@ var (
 	}
 )
 
-func (b *DiscordBot) deferredRequireModeratorOrAdmin(ctx context.Context, i *discordgo.InteractionCreate) (*discordgo.WebhookEdit, error) {
-	guildID, userID, err := getMessageAttributionIDs(i)
-	if err != nil {
-		log.Err(err).Msg("error converting IDs to uint64")
-		return nil, err
-	}
-	var rolePredicates = []*sql.Predicate{
-		sqljson.ValueContains(guild.FieldAdminSnowflakes, userID),
-		sqljson.ValueContains(guild.FieldModeratorSnowflakes, userID),
-	}
-	for _, roleIDStr := range i.Member.Roles {
-		roleID, err := strconv.ParseUint(roleIDStr, 10, 64)
-		if err != nil {
-			log.Err(err).Msg("error converting role ID to uint64")
-			return nil, err
-		}
-		rolePredicates = append(
-			rolePredicates,
-			sqljson.ValueContains(guild.FieldAdminSnowflakes, roleID),
-			sqljson.ValueContains(guild.FieldModeratorSnowflakes, roleID),
-		)
-	}
-	hasPermission, err := b.db.Guild.Query().
-		Where(
-			guild.ID(guildID),
-		).
-		Where(func(s *sql.Selector) {
-			s.Where(sql.Or(rolePredicates...))
-		}).
-		Exist(ctx)
-	if err != nil {
-		log.Err(err).Msg("error checking for admin/mod privs")
-		return nil, err
-	}
-	if !hasPermission {
-		return insufficientPermissionsWebhookEdit, nil
-	}
-	return nil, nil
-}
-
 func subcommandOptionsMap(cmd *discordgo.ApplicationCommandInteractionDataOption) map[string]*discordgo.ApplicationCommandInteractionDataOption {
 	options := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(cmd.Options))
 	for _, option := range cmd.Options {
@@ -615,8 +570,8 @@ func adminOnlyCommand(cmd *discordgo.ApplicationCommand) *discordgo.ApplicationC
 	if cmd.DefaultMemberPermissions == nil || *cmd.DefaultMemberPermissions != 0 {
 		cmd.DefaultMemberPermissions = ptr[int64](0)
 	}
-	if cmd.DMPermission == nil || *cmd.DMPermission {
-		cmd.DMPermission = ptr(false)
+	cmd.Contexts = &[]discordgo.InteractionContextType{
+		discordgo.InteractionContextGuild,
 	}
 	return cmd
 }
