@@ -73,18 +73,6 @@ func (gc *GuildCreate) SetNillableLanguage(gu *guild.Language) *GuildCreate {
 	return gc
 }
 
-// SetAdminSnowflakes sets the "admin_snowflakes" field.
-func (gc *GuildCreate) SetAdminSnowflakes(u []uint64) *GuildCreate {
-	gc.mutation.SetAdminSnowflakes(u)
-	return gc
-}
-
-// SetModeratorSnowflakes sets the "moderator_snowflakes" field.
-func (gc *GuildCreate) SetModeratorSnowflakes(u []uint64) *GuildCreate {
-	gc.mutation.SetModeratorSnowflakes(u)
-	return gc
-}
-
 // SetSettings sets the "settings" field.
 func (gc *GuildCreate) SetSettings(ss *schema.GuildSettings) *GuildCreate {
 	gc.mutation.SetSettings(ss)
@@ -211,9 +199,6 @@ func (gc *GuildCreate) check() error {
 			return &ValidationError{Name: "language", err: fmt.Errorf(`ent: validator failed for field "Guild.language": %w`, err)}
 		}
 	}
-	if _, ok := gc.mutation.AdminSnowflakes(); !ok {
-		return &ValidationError{Name: "admin_snowflakes", err: errors.New(`ent: missing required field "Guild.admin_snowflakes"`)}
-	}
 	return nil
 }
 
@@ -262,14 +247,6 @@ func (gc *GuildCreate) createSpec() (*Guild, *sqlgraph.CreateSpec) {
 	if value, ok := gc.mutation.Language(); ok {
 		_spec.SetField(guild.FieldLanguage, field.TypeEnum, value)
 		_node.Language = value
-	}
-	if value, ok := gc.mutation.AdminSnowflakes(); ok {
-		_spec.SetField(guild.FieldAdminSnowflakes, field.TypeJSON, value)
-		_node.AdminSnowflakes = value
-	}
-	if value, ok := gc.mutation.ModeratorSnowflakes(); ok {
-		_spec.SetField(guild.FieldModeratorSnowflakes, field.TypeJSON, value)
-		_node.ModeratorSnowflakes = value
 	}
 	if value, ok := gc.mutation.Settings(); ok {
 		_spec.SetField(guild.FieldSettings, field.TypeJSON, value)
@@ -457,36 +434,6 @@ func (u *GuildUpsert) UpdateLanguage() *GuildUpsert {
 	return u
 }
 
-// SetAdminSnowflakes sets the "admin_snowflakes" field.
-func (u *GuildUpsert) SetAdminSnowflakes(v []uint64) *GuildUpsert {
-	u.Set(guild.FieldAdminSnowflakes, v)
-	return u
-}
-
-// UpdateAdminSnowflakes sets the "admin_snowflakes" field to the value that was provided on create.
-func (u *GuildUpsert) UpdateAdminSnowflakes() *GuildUpsert {
-	u.SetExcluded(guild.FieldAdminSnowflakes)
-	return u
-}
-
-// SetModeratorSnowflakes sets the "moderator_snowflakes" field.
-func (u *GuildUpsert) SetModeratorSnowflakes(v []uint64) *GuildUpsert {
-	u.Set(guild.FieldModeratorSnowflakes, v)
-	return u
-}
-
-// UpdateModeratorSnowflakes sets the "moderator_snowflakes" field to the value that was provided on create.
-func (u *GuildUpsert) UpdateModeratorSnowflakes() *GuildUpsert {
-	u.SetExcluded(guild.FieldModeratorSnowflakes)
-	return u
-}
-
-// ClearModeratorSnowflakes clears the value of the "moderator_snowflakes" field.
-func (u *GuildUpsert) ClearModeratorSnowflakes() *GuildUpsert {
-	u.SetNull(guild.FieldModeratorSnowflakes)
-	return u
-}
-
 // SetSettings sets the "settings" field.
 func (u *GuildUpsert) SetSettings(v *schema.GuildSettings) *GuildUpsert {
 	u.Set(guild.FieldSettings, v)
@@ -627,41 +574,6 @@ func (u *GuildUpsertOne) SetLanguage(v guild.Language) *GuildUpsertOne {
 func (u *GuildUpsertOne) UpdateLanguage() *GuildUpsertOne {
 	return u.Update(func(s *GuildUpsert) {
 		s.UpdateLanguage()
-	})
-}
-
-// SetAdminSnowflakes sets the "admin_snowflakes" field.
-func (u *GuildUpsertOne) SetAdminSnowflakes(v []uint64) *GuildUpsertOne {
-	return u.Update(func(s *GuildUpsert) {
-		s.SetAdminSnowflakes(v)
-	})
-}
-
-// UpdateAdminSnowflakes sets the "admin_snowflakes" field to the value that was provided on create.
-func (u *GuildUpsertOne) UpdateAdminSnowflakes() *GuildUpsertOne {
-	return u.Update(func(s *GuildUpsert) {
-		s.UpdateAdminSnowflakes()
-	})
-}
-
-// SetModeratorSnowflakes sets the "moderator_snowflakes" field.
-func (u *GuildUpsertOne) SetModeratorSnowflakes(v []uint64) *GuildUpsertOne {
-	return u.Update(func(s *GuildUpsert) {
-		s.SetModeratorSnowflakes(v)
-	})
-}
-
-// UpdateModeratorSnowflakes sets the "moderator_snowflakes" field to the value that was provided on create.
-func (u *GuildUpsertOne) UpdateModeratorSnowflakes() *GuildUpsertOne {
-	return u.Update(func(s *GuildUpsert) {
-		s.UpdateModeratorSnowflakes()
-	})
-}
-
-// ClearModeratorSnowflakes clears the value of the "moderator_snowflakes" field.
-func (u *GuildUpsertOne) ClearModeratorSnowflakes() *GuildUpsertOne {
-	return u.Update(func(s *GuildUpsert) {
-		s.ClearModeratorSnowflakes()
 	})
 }
 
@@ -974,41 +886,6 @@ func (u *GuildUpsertBulk) SetLanguage(v guild.Language) *GuildUpsertBulk {
 func (u *GuildUpsertBulk) UpdateLanguage() *GuildUpsertBulk {
 	return u.Update(func(s *GuildUpsert) {
 		s.UpdateLanguage()
-	})
-}
-
-// SetAdminSnowflakes sets the "admin_snowflakes" field.
-func (u *GuildUpsertBulk) SetAdminSnowflakes(v []uint64) *GuildUpsertBulk {
-	return u.Update(func(s *GuildUpsert) {
-		s.SetAdminSnowflakes(v)
-	})
-}
-
-// UpdateAdminSnowflakes sets the "admin_snowflakes" field to the value that was provided on create.
-func (u *GuildUpsertBulk) UpdateAdminSnowflakes() *GuildUpsertBulk {
-	return u.Update(func(s *GuildUpsert) {
-		s.UpdateAdminSnowflakes()
-	})
-}
-
-// SetModeratorSnowflakes sets the "moderator_snowflakes" field.
-func (u *GuildUpsertBulk) SetModeratorSnowflakes(v []uint64) *GuildUpsertBulk {
-	return u.Update(func(s *GuildUpsert) {
-		s.SetModeratorSnowflakes(v)
-	})
-}
-
-// UpdateModeratorSnowflakes sets the "moderator_snowflakes" field to the value that was provided on create.
-func (u *GuildUpsertBulk) UpdateModeratorSnowflakes() *GuildUpsertBulk {
-	return u.Update(func(s *GuildUpsert) {
-		s.UpdateModeratorSnowflakes()
-	})
-}
-
-// ClearModeratorSnowflakes clears the value of the "moderator_snowflakes" field.
-func (u *GuildUpsertBulk) ClearModeratorSnowflakes() *GuildUpsertBulk {
-	return u.Update(func(s *GuildUpsert) {
-		s.ClearModeratorSnowflakes()
 	})
 }
 

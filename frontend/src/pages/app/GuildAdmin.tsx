@@ -1,4 +1,3 @@
-import { Fragment } from "react";
 import { Link as RRDLink, useParams } from "react-router-dom";
 import GuildMembershipManager from "../../components/GuildMembershipManager";
 import { LoadState } from "../../lib/lib";
@@ -7,7 +6,6 @@ import {
   Box,
   Breadcrumbs,
   Button,
-  Grid,
   Link,
   Stack,
   Table,
@@ -76,37 +74,6 @@ function GuildAdminInner({ guildID }: GuildAdminInnerProps) {
           <tr>
             <th>Server Name</th>
             <td>{guild.Name}</td>
-          </tr>
-          <tr>
-            <th>Discord IDs with admin access</th>
-            <td>
-              {guild.AdminIDs.map((snowflake) => (
-                <Fragment key={snowflake}>
-                  <code>{snowflake}</code>{" "}
-                </Fragment>
-              ))}
-            </td>
-          </tr>
-          <tr>
-            <th>Audit log channel ID and link</th>
-            <td>
-              {guild.AuditLogChannelID ? (
-                <a
-                  href={`${guildURL}/${guild.AuditLogChannelID}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  title="Open channel in a new tab"
-                >
-                  {guild.AuditLogChannelID}
-                </a>
-              ) : (
-                <code>- (none)</code>
-              )}
-              <Typography level="body-sm">
-                To change, use{" "}
-                <code>/gentei manage audit-log channel:#channel</code>
-              </Typography>
-            </td>
           </tr>
         </tbody>
       </Table>

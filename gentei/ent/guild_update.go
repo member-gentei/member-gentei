@@ -9,7 +9,6 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
 	"github.com/member-gentei/member-gentei/gentei/ent/guildrole"
@@ -104,36 +103,6 @@ func (gu *GuildUpdate) SetNillableLanguage(value *guild.Language) *GuildUpdate {
 	if value != nil {
 		gu.SetLanguage(*value)
 	}
-	return gu
-}
-
-// SetAdminSnowflakes sets the "admin_snowflakes" field.
-func (gu *GuildUpdate) SetAdminSnowflakes(u []uint64) *GuildUpdate {
-	gu.mutation.SetAdminSnowflakes(u)
-	return gu
-}
-
-// AppendAdminSnowflakes appends u to the "admin_snowflakes" field.
-func (gu *GuildUpdate) AppendAdminSnowflakes(u []uint64) *GuildUpdate {
-	gu.mutation.AppendAdminSnowflakes(u)
-	return gu
-}
-
-// SetModeratorSnowflakes sets the "moderator_snowflakes" field.
-func (gu *GuildUpdate) SetModeratorSnowflakes(u []uint64) *GuildUpdate {
-	gu.mutation.SetModeratorSnowflakes(u)
-	return gu
-}
-
-// AppendModeratorSnowflakes appends u to the "moderator_snowflakes" field.
-func (gu *GuildUpdate) AppendModeratorSnowflakes(u []uint64) *GuildUpdate {
-	gu.mutation.AppendModeratorSnowflakes(u)
-	return gu
-}
-
-// ClearModeratorSnowflakes clears the value of the "moderator_snowflakes" field.
-func (gu *GuildUpdate) ClearModeratorSnowflakes() *GuildUpdate {
-	gu.mutation.ClearModeratorSnowflakes()
 	return gu
 }
 
@@ -367,25 +336,6 @@ func (gu *GuildUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	}
 	if value, ok := gu.mutation.Language(); ok {
 		_spec.SetField(guild.FieldLanguage, field.TypeEnum, value)
-	}
-	if value, ok := gu.mutation.AdminSnowflakes(); ok {
-		_spec.SetField(guild.FieldAdminSnowflakes, field.TypeJSON, value)
-	}
-	if value, ok := gu.mutation.AppendedAdminSnowflakes(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, guild.FieldAdminSnowflakes, value)
-		})
-	}
-	if value, ok := gu.mutation.ModeratorSnowflakes(); ok {
-		_spec.SetField(guild.FieldModeratorSnowflakes, field.TypeJSON, value)
-	}
-	if value, ok := gu.mutation.AppendedModeratorSnowflakes(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, guild.FieldModeratorSnowflakes, value)
-		})
-	}
-	if gu.mutation.ModeratorSnowflakesCleared() {
-		_spec.ClearField(guild.FieldModeratorSnowflakes, field.TypeJSON)
 	}
 	if value, ok := gu.mutation.Settings(); ok {
 		_spec.SetField(guild.FieldSettings, field.TypeJSON, value)
@@ -668,36 +618,6 @@ func (guo *GuildUpdateOne) SetNillableLanguage(gu *guild.Language) *GuildUpdateO
 	return guo
 }
 
-// SetAdminSnowflakes sets the "admin_snowflakes" field.
-func (guo *GuildUpdateOne) SetAdminSnowflakes(u []uint64) *GuildUpdateOne {
-	guo.mutation.SetAdminSnowflakes(u)
-	return guo
-}
-
-// AppendAdminSnowflakes appends u to the "admin_snowflakes" field.
-func (guo *GuildUpdateOne) AppendAdminSnowflakes(u []uint64) *GuildUpdateOne {
-	guo.mutation.AppendAdminSnowflakes(u)
-	return guo
-}
-
-// SetModeratorSnowflakes sets the "moderator_snowflakes" field.
-func (guo *GuildUpdateOne) SetModeratorSnowflakes(u []uint64) *GuildUpdateOne {
-	guo.mutation.SetModeratorSnowflakes(u)
-	return guo
-}
-
-// AppendModeratorSnowflakes appends u to the "moderator_snowflakes" field.
-func (guo *GuildUpdateOne) AppendModeratorSnowflakes(u []uint64) *GuildUpdateOne {
-	guo.mutation.AppendModeratorSnowflakes(u)
-	return guo
-}
-
-// ClearModeratorSnowflakes clears the value of the "moderator_snowflakes" field.
-func (guo *GuildUpdateOne) ClearModeratorSnowflakes() *GuildUpdateOne {
-	guo.mutation.ClearModeratorSnowflakes()
-	return guo
-}
-
 // SetSettings sets the "settings" field.
 func (guo *GuildUpdateOne) SetSettings(ss *schema.GuildSettings) *GuildUpdateOne {
 	guo.mutation.SetSettings(ss)
@@ -958,25 +878,6 @@ func (guo *GuildUpdateOne) sqlSave(ctx context.Context) (_node *Guild, err error
 	}
 	if value, ok := guo.mutation.Language(); ok {
 		_spec.SetField(guild.FieldLanguage, field.TypeEnum, value)
-	}
-	if value, ok := guo.mutation.AdminSnowflakes(); ok {
-		_spec.SetField(guild.FieldAdminSnowflakes, field.TypeJSON, value)
-	}
-	if value, ok := guo.mutation.AppendedAdminSnowflakes(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, guild.FieldAdminSnowflakes, value)
-		})
-	}
-	if value, ok := guo.mutation.ModeratorSnowflakes(); ok {
-		_spec.SetField(guild.FieldModeratorSnowflakes, field.TypeJSON, value)
-	}
-	if value, ok := guo.mutation.AppendedModeratorSnowflakes(); ok {
-		_spec.AddModifier(func(u *sql.UpdateBuilder) {
-			sqljson.Append(u, guild.FieldModeratorSnowflakes, value)
-		})
-	}
-	if guo.mutation.ModeratorSnowflakesCleared() {
-		_spec.ClearField(guild.FieldModeratorSnowflakes, field.TypeJSON)
 	}
 	if value, ok := guo.mutation.Settings(); ok {
 		_spec.SetField(guild.FieldSettings, field.TypeJSON, value)

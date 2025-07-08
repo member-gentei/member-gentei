@@ -8,7 +8,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
-	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/member-gentei/member-gentei/gentei/ent/youtubetalent"
 	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog/log"
@@ -42,10 +41,6 @@ func parseAndSaveGuild(ctx context.Context, db *ent.Client, userID uint64, guild
 	if err != nil {
 		return guildResponse{}, fmt.Errorf("error parsing embedded guild.ID as uint64: %w", err)
 	}
-	ownerID, err := strconv.ParseUint(embed.OwnerID, 10, 64)
-	if err != nil {
-		return guildResponse{}, fmt.Errorf("error parsing embedded guild.ID as uint64: %w", err)
-	}
 	// update guild - if the guild exists, we do not update the owner ID.
 	// we don't know if the owner is a user, so don't do anything with this yet
 	dg, err := db.Guild.Query().
@@ -53,49 +48,15 @@ func parseAndSaveGuild(ctx context.Context, db *ent.Client, userID uint64, guild
 		Where(guild.ID(guildID)).
 		First(ctx)
 	if ent.IsNotFound(err) {
-		var adminSnowflakes = []uint64{ownerID}
-		if ownerID != userID {
-			adminSnowflakes = append(adminSnowflakes, userID)
-		}
 		dg, err = db.Guild.Create().
 			SetID(guildID).
 			SetName(embed.Name).
 			SetIconHash(embed.Icon).
-			SetAdminSnowflakes(adminSnowflakes).
-			AddAdminIDs(userID).
 			Save(ctx)
 		if err != nil {
 			return guildResponse{}, fmt.Errorf("error creating Guild: %w", err)
 		}
 		log.Debug().Interface("guild", dg).Msg("created Guild")
-	} else {
-		// update edges and admin fields to include this and other user
-		var connectingUserIsAdmin bool
-		for _, snowflake := range dg.AdminSnowflakes {
-			if snowflake == userID {
-				connectingUserIsAdmin = true
-				break
-			}
-		}
-		if !connectingUserIsAdmin {
-			dg.AdminSnowflakes = append(dg.AdminSnowflakes, userID)
-			err = db.Guild.UpdateOneID(dg.ID).SetAdminSnowflakes(dg.AdminSnowflakes).Exec(ctx)
-			if err != nil {
-				return guildResponse{}, fmt.Errorf("error updating Guild admin snowflakes with enrolling user: %w", err)
-			}
-		}
-		exists, err := db.Guild.QueryAdmins(dg).Where(user.ID(userID)).Exist(ctx)
-		if err != nil {
-			return guildResponse{}, fmt.Errorf("error querying Guild admins for enrolling user: %w", err)
-		}
-		if !exists {
-			err = db.Guild.UpdateOneID(guildID).
-				AddAdminIDs(userID).
-				Exec(ctx)
-			if err != nil {
-				return guildResponse{}, fmt.Errorf("error updating Guild admin edges with enrolling user: %w", err)
-			}
-		}
 	}
 	// populate response
 	talents := dg.Edges.YoutubeTalents
@@ -172,7 +133,7 @@ func createOrAssociateTalentsToGuild(ctx context.Context, db *ent.Client, guildI
 	return nil
 }
 
-func makeGuildResponse(dg *ent.Guild, adminView bool) guildResponse {
+func makeGuildResponse(dg *ent.Guild) guildResponse {
 	var talentIDs []string
 	if len(dg.Edges.YoutubeTalents) > 0 {
 		talentIDs = make([]string, 0, len(dg.Edges.YoutubeTalents))
@@ -184,14 +145,6 @@ func makeGuildResponse(dg *ent.Guild, adminView bool) guildResponse {
 		adminIDs          []string
 		auditLogChannelID string
 	)
-	if adminView {
-		for _, id := range dg.AdminSnowflakes {
-			adminIDs = append(adminIDs, strconv.FormatUint(id, 10))
-		}
-		if dg.AuditChannel != 0 {
-			auditLogChannelID = strconv.FormatUint(dg.AuditChannel, 10)
-		}
-	}
 	roleInfoMap := map[string]roleInfo{}
 	for _, role := range dg.Edges.Roles {
 		roleID := strconv.FormatUint(role.ID, 10)
@@ -225,13 +178,4 @@ func getChannelIDForYouTubeToken(ctx context.Context, ts oauth2.TokenSource) (st
 		return "", err
 	}
 	return clr.Items[0].Id, nil
-}
-
-func isServerAdmin(dg *ent.Guild, userID uint64) bool {
-	for _, id := range dg.AdminSnowflakes {
-		if id == userID {
-			return true
-		}
-	}
-	return false
 }

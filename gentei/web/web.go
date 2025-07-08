@@ -11,8 +11,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/pubsub"
-	"entgo.io/ent/dialect/sql"
-	"entgo.io/ent/dialect/sql/sqljson"
 	"github.com/bwmarrin/discordgo"
 	"github.com/golang-jwt/jwt/v5"
 	echojwt "github.com/labstack/echo-jwt/v4"
@@ -198,16 +196,8 @@ func loginDiscord(
 				Uints64("guildIDs", userGuildIDs).
 				Uints64("ourGuildIDs", guildIDs).
 				Msg("user guilds")
-			// link admins
-			adminIDs, err := db.Guild.Query().Where(func(s *sql.Selector) {
-				s.Where(sqljson.ValueContains(guild.FieldAdminSnowflakes, userID))
-			}).IDs(ctx)
-			if err != nil {
-				return err
-			}
 			err = db.User.UpdateOneID(userDBID).
 				AddGuildIDs(guildIDs...).
-				AddGuildsAdminIDs(adminIDs...).
 				Exec(ctx)
 			if err != nil {
 				return err
@@ -689,7 +679,7 @@ func getGuild(db *ent.Client) echo.HandlerFunc {
 		}
 		return c.JSON(
 			http.StatusOK,
-			makeGuildResponse(dg, isServerAdmin(dg, userID)),
+			makeGuildResponse(dg),
 		)
 	}
 }
@@ -807,7 +797,7 @@ func patchGuild(db *ent.Client) echo.HandlerFunc {
 				return err
 			}
 		}
-		return c.JSON(http.StatusOK, makeGuildResponse(dg, true))
+		return c.JSON(http.StatusOK, makeGuildResponse(dg))
 	}
 }
 

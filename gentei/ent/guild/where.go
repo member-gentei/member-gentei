@@ -278,16 +278,6 @@ func LanguageNotIn(vs ...Language) predicate.Guild {
 	return predicate.Guild(sql.FieldNotIn(FieldLanguage, vs...))
 }
 
-// ModeratorSnowflakesIsNil applies the IsNil predicate on the "moderator_snowflakes" field.
-func ModeratorSnowflakesIsNil() predicate.Guild {
-	return predicate.Guild(sql.FieldIsNull(FieldModeratorSnowflakes))
-}
-
-// ModeratorSnowflakesNotNil applies the NotNil predicate on the "moderator_snowflakes" field.
-func ModeratorSnowflakesNotNil() predicate.Guild {
-	return predicate.Guild(sql.FieldNotNull(FieldModeratorSnowflakes))
-}
-
 // SettingsIsNil applies the IsNil predicate on the "settings" field.
 func SettingsIsNil() predicate.Guild {
 	return predicate.Guild(sql.FieldIsNull(FieldSettings))

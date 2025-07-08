@@ -16,7 +16,6 @@ import (
 	"github.com/member-gentei/member-gentei/gentei/bot/roles"
 	"github.com/member-gentei/member-gentei/gentei/ent"
 	"github.com/member-gentei/member-gentei/gentei/ent/guild"
-	"github.com/member-gentei/member-gentei/gentei/ent/user"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/oauth2"
@@ -114,19 +113,10 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 				return
 			}
 			if !exists {
-				ownerID, err := strconv.ParseUint(gc.OwnerID, 10, 64)
-				if err != nil {
-					logger.Err(err).Msg("error parsing embedded gc.OwnerID as uint64")
-				}
 				create := b.db.Guild.Create().
 					SetID(guildID).
-					SetName(gc.Name).SetIconHash(gc.Icon).
-					SetAdminSnowflakes([]uint64{ownerID})
-				if exists, _ := b.db.User.Query().Where(user.ID(ownerID)).Exist(ctx); exists {
-					create = create.AddAdminIDs(ownerID)
-				} else {
-					logger.Warn().Msg("owner is not registered with Gentei")
-				}
+					SetName(gc.Name).
+					SetIconHash(gc.Icon)
 				_, err = create.Save(ctx)
 				if err != nil {
 					logger.Err(err).Msg("error creating Guild object")
@@ -283,32 +273,6 @@ func (b *DiscordBot) handleCommonGuildCreateUpdate(
 	if err != nil && !ent.IsNotFound(err) {
 		logger.Err(err).Msg("error updating Guild during metadata update")
 		return
-	}
-	// check-and-set owner
-	// TODO: actually set
-	dg, err := b.db.Guild.Get(ctx, guildID)
-	if err != nil {
-		logger.Err(err).Msg("error getting Guild during metadata update")
-		return
-	}
-	if g.OwnerID != "" {
-		ownerID, err := strconv.ParseUint(g.OwnerID, 10, 64)
-		if err != nil {
-			logger.Err(err).Msg("error parsing OwnerID as uint64")
-		}
-		if oldOwnerID := dg.AdminSnowflakes[0]; oldOwnerID != ownerID {
-			logger.Info().
-				Str("old", strconv.FormatUint(oldOwnerID, 10)).
-				Str("new", g.OwnerID).
-				Msg("guild owner has changed")
-			dg.AdminSnowflakes[0] = ownerID
-			_, err = dg.Update().
-				SetAdminSnowflakes(dg.AdminSnowflakes).
-				Save(ctx)
-			if err != nil {
-				logger.Err(err).Msg("error updating admin snowflakes with new owner")
-			}
-		}
 	}
 }
 

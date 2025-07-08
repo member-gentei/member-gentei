@@ -61,7 +61,7 @@ func (b *DiscordBot) enforceAllRoles(ctx context.Context, dryRun bool, reason st
 				} else {
 					logger.Error().Msg("Guild was absent from state, consider restarting")
 				}
-			} else if err != nil {
+			} else {
 				logger.Err(err).Msg("error enforcing GuildRole")
 				return fmt.Errorf("error enforcing GuildRole: %w", err)
 			}

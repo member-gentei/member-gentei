@@ -27,10 +27,6 @@ type Guild struct {
 	AuditChannel uint64 `json:"audit_channel,omitempty"`
 	// IETF BCP 47 language tag
 	Language guild.Language `json:"language,omitempty"`
-	// Discord snowflakes of users and groups that can modify server settings. The first snowflake is always the server owner.
-	AdminSnowflakes []uint64 `json:"admin_snowflakes,omitempty"`
-	// Discord snowflakes of users and groups that can read server settings
-	ModeratorSnowflakes []uint64 `json:"moderator_snowflakes,omitempty"`
 	// Settings holds the value of the "settings" field.
 	Settings *schema.GuildSettings `json:"settings,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -95,7 +91,7 @@ func (*Guild) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case guild.FieldAdminSnowflakes, guild.FieldModeratorSnowflakes, guild.FieldSettings:
+		case guild.FieldSettings:
 			values[i] = new([]byte)
 		case guild.FieldID, guild.FieldAuditChannel:
 			values[i] = new(sql.NullInt64)
@@ -145,22 +141,6 @@ func (gu *Guild) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field language", values[i])
 			} else if value.Valid {
 				gu.Language = guild.Language(value.String)
-			}
-		case guild.FieldAdminSnowflakes:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field admin_snowflakes", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &gu.AdminSnowflakes); err != nil {
-					return fmt.Errorf("unmarshal field admin_snowflakes: %w", err)
-				}
-			}
-		case guild.FieldModeratorSnowflakes:
-			if value, ok := values[i].(*[]byte); !ok {
-				return fmt.Errorf("unexpected type %T for field moderator_snowflakes", values[i])
-			} else if value != nil && len(*value) > 0 {
-				if err := json.Unmarshal(*value, &gu.ModeratorSnowflakes); err != nil {
-					return fmt.Errorf("unmarshal field moderator_snowflakes: %w", err)
-				}
 			}
 		case guild.FieldSettings:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -237,12 +217,6 @@ func (gu *Guild) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("language=")
 	builder.WriteString(fmt.Sprintf("%v", gu.Language))
-	builder.WriteString(", ")
-	builder.WriteString("admin_snowflakes=")
-	builder.WriteString(fmt.Sprintf("%v", gu.AdminSnowflakes))
-	builder.WriteString(", ")
-	builder.WriteString("moderator_snowflakes=")
-	builder.WriteString(fmt.Sprintf("%v", gu.ModeratorSnowflakes))
 	builder.WriteString(", ")
 	builder.WriteString("settings=")
 	builder.WriteString(fmt.Sprintf("%v", gu.Settings))

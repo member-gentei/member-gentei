@@ -22,10 +22,6 @@ const (
 	FieldAuditChannel = "audit_channel"
 	// FieldLanguage holds the string denoting the language field in the database.
 	FieldLanguage = "language"
-	// FieldAdminSnowflakes holds the string denoting the admin_snowflakes field in the database.
-	FieldAdminSnowflakes = "admin_snowflakes"
-	// FieldModeratorSnowflakes holds the string denoting the moderator_snowflakes field in the database.
-	FieldModeratorSnowflakes = "moderator_snowflakes"
 	// FieldSettings holds the string denoting the settings field in the database.
 	FieldSettings = "settings"
 	// EdgeMembers holds the string denoting the members edge name in mutations.
@@ -69,8 +65,6 @@ var Columns = []string{
 	FieldIconHash,
 	FieldAuditChannel,
 	FieldLanguage,
-	FieldAdminSnowflakes,
-	FieldModeratorSnowflakes,
 	FieldSettings,
 }
 

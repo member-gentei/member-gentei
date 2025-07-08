@@ -1,4 +1,4 @@
-import React, { Fragment, ReactNode, useEffect } from "react";
+import { Fragment, ReactNode, useEffect } from "react";
 import { SiDiscord } from "react-icons/si";
 import {
   Link as RouterLink,
@@ -16,7 +16,6 @@ import {
   CardActions,
   CardContent,
   CircularProgress,
-  Container,
   Grid,
   Stack,
   Typography,
@@ -37,14 +36,9 @@ export function LoginDiscord() {
     }
   });
   let cardContent: ReactNode;
-  let columnsClasses = "";
-  let columnClasses =
-    "is-half-mobile is-one-third-tablet is-one-quarter-desktop is-one-quarter-fullhd";
   switch (store.discordLogin) {
     case LoadState.Failed:
       let explainer: ReactNode;
-      columnClasses = "";
-      columnsClasses = "mx-6";
       switch (store.discordLoginError?.error_description) {
         case `Invalid "code" in request.`:
           explainer = (
