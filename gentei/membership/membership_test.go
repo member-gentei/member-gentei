@@ -48,7 +48,6 @@ func TestCreateMissingUserMemberships(t *testing.T) {
 	db.Guild.Create().
 		SetID(guildID).
 		SetName("test guild").
-		SetAdminSnowflakes([]uint64{rand.Uint64()}).
 		AddMemberIDs(userID).
 		ExecX(ctx)
 	db.GuildRole.Create().
