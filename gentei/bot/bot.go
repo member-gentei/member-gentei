@@ -96,7 +96,7 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 		if gc.MemberCount > largeThreshold {
 			go func() {
 				var (
-					baseDuration   = time.Second * 90
+					baseDuration   = time.Second * 120
 					m, _           = b.guildMemberLoadMutexes.LoadOrStore(gc.ID, &sync.Mutex{})
 					reRequestCount int
 				)
@@ -117,9 +117,6 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 					} else {
 						reRequestCount++
 						logger.Warn().Int("reRequests", reRequestCount).Msg("requesting guild members again")
-						if err = b.session.RequestGuildMembers(gc.ID, "", 0, "", false); err != nil {
-							logger.Err(err).Msg("error requesting guild members")
-						}
 					}
 				}
 			}()
