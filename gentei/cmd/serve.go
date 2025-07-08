@@ -51,7 +51,7 @@ var serveCmd = &cobra.Command{
 			topic = ps.Topic(flagPubSubTopic)
 			topic.PublishSettings.CountThreshold = 1
 		}
-		err = web.ServeAPI(db, discordConfig, youTubeConfig, topic, serveJWTKey, flagServeAddress, flagVerbose)
+		err = web.ServeAPI(db, discordConfig, youTubeConfig, topic, serveJWTKey, flagServeAddress, flagVerbose > 0)
 		if err != nil {
 			log.Fatal().Err(err).Msg("server terminated")
 		}

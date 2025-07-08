@@ -36,7 +36,7 @@ var (
 	flagGCPProjectID string
 	flagGCPLogID     string
 	flagOpenDB       string
-	flagVerbose      bool
+	flagVerbose      int
 
 	flagPubSubSubscription  string
 	flagPubSubTopic         string
@@ -73,10 +73,13 @@ var rootCmd = &cobra.Command{
 			zerolog.ConsoleWriter{Out: os.Stderr},
 			gcloWriter,
 		))
-		if flagVerbose {
-			zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		} else {
+		switch flagVerbose {
+		case 0:
 			zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		case 1:
+			zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		case 2:
+			zerolog.SetGlobalLevel(zerolog.TraceLevel)
 		}
 	},
 }
@@ -105,6 +108,7 @@ func mustOpenDB(ctx context.Context) *ent.Client {
 	if flagDBEngine == "sqlite3" {
 		logger.Warn().Str("db", flagOpenDB).Msg("using sqlite3 database")
 	}
+	logger.Trace().Msg("connecting to database...")
 	db, err := ent.Open(flagDBEngine, flagOpenDB)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("error opening SQL database")
@@ -171,7 +175,7 @@ func must[T any](t T, err error) T {
 
 func init() {
 	persistent := rootCmd.PersistentFlags()
-	persistent.BoolVarP(&flagVerbose, "verbose", "v", false, "debug/verbose logging")
+	persistent.CountVarP(&flagVerbose, "verbose", "v", "debug/verbose logging")
 	persistent.String("engine", "sqlite3", "one of: sqlite3, pgx")
 	persistent.String("db", "file:ent.sqlite3?cache=shared&_fk=1", "sql connection string")
 	persistent.String("gcp-project", "member-gentei", "GCP project ID")

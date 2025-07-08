@@ -378,7 +378,7 @@ func checkSingleMembership(
 	if err != nil {
 		var gErr *googleapi.Error
 		if errors.As(err, &gErr) {
-			logger.Debug().Interface("gErr", gErr).Msg("membership check encountered googleapi.Error")
+			logger.Trace().Interface("gErr", gErr).Msg("membership check encountered googleapi.Error")
 			if apis.IsCommentsDisabledErr(gErr) || gErr.Code == 404 {
 				// if comments are disabled on this video, we need to select a new video.
 				logger.Warn().Err(err).
@@ -415,6 +415,7 @@ func checkSingleMembership(
 			}
 			if gErr.Code == 403 {
 				// not a member
+				logger.Debug().Msg("not a member")
 				return false, nil
 			}
 		}
