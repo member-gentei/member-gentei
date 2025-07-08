@@ -115,7 +115,13 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 						logger.Warn().Int("reRequests", reRequestCount).Msg("requesting guild members again")
 					} else {
 						// great, we're done
-						m.Unlock()
+						func() {
+							// we may panic on a double unlock if our timing is bad
+							defer func() {
+								recover()
+							}()
+							m.Unlock()
+						}()
 						return
 					}
 				}
