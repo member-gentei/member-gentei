@@ -103,7 +103,7 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 				m.Lock()
 				for {
 					logger.Info().Int("memberCount", gc.MemberCount).Msg("big server; requesting Guild members")
-					if err = b.session.RequestGuildMembers(gc.ID, "", 0, "", false); err != nil {
+					if err = b.session.RequestGuildMembers(gc.ID, "", 0, "rgc-"+gc.ID, false); err != nil {
 						logger.Err(err).Msg("error requesting guild members")
 					}
 					// check that it's unlocked with a jitter of 10 seconds
