@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"net/http"
 	"strconv"
 	"sync"
@@ -90,13 +91,38 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 		logger.Info().Msg("joined Guild")
 		// start guild member load if > largeThreshold
 		// (see why at https://discord.com/developers/docs/topics/gateway-events#request-guild-members)
-		m, _ := b.guildMemberLoadMutexes.LoadOrStore(gc.ID, &sync.Mutex{})
+		//
+		// this starts as a watchdog-ish goroutine, just in case
 		if gc.MemberCount > largeThreshold {
-			logger.Info().Int("memberCount", gc.MemberCount).Msg("big server; requesting Guild members")
-			m.Lock()
-			if err = b.session.RequestGuildMembers(gc.ID, "", 0, "", false); err != nil {
-				logger.Err(err).Msg("error requesting guild members")
-			}
+			go func() {
+				var (
+					baseDuration   = time.Second * 90
+					m, _           = b.guildMemberLoadMutexes.LoadOrStore(gc.ID, &sync.Mutex{})
+					reRequestCount int
+				)
+				for {
+					logger.Info().Int("memberCount", gc.MemberCount).Msg("big server; requesting Guild members")
+					m.Lock()
+					if err = b.session.RequestGuildMembers(gc.ID, "", 0, "", false); err != nil {
+						logger.Err(err).Msg("error requesting guild members")
+					}
+					// check that it's unlocked with a jitter of 10 seconds
+					jitter := time.Duration(float64(time.Second) * ((20 * rand.Float64()) - 10))
+					time.Sleep(baseDuration + jitter)
+					// if it's unlocked, issue another
+					if m.TryLock() {
+						// great, we're done
+						m.Unlock()
+						return
+					} else {
+						reRequestCount++
+						logger.Warn().Int("reRequests", reRequestCount).Msg("requesting guild members again")
+						if err = b.session.RequestGuildMembers(gc.ID, "", 0, "", false); err != nil {
+							logger.Err(err).Msg("error requesting guild members")
+						}
+					}
+				}
+			}()
 		}
 		// update Guild info opportunistically
 		go func() {
