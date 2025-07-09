@@ -43,14 +43,17 @@ var botCmd = &cobra.Command{
 			ctx = context.Background()
 			db  = mustOpenDB(ctx)
 		)
+		log.Trace().Msg("starting pubsub.NewClient")
 		ps, err := pubsub.NewClient(ctx, flagGCPProjectID)
 		if err != nil {
 			log.Fatal().Err(err).Msg("error calling pubsub.NewClient")
 		}
+		log.Trace().Msg("creating DiscordBot")
 		genteiBot, err := bot.New(db, flagBotToken, getYouTubeConfig())
 		if err != nil {
 			log.Fatal().Err(err).Msg("error creating bot.DiscordBot")
 		}
+		log.Trace().Msg("starting bot")
 		if err = genteiBot.Start(flagBotProd); err != nil {
 			log.Fatal().Err(err).Msg("error starting bot")
 		}

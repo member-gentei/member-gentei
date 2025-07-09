@@ -78,7 +78,7 @@ var rootCmd = &cobra.Command{
 			zerolog.SetGlobalLevel(zerolog.InfoLevel)
 		case 1:
 			zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		case 2:
+		default:
 			zerolog.SetGlobalLevel(zerolog.TraceLevel)
 		}
 	},
@@ -113,6 +113,7 @@ func mustOpenDB(ctx context.Context) *ent.Client {
 	if err != nil {
 		logger.Fatal().Err(err).Msg("error opening SQL database")
 	}
+	logger.Trace().Msg("connected to database")
 	var migrateOptions = []schema.MigrateOption{
 		// 8:52PM FTL failed to create schema resources error="sql/schema: postgres: querying \"guild_admins\" columns: pq: unknown function: to_regclass()" engine=postgres
 		migrate.WithDropColumn(true),
@@ -121,7 +122,6 @@ func mustOpenDB(ctx context.Context) *ent.Client {
 		migrateOptions = append(
 			migrateOptions,
 			schema.WithAtlas(false),
-			migrate.WithDropColumn(true),
 		)
 	}
 	if err := db.Schema.Create(ctx, migrateOptions...); err != nil {
