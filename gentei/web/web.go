@@ -389,7 +389,7 @@ func meResponseFromUser(user *ent.User) (meResponse, error) {
 			}
 			memberships[talent.ID] = meResponseMembership{
 				LastVerified: membership.LastVerified.Unix(),
-				Failed:       !membership.FirstFailed.IsZero(),
+				Failed:       !membership.FirstFailed.IsZero() && membership.LastVerified.Before(membership.FirstFailed),
 			}
 		}
 	}
