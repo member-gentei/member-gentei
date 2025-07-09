@@ -79,8 +79,10 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 		if gc.MemberCount > largeThreshold {
 			var (
 				nonce         = "rgc-" + gc.ID
+				m, _          = b.guildMemberLoadMutexes.LoadOrStore(gc.ID, &sync.Mutex{})
 				removeHandler func()
 			)
+			m.Lock()
 			// bind large guild member handler first
 			// (remove the handler after everything is loaded)
 			removeHandler = b.session.AddHandler(func(s *discordgo.Session, gmc *discordgo.GuildMembersChunk) {
@@ -109,10 +111,8 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 			go func() {
 				var (
 					baseDuration   = time.Second * 120
-					m, _           = b.guildMemberLoadMutexes.LoadOrStore(gc.ID, &sync.Mutex{})
 					reRequestCount int
 				)
-				m.Lock()
 				for {
 					logger.Info().Int("memberCount", gc.MemberCount).Msg("big server; requesting Guild members")
 					if err = b.session.RequestGuildMembers(gc.ID, "", 0, "rgc-"+gc.ID, false); err != nil {
