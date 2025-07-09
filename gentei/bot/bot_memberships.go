@@ -113,11 +113,13 @@ func (b *DiscordBot) enforceRole(ctx context.Context, gr *ent.GuildRole, dryRun 
 	}
 	// wait until we have all members
 	mutex, _ := b.guildMemberLoadMutexes.Load(guildIDStr)
-	if !mutex.TryLock() {
-		logger.Info().Msg("waiting until Guild Members are done loading")
-		mutex.Lock()
+	if mutex != nil {
+		if !mutex.TryLock() {
+			logger.Info().Msg("waiting until Guild Members are done loading")
+			mutex.Lock()
+		}
+		defer mutex.Unlock()
 	}
-	defer mutex.Unlock()
 	// compile the changeset
 	var (
 		toAdd     []string
