@@ -131,7 +131,12 @@ func (l *largeGuildLoader) GuildMembersChunkHandler(s *discordgo.Session, gmc *d
 	}
 	if gmc.ChunkIndex == 0 {
 		logger.Info().Msg("got first guild member chunk")
-		l.guildMemberRequests[gmc.GuildID].LastChunkReceived = time.Now()
+		gmr, found := l.guildMemberRequests[gmc.GuildID]
+		if !found {
+			l.guildMemberRequests[gmc.GuildID] = &lglStats{LastChunkReceived: time.Now()}
+		} else {
+			gmr.LastChunkReceived = time.Now()
+		}
 	}
 	if gmc.ChunkIndex == gmc.ChunkCount-1 {
 		logger.Info().Msg("got all guild member chunks")
