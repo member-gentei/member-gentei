@@ -15,6 +15,11 @@ type largeGuildLoader struct {
 	guildMemberLoadMutexes   *gsync.Map[string, *sync.Mutex]
 	guildMemberRequests      map[string]*lglStats
 	guildMemberRequestsMutex sync.Mutex
+	inactiveInterval         time.Duration
+
+	// consume the channel before taking a lock
+	// reset the ticker after taking a lock
+	inactiveTicker *time.Ticker
 }
 
 type lglStats struct {
@@ -23,49 +28,63 @@ type lglStats struct {
 	Retries           int
 }
 
-func (l *largeGuildLoader) StartWatchdog(
-	interval time.Duration,
-	retryBatchSize int,
-	maxRetries int,
-) {
+func (l *largeGuildLoader) StartWatchdog(retryBatchSize int, maxRetries int) {
+	l.inactiveTicker = time.NewTicker(l.inactiveInterval)
+	var alreadyStartedMode bool
 	for {
-		time.Sleep(interval)
-		// go through all of the requests
-		func() {
-			var (
-				retriedGuildCount int
-				deleteGuildIDs    []string
-			)
-			l.guildMemberRequestsMutex.Lock()
-			defer l.guildMemberRequestsMutex.Unlock()
-			chunkThreshold := time.Now().Add(-time.Second * 10)
-			for guildID, stats := range l.guildMemberRequests {
-				logger := log.With().Str("guildID", guildID).Logger()
-				if stats.Retries > maxRetries {
-					logger.Warn().Msg("reached max retires for loading guild member list")
-					deleteGuildIDs = append(deleteGuildIDs, guildID)
-					continue
-				} else if retriedGuildCount < retryBatchSize {
-					if err := l.session.RequestGuildMembers(guildID, "", 0, "rgc-"+guildID, false); err != nil {
-						logger.Err(err).Msg("error re-requesting guild members")
-					}
-					logger.Debug().Msg("re-requested guild members")
-					stats.Retries++
-					retriedGuildCount++
-				} else if stats.LastChunkReceived.After(chunkThreshold) {
-					logger.Debug().Time("lastChunk", stats.LastChunkReceived).Msg("last chunk rather recent, no retry required")
-				} else {
-					logger.Debug().Msg("skipping retry for now, too many to load")
-				}
-			}
-			for _, guildID := range deleteGuildIDs {
-				delete(l.guildMemberRequests, guildID)
-			}
-			if lgms := len(l.guildMemberRequests); lgms > 0 {
-				log.Info().Int("count", lgms).Msg("guilds left to retry loading member lists")
-			}
-		}()
+		<-l.inactiveTicker.C
+		if !l.session.DataReady {
+			continue
+		}
+		left := l.doWatchdog(retryBatchSize, maxRetries)
+		if left == 0 && !alreadyStartedMode {
+			alreadyStartedMode = true
+			idleInterval := l.inactiveInterval * 10
+			l.inactiveTicker.Reset(idleInterval)
+			log.Info().
+				Dur("interval", idleInterval).
+				Msg("all guild members loaded, changing watchdog to longer check interval")
+		}
 	}
+}
+
+// Returns how many guilds need to be loaded.
+func (l *largeGuildLoader) doWatchdog(retryBatchSize int, maxRetries int) int {
+	l.guildMemberRequestsMutex.Lock()
+	defer l.guildMemberRequestsMutex.Unlock()
+	var (
+		retriedGuildCount int
+		deleteGuildIDs    []string
+		chunkThreshold    = time.Now().Add(-time.Second * 10)
+	)
+	// go through all uncompleted requests
+	for guildID, stats := range l.guildMemberRequests {
+		logger := log.With().Str("guildID", guildID).Logger()
+		if stats.Retries > maxRetries {
+			logger.Warn().Msg("reached max retires for loading guild member list")
+			deleteGuildIDs = append(deleteGuildIDs, guildID)
+			continue
+		} else if retriedGuildCount < retryBatchSize {
+			if err := l.session.RequestGuildMembers(guildID, "", 0, "rgc-"+guildID, false); err != nil {
+				logger.Err(err).Msg("error re-requesting guild members")
+			}
+			logger.Debug().Msg("re-requested guild members")
+			stats.Retries++
+			retriedGuildCount++
+		} else if stats.LastChunkReceived.After(chunkThreshold) {
+			logger.Debug().Time("lastChunk", stats.LastChunkReceived).Msg("last chunk rather recent, no retry required")
+		} else {
+			logger.Debug().Msg("skipping retry for now, too many to load")
+		}
+	}
+	for _, guildID := range deleteGuildIDs {
+		delete(l.guildMemberRequests, guildID)
+	}
+	lgms := len(l.guildMemberRequests)
+	if lgms > 0 {
+		log.Info().Int("count", lgms).Msg("guilds left to retry loading member lists")
+	}
+	return lgms
 }
 
 func (l *largeGuildLoader) GuildCreateHandler(s *discordgo.Session, gc *discordgo.GuildCreate) {
@@ -98,6 +117,7 @@ func (l *largeGuildLoader) GuildCreateHandler(s *discordgo.Session, gc *discordg
 func (l *largeGuildLoader) GuildMembersChunkHandler(s *discordgo.Session, gmc *discordgo.GuildMembersChunk) {
 	l.guildMemberRequestsMutex.Lock()
 	defer l.guildMemberRequestsMutex.Unlock()
+	l.inactiveTicker.Reset(l.inactiveInterval)
 	logger := log.With().
 		Str("guildID", gmc.GuildID).
 		Int("total", gmc.ChunkCount).

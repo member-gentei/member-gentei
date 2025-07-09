@@ -66,6 +66,7 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 	// guild metadata updates
 	lgl := largeGuildLoader{
 		session:                b.session,
+		inactiveInterval:       time.Second * 5,
 		guildMemberLoadMutexes: &b.guildMemberLoadMutexes,
 		guildMemberRequests:    make(map[string]*lglStats, 10),
 	}
@@ -129,7 +130,7 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 	b.session.Identify.LargeThreshold = 250
 	// // avoid data race conditions
 	// b.session.SyncEvents = true
-	go lgl.StartWatchdog(time.Second*60, 5, 2)
+	go lgl.StartWatchdog(5, 2)
 	if err = b.session.Open(); err != nil {
 		return fmt.Errorf("error opening discordgo session: %w", err)
 	}
