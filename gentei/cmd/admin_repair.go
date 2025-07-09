@@ -61,8 +61,14 @@ var repairCmd = &cobra.Command{
 				).
 				IDsX(ctx)
 			for _, channelID := range disabledChannelIDs {
-				if err := repairChannelID(ctx, db, channelID); err != nil {
-					log.Err(err).Str("channelID", channelID).Msg("error repairing channel")
+				err := repairChannelID(ctx, db, channelID)
+				if err != nil {
+					logger := log.With().Str("channelID", channelID).Logger()
+					if errors.Is(err, apis.ErrNoMembersOnlyVideos) {
+						logger.Info().Err(err).Msg("no members-only videos")
+					} else {
+						logger.Err(err).Msg("error repairing channel")
+					}
 				}
 			}
 			session, err := discordgo.New(fmt.Sprintf("Bot %s", os.Getenv(envNameDiscordBotToken)))
