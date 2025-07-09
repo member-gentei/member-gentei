@@ -85,14 +85,13 @@ func (l *largeGuildLoader) GuildCreateHandler(s *discordgo.Session, gc *discordg
 		m.Lock()
 	}
 	logger.Info().Int("memberCount", gc.MemberCount).Msg("big server; requesting Guild members")
-	if err := l.session.RequestGuildMembers(gc.ID, "", 0, l.getNonce(gc.ID), false); err != nil {
-		logger.Err(err).Msg("error requesting guild members")
-	}
 	l.guildMemberRequestsMutex.Lock()
 	defer l.guildMemberRequestsMutex.Unlock()
-	nowIsh := time.Now()
 	l.guildMemberRequests[gc.ID] = &lglStats{
-		FirstRequest: nowIsh,
+		FirstRequest: time.Now(),
+	}
+	if err := l.session.RequestGuildMembers(gc.ID, "", 0, l.getNonce(gc.ID), false); err != nil {
+		logger.Err(err).Msg("error requesting guild members")
 	}
 }
 
