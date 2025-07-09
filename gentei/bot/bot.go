@@ -83,7 +83,10 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 				nonce         = "rgc-" + gc.ID
 				removeHandler func()
 			)
-			m.Lock()
+			if !m.TryLock() {
+				logger.Info().Msg("something else locked the guildMemberLoadMutex?")
+				m.Lock()
+			}
 			// bind large guild member handler first
 			// (remove the handler after everything is loaded)
 			removeHandler = b.session.AddHandler(func(s *discordgo.Session, gmc *discordgo.GuildMembersChunk) {
