@@ -65,6 +65,8 @@ func (l *largeGuildLoader) doWatchdog(retryBatchSize int, maxRetries int) int {
 			deleteGuildIDs = append(deleteGuildIDs, guildID)
 			continue
 		} else if retriedGuildCount < retryBatchSize {
+			m, _ := l.guildMemberLoadMutexes.LoadOrStore(guildID, &sync.Mutex{})
+			m.TryLock() // allows working through the occasional duplicate on startup
 			if err := l.session.RequestGuildMembers(guildID, "", 0, "rgc-"+guildID, false); err != nil {
 				logger.Err(err).Msg("error re-requesting guild members")
 			}
