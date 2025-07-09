@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
 	"time"
 
@@ -137,13 +138,13 @@ func (b *DiscordBot) enforceRole(ctx context.Context, gr *ent.GuildRole, dryRun 
 		}
 		// determine if this user should be granted / removed the role
 		if shouldHaveRole[uid] {
-			if sliceContains(roleIDStr, member.Roles) {
+			if slices.Contains(member.Roles, roleIDStr) {
 				keepCount++
 			} else {
 				// "should have the role and don't already have the role"
 				toAdd = append(toAdd, member.User.ID)
 			}
-		} else if sliceContains(roleIDStr, member.Roles) {
+		} else if slices.Contains(member.Roles, roleIDStr) {
 			// "should not have the role and has the role"
 			toRemove = append(toRemove, member.User.ID)
 		}
