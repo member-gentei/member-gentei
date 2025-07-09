@@ -145,8 +145,11 @@ spec:
             - secretRef:
                 name: gentei-db
           resources:
-            limits:
+            requests:
               memory: "1024Mi"
+              cpu: "10m"
+            limits:
+              memory: "2048Mi"
               cpu: "500m"
           volumeMounts:
             - name: google-sa
