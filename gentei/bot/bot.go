@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"net/http"
+	"slices"
 	"strconv"
 	"sync"
 	"time"
@@ -74,12 +75,12 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 			Str("guildName", gc.Name).
 			Logger()
 		logger.Info().Msg("joined Guild")
+		m, _ := b.guildMemberLoadMutexes.LoadOrStore(gc.ID, &sync.Mutex{})
 		// start guild member load if > largeThreshold
 		// (see why at https://discord.com/developers/docs/topics/gateway-events#request-guild-members)
 		if gc.MemberCount > largeThreshold {
 			var (
 				nonce         = "rgc-" + gc.ID
-				m, _          = b.guildMemberLoadMutexes.LoadOrStore(gc.ID, &sync.Mutex{})
 				removeHandler func()
 			)
 			m.Lock()
@@ -247,13 +248,13 @@ func (b *DiscordBot) applyRole(ctx context.Context, guildID, roleID, userID uint
 	b.rut.TrackHook(guildIDStr, userIDStr, func(rtu roles.RoleUpdateTrackData) (removeHook bool) {
 		if add {
 			// check this update for the target role that should exist
-			if sliceContains(roleIDStr, rtu.Roles) {
+			if slices.Contains(rtu.Roles, roleIDStr) {
 				cancelApplyCtx(errCancelConfirm)
 				return true
 			}
 		} else {
 			// check that the role does not exist
-			if sliceContains(roleIDStr, rtu.Roles) {
+			if slices.Contains(rtu.Roles, roleIDStr) {
 				return false
 			}
 			cancelApplyCtx(errCancelConfirm)
@@ -325,15 +326,6 @@ func IsDiscordError(err error, code int) bool {
 	var restErr *discordgo.RESTError
 	if errors.As(err, &restErr) {
 		return restErr.Message != nil && restErr.Message.Code == code
-	}
-	return false
-}
-
-func sliceContains[T comparable](needle T, haystack []T) bool {
-	for _, hay := range haystack {
-		if needle == hay {
-			return true
-		}
 	}
 	return false
 }
