@@ -12,7 +12,7 @@ require (
 	github.com/jedib0t/go-pretty/v6 v6.4.8
 	github.com/jellydator/ttlcache/v3 v3.2.0
 	github.com/labstack/echo-jwt/v4 v4.3.1
-	github.com/labstack/echo/v4 v4.13.3
+	github.com/labstack/echo/v4 v4.13.4
 	github.com/lib/pq v1.10.9
 	github.com/mark-ignacio/gsync v0.0.0-20240720162510-90768c6cda0f
 	github.com/mark-ignacio/zerolog-gcp v0.5.0
@@ -86,7 +86,7 @@ require (
 	golang.org/x/crypto v0.39.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/mod v0.25.0 // indirect
-	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/net v0.40.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.26.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
