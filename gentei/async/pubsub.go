@@ -142,7 +142,8 @@ func ListenGeneral(
 				return
 			}
 			if err = ProcessYouTubeDelete(ctx, db, botTopic, userID); err != nil {
-				log.Err(err).Str("userID", strconv.FormatUint(userID, 10)).Msg("error processing user deletion")
+				log.Err(err).Str("userID", strconv.FormatUint(userID, 10)).
+					Msg("error processing YouTube user deletion")
 			} else {
 				m.Ack()
 				return

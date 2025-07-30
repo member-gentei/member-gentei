@@ -97,7 +97,9 @@ func ProcessYouTubeDelete(ctx context.Context, db *ent.Client, topic *pubsub.Top
 	logger := log.With().Str("userID", strconv.FormatUint(userID, 10)).Logger()
 	u, err := db.User.Get(ctx, userID)
 	if err != nil {
-		return err
+		if !ent.IsNotFound(err) {
+			return err
+		}
 	}
 	// no-op
 	if u.YoutubeID == nil || *u.YoutubeID == "" {
