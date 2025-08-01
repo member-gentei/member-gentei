@@ -102,7 +102,7 @@ func ProcessYouTubeDelete(ctx context.Context, db *ent.Client, topic *pubsub.Top
 		}
 	}
 	// no-op
-	if u.YoutubeID == nil || *u.YoutubeID == "" {
+	if u == nil || u.YoutubeID == nil || *u.YoutubeID == "" {
 		return nil
 	}
 	err = revokeYouTubeToken(ctx, u.YoutubeToken)
