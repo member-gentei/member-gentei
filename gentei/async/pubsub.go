@@ -61,6 +61,7 @@ func ListenGeneral(
 	parentCtx context.Context,
 	db *ent.Client,
 	youTubeConfig *oauth2.Config,
+	discordConfig *oauth2.Config,
 	subscription *pubsub.Subscription,
 	botTopic *pubsub.Topic,
 	setChangeReason func(string),
@@ -124,7 +125,7 @@ func ListenGeneral(
 				return
 			}
 			logger := log.With().Str("userID", strconv.FormatUint(userID, 10)).Logger()
-			if err = ProcessUserDelete(ctx, db, botTopic, userID, message.UserDelete.Reason); err != nil {
+			if err = ProcessUserDelete(ctx, db, discordConfig, botTopic, userID, message.UserDelete.Reason); err != nil {
 				logger.Err(err).Msg("error processing user deletion")
 			} else {
 				logger.Info().Msg("issued delete for user")

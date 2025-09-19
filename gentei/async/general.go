@@ -54,7 +54,7 @@ func ProcessYouTubeRegistration(ctx context.Context, db *ent.Client, youTubeConf
 
 // ProcessUserDelete revokes tokens and tells the bot to delete the user.
 // The bot has to delete the user because it'll communicate the final role removals + user deletion, and at that point why have the async queue require another message?
-func ProcessUserDelete(ctx context.Context, db *ent.Client, topic *pubsub.Topic, userID uint64, reason string) error {
+func ProcessUserDelete(ctx context.Context, db *ent.Client, discordConfig *oauth2.Config, topic *pubsub.Topic, userID uint64, reason string) error {
 	logger := log.With().Str("userID", strconv.FormatUint(userID, 10)).Logger()
 	// revoke tokens
 	u, err := db.User.Get(ctx, userID)
@@ -66,7 +66,7 @@ func ProcessUserDelete(ctx context.Context, db *ent.Client, topic *pubsub.Topic,
 		return err
 	}
 	if u.DiscordToken != nil {
-		err = revokeDiscordToken(ctx, u.DiscordToken)
+		err = revokeDiscordToken(ctx, discordConfig.ClientID, discordConfig.ClientSecret, u.DiscordToken)
 		if err != nil {
 			logger.Err(err).Msg("error revoking Discord token, proceeding to delete")
 		}
@@ -167,9 +167,12 @@ func revokeYouTubeToken(ctx context.Context, token *oauth2.Token) error {
 	return nil
 }
 
-var revokeMutex sync.Mutex
+var (
+	revokeMutex  sync.Mutex
+	revokeClient = retryablehttp.NewClient()
+)
 
-func revokeDiscordToken(ctx context.Context, token *oauth2.Token) error {
+func revokeDiscordToken(ctx context.Context, clientID string, clientSecret string, token *oauth2.Token) error {
 	// rudimentary rate limit
 	revokeMutex.Lock()
 	defer revokeMutex.Unlock()
@@ -183,7 +186,13 @@ func revokeDiscordToken(ctx context.Context, token *oauth2.Token) error {
 		toRevoke = token.RefreshToken
 	}
 	values.Add("token", toRevoke)
-	r, err := retryablehttp.PostForm("https://discord.com/api/oauth2/token/revoke", values)
+	req, err := retryablehttp.NewRequest("POST", "https://discord.com/api/oauth2/token/revoke", strings.NewReader(values.Encode()))
+	if err != nil {
+		return err
+	}
+	req.SetBasicAuth(clientID, clientSecret)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r, err := revokeClient.Do(req)
 	if err != nil {
 		return err
 	}

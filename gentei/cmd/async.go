@@ -44,7 +44,14 @@ var asyncCmd = &cobra.Command{
 		go func() {
 			defer wg.Done()
 			log.Info().Str("subscription", flagPubSubSubscription).Msg("listening to general pubsub subscription")
-			err = async.ListenGeneral(ctx, db, getYouTubeConfig(), ps.Subscription(flagPubSubSubscription), botTopic, changeHandler.SetChangeReason)
+			err = async.ListenGeneral(
+				ctx, db,
+				getYouTubeConfig(),
+				getDiscordConfig(),
+				ps.Subscription(flagPubSubSubscription),
+				botTopic,
+				changeHandler.SetChangeReason,
+			)
 			if err != nil {
 				log.Fatal().Err(err).Msg("error calling async.ListenGeneral")
 			}
