@@ -24,7 +24,7 @@ require (
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.19.0
 	github.com/ziflex/lecho/v3 v3.8.0
-	golang.org/x/oauth2 v0.28.0
+	golang.org/x/oauth2 v0.31.0
 	golang.org/x/sync v0.15.0
 	google.golang.org/api v0.227.0
 	libs.altipla.consulting v1.185.0
