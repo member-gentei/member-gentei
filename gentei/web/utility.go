@@ -52,6 +52,7 @@ func parseAndSaveGuild(ctx context.Context, db *ent.Client, userID uint64, guild
 			SetID(guildID).
 			SetName(embed.Name).
 			SetIconHash(embed.Icon).
+			AddAdminIDs(userID). // required for the web UI to work
 			Save(ctx)
 		if err != nil {
 			return guildResponse{}, fmt.Errorf("error creating Guild: %w", err)
