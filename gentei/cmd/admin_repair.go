@@ -31,7 +31,7 @@ var (
 var repairCmd = &cobra.Command{
 	Use:       "repair",
 	Short:     "Maintenance commands for various fun events",
-	ValidArgs: []string{"unwind-multirole", "lost-not"},
+	ValidArgs: []string{"unwind-multirole", "lost-not", "guild-youtube-edge"},
 	Args:      cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
@@ -44,6 +44,8 @@ var repairCmd = &cobra.Command{
 				repairUnwindMultirole(ctx, db)
 			case "lost-not":
 				repairLostNot(ctx, db)
+			case "guild-youtube-edge":
+				repairGuildYouTubeEdge(ctx, db)
 			}
 			return
 		}
@@ -283,6 +285,38 @@ func repairLostNot(ctx context.Context, db *ent.Client) {
 	}
 	if err != nil {
 		log.Fatal().Err(err).Msg("error performing rollback/commit")
+	}
+}
+
+func repairGuildYouTubeEdge(ctx context.Context, db *ent.Client) {
+	log.Info().Msg("querying all guilds")
+	guilds := db.Guild.Query().
+		Where(guild.HasRoles()).
+		WithRoles(func(grq *ent.GuildRoleQuery) {
+			grq.WithTalent()
+		}).
+		WithYoutubeTalents().
+		AllX(ctx)
+	for _, g := range guilds {
+		logger := log.With().Uint64("guildID", g.ID).Logger()
+		// accumulate talent IDs
+		var addTalentIDs []string
+		currentTalentIDs := make(map[string]bool, len(g.Edges.YoutubeTalents))
+		for _, talent := range g.Edges.YoutubeTalents {
+			currentTalentIDs[talent.ID] = true
+		}
+		for _, gr := range g.Edges.Roles {
+			talentID := gr.Edges.Talent.ID
+			if !currentTalentIDs[talentID] {
+				logger.Info().Str("talentID", talentID).Msg("repairing missing talent ID")
+				addTalentIDs = append(addTalentIDs, talentID)
+			}
+		}
+		if len(addTalentIDs) > 0 {
+			g.Update().
+				AddYoutubeTalentIDs(addTalentIDs...).
+				ExecX(ctx)
+		}
 	}
 }
 

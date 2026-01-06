@@ -195,6 +195,12 @@ func (b *DiscordBot) handleManageMap(
 	if err != nil {
 		return nil, err
 	}
+	err = b.db.Guild.UpdateOneID(guildID).
+		AddYoutubeTalentIDs(talent.ID).
+		Exec(ctx)
+	if err != nil {
+		logger.Warn().Err(err).Msg("error adding talent ID during manage map")
+	}
 	return &discordgo.WebhookEdit{
 		Content: ptr(templates.MustRender(templates.RoleApplied, templates.RoleAppliedContext{
 			ChannelName: talent.ChannelName,
