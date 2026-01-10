@@ -17,6 +17,10 @@ export default function SelectTalents() {
     if (store.guildState <= LoadState.Started) {
       return;
     }
+    if (store.guildState === LoadState.Failed || !store.guild) {
+      console.error("frontend wrongly thinks that the Discord server has finished enrollment")
+      return;
+    }
     const talentIDs = store.guild!.TalentIDs || [];
     if (search.getAll(talentGetParam).length === 0 && talentIDs.length > 0) {
       talentIDs.forEach((talentID) => {
