@@ -58,6 +58,19 @@ func parseAndSaveGuild(ctx context.Context, db *ent.Client, userID uint64, guild
 			return guildResponse{}, fmt.Errorf("error creating Guild: %w", err)
 		}
 		log.Debug().Interface("guild", dg).Msg("created Guild")
+	} else if err != nil {
+		return guildResponse{}, err
+	} else {
+		// guild exists (likely from Discord event) — add admin + sync metadata
+		err = db.Guild.UpdateOneID(guildID).
+			AddAdminIDs(userID).
+			SetName(embed.Name).
+			SetIconHash(embed.Icon).
+			Exec(ctx)
+		if err != nil {
+			return guildResponse{}, fmt.Errorf("error updating guild: %w", err)
+		}
+		log.Debug().Uint64("guildID", guildID).Msg("updated existing guild with admin")
 	}
 	// populate response
 	talents := dg.Edges.YoutubeTalents

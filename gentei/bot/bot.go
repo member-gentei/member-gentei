@@ -98,7 +98,11 @@ func (b *DiscordBot) Start(prod bool) (err error) {
 					SetIconHash(gc.Icon)
 				_, err = create.Save(ctx)
 				if err != nil {
-					logger.Err(err).Msg("error creating Guild object")
+					if ent.IsConstraintError(err) {
+						logger.Debug().Msg("guild already exists (created by API)")
+					} else {
+						logger.Err(err).Msg("error creating Guild object")
+					}
 				}
 			}
 			b.handleCommonGuildCreateUpdate(context.Background(), logger, s, gc.Guild)

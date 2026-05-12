@@ -540,7 +540,7 @@ func subcommandOptionsMap(cmd *discordgo.ApplicationCommandInteractionDataOption
 func ensureRegisteredUserHasGuildEdge(ctx context.Context, db *ent.Client, guildID, userID uint64) {
 	logger := log.With().
 		Str("guildID", strconv.FormatUint(guildID, 10)).
-		Str("userID", strconv.FormatUint(guildID, 10)).
+		Str("userID", strconv.FormatUint(userID, 10)).
 		Logger()
 	isMember, err := db.User.Query().
 		Where(
